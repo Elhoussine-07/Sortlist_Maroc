@@ -1,0 +1,1 @@
+import{c as e}from"./middleware-nsF33x1I.js";import{t}from"./utils-BGwYSir2.js";var n=e();function r({className:e,...r}){return(0,n.jsx)(`div`,{className:t(`animate-pulse rounded-md bg-primary/10`,e),...r})}export{r as t};

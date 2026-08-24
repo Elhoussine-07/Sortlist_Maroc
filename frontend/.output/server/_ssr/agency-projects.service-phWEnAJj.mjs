@@ -1,0 +1,158 @@
+import { a as frappeCall, r as camelizeKeys } from "./http-BM0VI1yy.mjs";
+import { a as mapProject } from "./projects.service-BHaNpgMa.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/agency-projects.service-phWEnAJj.js
+var AGENCY_PROJECT_STATUS_TO_TAB = {
+	suspended: "En pause",
+	finished: "Terminées"
+};
+async function getAgencyProjects(filters) {
+	const page = filters?.page ?? 1;
+	const pageSize = filters?.pageSize ?? 20;
+	const tab = filters?.status && AGENCY_PROJECT_STATUS_TO_TAB[filters.status] || "Gagnées";
+	const raw = await frappeCall("opportunity.list_opportunities", {
+		tab,
+		query: filters?.query,
+		client: filters?.client,
+		period: filters?.period,
+		sort: filters?.sort,
+		page,
+		page_size: pageSize
+	});
+	const data = camelizeKeys(raw);
+	const items = (Array.isArray(raw) ? raw : data["results"] ?? data["items"] ?? []).map((entry) => {
+		const camelized = camelizeKeys(entry);
+		const nestedProject = camelized["project"];
+		return mapProject(nestedProject !== null && typeof nestedProject === "object" ? nestedProject : camelized);
+	});
+	const rawCounts = data["counts"] ?? {};
+	const counts = {
+		all: rawCounts["Gagnées"] ?? 0,
+		in_progress: rawCounts["Gagnées"] ?? 0,
+		suspended: rawCounts["En pause"] ?? 0,
+		finished: rawCounts["Terminées"] ?? 0
+	};
+	return {
+		items,
+		page,
+		pageSize,
+		total: items.length,
+		totalPages: 1,
+		counts
+	};
+}
+function mapSuspensionCase(raw) {
+	const data = camelizeKeys(raw);
+	const category = String(data["category"] ?? "").toLowerCase().includes("litige") ? "dispute" : "amicable";
+	const rawRequestedBy = String(data["requestedBy"] ?? "").toLowerCase();
+	const requestedBy = rawRequestedBy === "client" || rawRequestedBy === "agency" || rawRequestedBy === "system" ? rawRequestedBy : null;
+	const rawNoticeStatus = data["litigeNoticeStatus"];
+	const litigeNoticeStatus = rawNoticeStatus === "Pending" || rawNoticeStatus === "Responded" || rawNoticeStatus === "Expired" || rawNoticeStatus === "Closed" ? rawNoticeStatus : null;
+	return {
+		id: String(data["id"] ?? data["name"] ?? ""),
+		projectTitle: String(data["projectTitle"] ?? ""),
+		clientName: String(data["clientName"] ?? ""),
+		reason: String(data["reason"] ?? ""),
+		category,
+		status: String(data["status"] ?? ""),
+		statusLabel: String(data["statusLabel"] ?? data["status"] ?? ""),
+		openedAt: String(data["openedAt"] ?? ""),
+		moderator: data["moderator"] ?? null,
+		requestedBy,
+		litigeNoticeStatus,
+		agencyNoticeDeadline: data["agencyNoticeDeadline"] ?? null,
+		agencyResponse: data["agencyResponse"] ?? null
+	};
+}
+var CLOSED_SUSPENSION_STATUSES = /* @__PURE__ */ new Set([
+	"Refused",
+	"Resumed",
+	"Founded",
+	"Not Founded"
+]);
+function isClosedSuspensionStatus(status) {
+	return CLOSED_SUSPENSION_STATUSES.has(status);
+}
+async function getSuspensionCases(filters) {
+	const page = filters?.page ?? 1;
+	const pageSize = filters?.pageSize ?? 20;
+	const raw = await frappeCall("opportunity.list_suspensions", {});
+	const data = camelizeKeys(raw);
+	const allCases = (Array.isArray(raw) ? raw : data["results"] ?? data["items"] ?? []).map((entry) => mapSuspensionCase(entry));
+	const counts = {
+		all: allCases.length,
+		amicable: allCases.filter((item) => item.category === "amicable").length,
+		dispute: allCases.filter((item) => item.category === "dispute").length,
+		closed: allCases.filter((item) => isClosedSuspensionStatus(item.status)).length
+	};
+	let items = allCases;
+	const activeTab = filters?.status;
+	if (activeTab && activeTab !== "all") items = activeTab === "closed" ? items.filter((item) => isClosedSuspensionStatus(item.status)) : items.filter((item) => item.category === activeTab);
+	if (filters?.query) {
+		const normalizedQuery = filters.query.trim().toLowerCase();
+		items = items.filter((item) => `${item.projectTitle} ${item.clientName} ${item.reason}`.toLowerCase().includes(normalizedQuery));
+	}
+	items = [...items].sort((a, b) => a.openedAt < b.openedAt ? 1 : -1);
+	const total = items.length;
+	const totalPages = Math.max(1, Math.ceil(total / pageSize));
+	const start = (page - 1) * pageSize;
+	return {
+		items: items.slice(start, start + pageSize),
+		page,
+		pageSize,
+		total,
+		totalPages,
+		counts
+	};
+}
+async function getSuspensionHistory(id) {
+	if (!id) return [];
+	const raw = await frappeCall("opportunity.get_suspension_history", { suspension: id });
+	return (Array.isArray(raw) ? raw : []).map((entry) => {
+		const data = camelizeKeys(entry);
+		return {
+			id: String(data["id"] ?? data["name"] ?? ""),
+			date: String(data["date"] ?? ""),
+			title: String(data["title"] ?? ""),
+			description: String(data["description"] ?? "")
+		};
+	});
+}
+async function respondToSuspension(id, payload) {
+	const raw = await frappeCall("opportunity.respond_to_suspension", {
+		suspension: id,
+		message: payload.message,
+		evidence_ids: payload.evidenceIds
+	});
+	const data = camelizeKeys(raw);
+	return {
+		id: String(data["id"] ?? id),
+		status: String(data["status"] ?? "responded")
+	};
+}
+async function respondToAmicableSuspension(id, decision, message) {
+	const raw = await frappeCall("opportunity.respond_to_amicable_suspension", {
+		suspension: id,
+		decision,
+		message
+	});
+	const data = camelizeKeys(raw);
+	return {
+		id: String(data["name"] ?? id),
+		status: String(data["status"] ?? (decision === "accept" ? "Validated" : "Refused"))
+	};
+}
+async function respondToLitigeNotice(id, message) {
+	await frappeCall("opportunity.respond_to_litige_notice", {
+		suspension: id,
+		message
+	});
+}
+async function reviewClient(projectId, rating, comment) {
+	await frappeCall("opportunity.review_client", {
+		project: projectId,
+		rating,
+		comment
+	});
+}
+//#endregion
+export { respondToLitigeNotice as a, respondToAmicableSuspension as i, getSuspensionCases as n, respondToSuspension as o, getSuspensionHistory as r, reviewClient as s, getAgencyProjects as t };

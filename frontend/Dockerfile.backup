@@ -1,0 +1,34 @@
+# Build stage
+FROM node:22-slim AS build
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm install
+
+COPY . .
+
+# Variables injectées à la compilation
+ARG VITE_GATEWAY_URL=http://localhost:8080
+ARG VITE_NOTIFICATIONS_URL=http://localhost:8085
+ENV VITE_GATEWAY_URL=$VITE_GATEWAY_URL
+ENV VITE_NOTIFICATIONS_URL=$VITE_NOTIFICATIONS_URL
+
+# Le preset Nitro par défaut de ce projet cible Cloudflare Workers
+# NITRO_PRESET bascule la sortie de build vers un serveur Node autonome
+ENV NITRO_PRESET=node-server
+RUN npm run build
+
+# Runtime stage
+FROM node:22-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Copier le serveur Nitro
+COPY --from=build /app/.output/server ./
+
+# Copier les fichiers statiques (CSS, JS, images, etc.)
+COPY --from=build /app/.output/public ./public
+
+EXPOSE 3000
+CMD ["node", "index.mjs"]

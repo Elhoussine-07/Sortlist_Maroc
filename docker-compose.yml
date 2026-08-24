@@ -1,0 +1,289 @@
+networks:
+  platform-net:
+    driver: bridge
+
+volumes:
+  mariadb-data:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+  frappe-sites:
+
+services:
+  # ---------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-platform_root}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [platform-net]
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-platform}
+      POSTGRES_DB: platform
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init-multiple-dbs.sql:/docker-entrypoint-initdb.d/init-multiple-dbs.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [platform-net]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [platform-net]
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [platform-net]
+
+  # ---------------------------------------------------------------------
+  # Cœur métier - FRA PPE (commenté car déjà sur l'hôte)
+  # ---------------------------------------------------------------------
+  # frappe:
+  #   build:
+  #     context: .
+  #     dockerfile: ./infrastructure/frappe/Dockerfile
+  #   restart: unless-stopped
+  #   depends_on:
+  #     mariadb:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     FRAPPE_SITE: ${FRAPPE_SITE:-plateforme.localhost}
+  #     DB_HOST: mariadb
+  #     DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-platform_root}
+  #     FRAPPE_ADMIN_PASSWORD: ${FRAPPE_ADMIN_PASSWORD:-admin}
+  #     REDIS_CACHE_URL: redis://redis:6379/0
+  #     REDIS_QUEUE_URL: redis://redis:6379/1
+  #     JWT_SECRET: ${JWT_SECRET:-dev-insecure-secret-change-me}
+  #     INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
+  #     NOTIFICATIONS_URL: http://notifications-service:8085
+  #     STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  #     STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  #   volumes:
+  #     - frappe-sites:/home/frappe/frappe-bench/sites
+  #     # Source de l'app platform_core (dépôt frère, cf. README "Structure
+  #     # attendue sur disque") : entrypoint.sh fait `bench get-app platform_core
+  #     # /home/frappe/platform_core_src` — sans ce bind mount, ce chemin est
+  #     # vide et l'installation de l'app échoue. Montage en lecture seule car
+  #     # bench copie le code dans apps/platform_core, il ne l'édite pas en place.
+  #     - ../platform_core:/home/frappe/platform_core_src:ro
+  #   ports:
+  #     - "8000:8000"
+  #   networks: [platform-net]
+
+  # ---------------------------------------------------------------------
+  # Microservices
+  # ---------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ./api-gateway
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      matching-service:
+        condition: service_healthy
+      ia-service:
+        condition: service_healthy
+      prospection-service:
+        condition: service_healthy
+      notifications-service:
+        condition: service_healthy
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dev-insecure-secret-change-me}
+      # Frappe container/local automatic fallback (docs/FRAPPE_FALLBACK.md).
+      # Leave FRAPPE_URL unset so the Gateway probes FRAPPE_URL_CONTAINER
+      # first, then falls back to FRAPPE_URL_LOCAL. Set FRAPPE_URL to force
+      # a fixed URL instead (debug only — disables the fallback).
+      FRAPPE_URL: ${FRAPPE_URL:-}
+      FRAPPE_URL_CONTAINER: ${FRAPPE_URL_CONTAINER:-http://frappe:8000}
+      FRAPPE_URL_LOCAL: ${FRAPPE_URL_LOCAL:-http://host.docker.internal:8000}
+      MATCHING_URL: http://matching-service:8081
+      IA_URL: http://ia-service:8083
+      PROSPECTION_URL: http://prospection-service:8084
+      NOTIFICATIONS_URL: http://notifications-service:8085
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [platform-net]
+
+  matching-service:
+    build:
+      context: ./matching-service
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@postgres:5432/matching
+      # Frappe container/local automatic fallback (docs/FRAPPE_FALLBACK.md).
+      FRAPPE_URL: ${FRAPPE_URL:-}
+      FRAPPE_URL_CONTAINER: ${FRAPPE_URL_CONTAINER:-http://frappe:8000}
+      FRAPPE_URL_LOCAL: ${FRAPPE_URL_LOCAL:-http://host.docker.internal:8000}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [platform-net]
+
+  ia-service:
+    build:
+      context: ./ia-service
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Frappe container/local automatic fallback (docs/FRAPPE_FALLBACK.md).
+      FRAPPE_URL: ${FRAPPE_URL:-}
+      FRAPPE_URL_CONTAINER: ${FRAPPE_URL_CONTAINER:-http://frappe:8000}
+      FRAPPE_URL_LOCAL: ${FRAPPE_URL_LOCAL:-http://host.docker.internal:8000}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-ollama}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-http://host.docker.internal:11434/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-llama3.1}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [platform-net]
+
+  prospection-service:
+    build:
+      context: ./prospection-service
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@postgres:5432/prospection
+      # Frappe container/local automatic fallback (docs/FRAPPE_FALLBACK.md).
+      FRAPPE_URL: ${FRAPPE_URL:-}
+      FRAPPE_URL_CONTAINER: ${FRAPPE_URL_CONTAINER:-http://frappe:8000}
+      FRAPPE_URL_LOCAL: ${FRAPPE_URL_LOCAL:-http://host.docker.internal:8000}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    ports:
+      - "8084:8084"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8084/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [platform-net]
+
+  notifications-service:
+    build:
+      context: ./notifications-service
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dev-insecure-secret-change-me}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    ports:
+      - "8085:8085"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8085/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [platform-net]
+
+  # ---------------------------------------------------------------------
+  # Frontend
+  # ---------------------------------------------------------------------
+  frontend:
+    build:
+      # Dépôt frère (cf. README "Structure attendue sur disque"), pas un
+      # sous-dossier de ce repo — corrigé, pointait vers ./frontend (inexistant
+      # une fois les 3 dépôts séparés) alors que le layout documenté place le
+      # frontend à côté de ce repo.
+      context: ./frontend
+      args:
+        VITE_GATEWAY_URL: ${GATEWAY_URL:-http://localhost:8080}
+        VITE_NOTIFICATIONS_URL: ${NOTIFICATIONS_PUBLIC_URL:-http://localhost:8085}
+    restart: unless-stopped
+    depends_on:
+      - api-gateway
+    ports:
+      - "3000:3000"
+    networks: [platform-net]

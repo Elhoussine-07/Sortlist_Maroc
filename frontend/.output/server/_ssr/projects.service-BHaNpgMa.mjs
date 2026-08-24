@@ -1,0 +1,157 @@
+import { a as frappeCall, r as camelizeKeys } from "./http-BM0VI1yy.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/projects.service-BHaNpgMa.js
+var STATUS_MAP = {
+	draft: "draft",
+	posted: "published",
+	published: "published",
+	awaiting: "awaiting",
+	"en attente": "awaiting",
+	"in progress": "in_progress",
+	in_progress: "in_progress",
+	suspended: "suspended",
+	finished: "finished",
+	completed: "finished",
+	rejected: "rejected"
+};
+function mapProjectStatus(rawStatus) {
+	return STATUS_MAP[String(rawStatus ?? "").trim().toLowerCase()] ?? "draft";
+}
+var STATUS_LABELS = {
+	draft: "Brouillon",
+	published: "Postulé",
+	awaiting: "En attente",
+	in_progress: "En cours",
+	suspended: "Suspendu",
+	finished: "Terminé",
+	rejected: "Rejeté"
+};
+function mapProject(raw) {
+	const data = camelizeKeys(raw);
+	const status = mapProjectStatus(data["status"]);
+	return {
+		id: String(data["id"] ?? data["name"] ?? data["project"] ?? ""),
+		reference: String(data["reference"] ?? data["name"] ?? data["project"] ?? ""),
+		title: String(data["title"] ?? ""),
+		category: String(data["categoryName"] ?? data["category"] ?? ""),
+		subCategory: String(data["subCategory"] ?? data["subCategory"] ?? ""),
+		status,
+		statusLabel: String(data["statusLabel"] ?? STATUS_LABELS[status]),
+		lastActivity: String(data["lastActivity"] ?? data["modified"] ?? data["projectCreatedOn"] ?? ""),
+		budgetMin: data["budgetMin"] !== void 0 ? Number(data["budgetMin"]) : null,
+		budgetMax: data["budgetMax"] !== void 0 ? Number(data["budgetMax"]) : null,
+		location: String(data["location"] ?? ""),
+		startedAt: data["startDate"] ?? null,
+		partnerAgencyName: data["agencyName"] ?? data["partnerAgencyName"] ?? null,
+		agencyId: data["agencyId"] ?? data["partnerAgencyId"] ?? null,
+		objective: String(data["description"] ?? data["objective"] ?? ""),
+		features: Array.isArray(data["features"]) ? data["features"] : [],
+		constraints: Array.isArray(data["constraints"]) ? data["constraints"] : [],
+		deadline: String(data["deadline"] ?? data["expectedEndDate"] ?? ""),
+		locked: Boolean(data["cdcLocked"] ?? data["locked"] ?? false),
+		client: data["client"],
+		description: data["description"],
+		needType: data["needType"],
+		channel: data["channel"],
+		deliveryDelayDays: data["deliveryDelayDays"] !== void 0 ? Number(data["deliveryDelayDays"]) : void 0,
+		rejectionSubstatus: data["rejectionSubstatus"] ?? void 0,
+		cdcFile: data["cdcFile"] ?? void 0,
+		shortlistIa: Array.isArray(data["shortlistIa"]) ? data["shortlistIa"] : void 0,
+		acceptanceDate: data["acceptanceDate"] ?? void 0,
+		expectedEndDate: data["expectedEndDate"] ?? void 0,
+		totalSuspensionDays: data["totalSuspensionDays"] !== void 0 ? Number(data["totalSuspensionDays"]) : void 0,
+		completionConfirmedByClient: data["completionConfirmedByClient"] !== void 0 ? Boolean(data["completionConfirmedByClient"]) : void 0,
+		repostCount: data["repostCount"] !== void 0 ? Number(data["repostCount"]) : void 0
+	};
+}
+function mapProjectList(raw) {
+	const data = camelizeKeys(raw);
+	if (Array.isArray(raw)) return raw;
+	if (data["results"] && Array.isArray(data["results"])) return data["results"];
+	if (data["items"] && Array.isArray(data["items"])) return data["items"];
+	return [];
+}
+async function getMyProjects(params) {
+	const page = params?.page ?? 1;
+	const pageSize = params?.pageSize ?? 20;
+	const items = mapProjectList(await frappeCall("project.my_projects", { status: params?.status })).map((item) => mapProject(item));
+	return {
+		items,
+		page,
+		pageSize,
+		total: items.length,
+		totalPages: 1
+	};
+}
+async function getProject(id) {
+	return mapProject(await frappeCall("project.get_project", { project: id }));
+}
+async function searchProjects(params) {
+	const page = params.page ?? 1;
+	const pageSize = params.pageSize ?? 20;
+	const budgetParts = (params.budget ?? "").split("-").map((value) => value.trim());
+	const budgetMin = budgetParts[0] || void 0;
+	const budgetMax = budgetParts[1] || (budgetParts.length === 1 ? budgetParts[0] : void 0);
+	const raw = await frappeCall("opportunity.list_available_projects", {
+		query: params.query,
+		category: params.category,
+		sub_category: params.subCategory,
+		budget_min: budgetMin,
+		budget_max: budgetMax,
+		page,
+		page_size: pageSize
+	});
+	const items = mapProjectList(raw).map((item) => mapProject(item));
+	const data = camelizeKeys(raw);
+	const total = Number(data["total"] ?? items.length);
+	return {
+		items,
+		page,
+		pageSize,
+		total,
+		totalPages: Math.max(1, Math.ceil(total / pageSize)),
+		availableCount: total
+	};
+}
+function toBriefFieldsPayload(payload) {
+	const map = {
+		needType: "need_type",
+		category: "category",
+		subCategory: "sub_category",
+		budgetMin: "budget_min",
+		budgetMax: "budget_max",
+		location: "location",
+		deliveryDelayDays: "delivery_delay_days",
+		description: "description",
+		title: "title"
+	};
+	const result = {};
+	for (const [camelKey, snakeKey] of Object.entries(map)) if (payload[camelKey] !== void 0) result[snakeKey] = payload[camelKey];
+	return result;
+}
+async function createProject(payload) {
+	const body = toBriefFieldsPayload(payload);
+	return mapProject(await frappeCall("quick_actions.start_contact", {
+		need_type: body["need_type"] ?? "Projet",
+		...body
+	}));
+}
+async function saveProjectDraft(id, payload) {
+	return mapProject(await frappeCall("project.update_brief", {
+		project: id,
+		...toBriefFieldsPayload(payload)
+	}));
+}
+async function publishProject(id) {
+	return mapProject(await frappeCall("project.post_project", { project: id }));
+}
+async function repostProject(id, includePreviouslyDeclined = false) {
+	return mapProject(await frappeCall("project.repost", {
+		project: id,
+		include_previously_declined: includePreviouslyDeclined
+	}));
+}
+async function deleteProject(id) {
+	return mapProject(await frappeCall("project.delete_project", { project: id }));
+}
+//#endregion
+export { mapProject as a, saveProjectDraft as c, getProject as i, searchProjects as l, deleteProject as n, publishProject as o, getMyProjects as r, repostProject as s, createProject as t };

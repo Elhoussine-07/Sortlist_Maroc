@@ -1,0 +1,8 @@
+*.pyc
+__pycache__/
+*.log
+*.pid
+*.sqlite3
+.DS_Store
+*.swp
+*.swo

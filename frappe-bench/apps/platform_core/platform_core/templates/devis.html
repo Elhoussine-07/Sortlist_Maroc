@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Devis — {{ project.title }}</title>
+<style>
+	body { font-family: Arial, Helvetica, sans-serif; color: #1f2933; font-size: 12.5px; margin: 0; padding: 40px; }
+	.header-grid { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+	.header-grid td { vertical-align: top; width: 50%; }
+	.header-grid .issuer p, .header-grid .recipient p { margin: 0 0 3px 0; }
+	.header-grid .issuer p.name, .header-grid .recipient p.name { font-weight: bold; }
+	.header-grid .recipient { text-align: right; }
+
+	.object-line { font-size: 13.5px; margin: 0 0 4px 0; }
+	.object-line b { font-weight: bold; }
+
+	table.items { width: 100%; border-collapse: collapse; margin: 20px 0; }
+	table.items th { background: #1f2933; color: #ffffff; text-align: left; padding: 7px 10px; font-size: 11.5px;
+		text-transform: uppercase; letter-spacing: 0.03em; }
+	table.items th.num, table.items td.num { text-align: right; }
+	table.items td { padding: 8px 10px; border-bottom: 1px solid #e4e7eb; vertical-align: top; }
+	table.items .item-detail { color: #616e7c; font-style: italic; font-size: 11.5px; margin-top: 2px; }
+
+	table.totals { margin-left: auto; width: 260px; border-collapse: collapse; margin-bottom: 24px; }
+	table.totals td { padding: 6px 10px; border: 1px solid #d2d6dc; }
+	table.totals td.label { background: #f4f6f8; font-weight: bold; }
+	table.totals td.value { text-align: right; }
+	table.totals tr.ttc td { font-weight: bold; }
+
+	table.terms td { padding: 2px 0; vertical-align: top; }
+	table.terms td.label { color: #616e7c; width: 200px; }
+
+	.signature { margin-top: 40px; }
+	.signature p { margin: 0 0 36px 0; }
+
+	.footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #d2d6dc; color: #9aa5b1; font-size: 11px; }
+</style>
+</head>
+<body>
+	<table class="header-grid">
+		<tr>
+			<td class="issuer">
+				<p class="name">{{ agency.agency_name or "—" }}</p>
+				<p>{{ agency.billing_address or agency.address or agency.location or "—" }}</p>
+				{%- if agency.legal_id %}
+				<p>N° d'identification légal : {{ agency.legal_id }}</p>
+				{%- endif %}
+				{%- if agency.vat_number %}
+				<p>N° TVA : {{ agency.vat_number }}</p>
+				{%- endif %}
+				<p>Tél : {{ agency.phone or "—" }}</p>
+				<p>Email : {{ agency.billing_email or agency.email or "—" }}</p>
+			</td>
+			<td class="recipient">
+				<p class="name">{{ (client.first_name or "") ~ " " ~ (client.last_name or "") }}</p>
+				{%- if client.company_name %}<p>{{ client.company_name }}</p>{%- endif %}
+				<p>{{ client.country or "—" }}</p>
+			</td>
+		</tr>
+	</table>
+
+	<p class="object-line"><b>Objet :</b> Devis n°{{ proposal.name }} pour « {{ project.title }} »</p>
+
+	<table class="items">
+		<thead>
+			<tr>
+				<th>Désignation</th>
+				<th class="num">Qté</th>
+				<th class="num">PU HT</th>
+				<th class="num">Total HT</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>
+					{{ project.title }}
+					{%- if description_text %}
+					<div class="item-detail">{{ description_text }}</div>
+					{%- endif %}
+				</td>
+				<td class="num">1</td>
+				<td class="num">{{ "%.2f"|format(proposal.amount or 0) }} €</td>
+				<td class="num">{{ "%.2f"|format(proposal.amount or 0) }} €</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<table class="totals">
+		<tr>
+			<td class="label">Montant HT</td>
+			<td class="value">{{ "%.2f"|format(proposal.amount or 0) }} €</td>
+		</tr>
+		{%- if agency.vat_number %}
+		<tr>
+			<td class="label">TVA à 20 %</td>
+			<td class="value">{{ "%.2f"|format((proposal.amount or 0) * 0.2) }} €</td>
+		</tr>
+		<tr class="ttc">
+			<td class="label">Montant TTC</td>
+			<td class="value">{{ "%.2f"|format((proposal.amount or 0) * 1.2) }} €</td>
+		</tr>
+		{%- else %}
+		<tr>
+			<td class="label">TVA</td>
+			<td class="value">Non applicable</td>
+		</tr>
+		<tr class="ttc">
+			<td class="label">Montant TTC</td>
+			<td class="value">{{ "%.2f"|format(proposal.amount or 0) }} €</td>
+		</tr>
+		{%- endif %}
+	</table>
+
+	<table class="terms">
+		<tr><td class="label">Date du devis</td><td>{{ generated_at }}</td></tr>
+		{%- if proposal.response_deadline %}
+		<tr><td class="label">Réponse attendue avant</td><td>{{ proposal.response_deadline }}</td></tr>
+		{%- endif %}
+	</table>
+
+	<div class="signature">
+		<p>Bon pour accord le : ____________________</p>
+		<p>Signature :</p>
+	</div>
+
+	<div class="footer">
+		Document généré le {{ generated_at }} — Devis n°{{ proposal.name }} — {{ agency.agency_name or "" }}
+	</div>
+</body>
+</html>

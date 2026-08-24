@@ -1,0 +1,23 @@
+{
+  "name": "notifications-service",
+  "version": "1.0.0",
+  "description": "Relais temps réel (Socket.IO) pour les notifications de la plateforme B2B. Frappe reste la source de vérité (historique persisté) ; ce service se contente d'émettre en direct vers les clients connectés.",
+  "private": true,
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/index.js && node --check src/server.js && node --check src/socket/socketHandler.js && node --check src/services/emailService.js && node --check src/services/notificationService.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^9.0.3",
+    "socket.io": "^4.7.5"
+  }
+}

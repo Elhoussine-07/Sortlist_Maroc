@@ -1,0 +1,441 @@
+import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
+import { $ as Lightbulb, Lt as ChartColumn, Zt as ArrowUpRight, b as Star, en as ArrowDownRight, m as TrendingUp, mt as Eye } from "../_libs/lucide-react.mjs";
+import { a as frappeCall, r as camelizeKeys } from "./http-BM0VI1yy.mjs";
+import { t as EmptyState } from "./EmptyState-CjCsYQbe.mjs";
+import { a as StatCard, i as SectionCard, o as StatGrid, s as StatusBadge } from "./Blocks-CStVFDlw.mjs";
+import { n as StackSkeleton, r as StatSkeleton } from "./Skeletons-COgUvsAH.mjs";
+import { n as useQuery } from "../_libs/tanstack__react-query.mjs";
+import { t as DashboardShell } from "./DashboardShell-t2TYp7B0.mjs";
+import { t as FilterSelect } from "./ListControls-FMqnx6XI.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/agence.analytics-BT0KH_Aq.js
+var import_jsx_runtime = require_jsx_runtime();
+function emptyMetric() {
+	return {
+		value: 0,
+		variation: "0%",
+		series: []
+	};
+}
+function mapMetric(raw) {
+	if (raw === null || typeof raw !== "object") return emptyMetric();
+	const data = raw;
+	return {
+		value: Number(data["value"] ?? 0),
+		variation: String(data["variation"] ?? "0%"),
+		series: Array.isArray(data["series"]) ? data["series"].map((point) => {
+			const p = point;
+			return {
+				date: String(p["date"] ?? ""),
+				value: Number(p["value"] ?? 0)
+			};
+		}) : []
+	};
+}
+async function fetchAgencyAnalytics() {
+	const raw = await frappeCall("agency.analytics");
+	return camelizeKeys(raw);
+}
+async function getPqi() {
+	const data = await fetchAgencyAnalytics();
+	const details = data["pqiDetails"] ?? {};
+	const factors = Array.isArray(details["factors"]) ? details["factors"].map((factor) => {
+		const f = factor;
+		return {
+			id: String(f["id"] ?? f["label"] ?? ""),
+			label: String(f["label"] ?? ""),
+			value: Number(f["value"] ?? 0),
+			max: Number(f["max"] ?? 100)
+		};
+	}) : [];
+	return {
+		score: Number(data["pqiScore"] ?? 0),
+		label: String(details["label"] ?? ""),
+		factors,
+		penaltyNote: details["penaltyNote"] ?? null
+	};
+}
+async function getProactiveAlerts() {
+	const raw = await frappeCall("notification.list_active", {});
+	return (Array.isArray(raw) ? raw : []).map((item) => camelizeKeys(item)).filter((item) => {
+		const category = String(item["category"] ?? "").toLowerCase();
+		return category.includes("pqi") || category.includes("alert");
+	}).map((item) => ({
+		title: String(item["title"] ?? ""),
+		description: String(item["body"] ?? item["description"] ?? ""),
+		variationPercent: Number(item["variationPercent"] ?? 0)
+	}));
+}
+async function getRecommendations() {
+	return ((await fetchAgencyAnalytics())["recommendations"] ?? []).map((item, index) => {
+		const r = item;
+		return {
+			id: String(r["id"] ?? index),
+			title: String(r["title"] ?? ""),
+			description: String(r["description"] ?? "")
+		};
+	});
+}
+async function getAnalyticsMetrics(_range) {
+	const data = await fetchAgencyAnalytics();
+	return {
+		profileViews: mapMetric(data["profileViews"]),
+		averagePosition: mapMetric(data["averagePosition"]),
+		averageRating: mapMetric(data["averageRating"]),
+		externalVisits: mapMetric(data["externalVisits"])
+	};
+}
+var RING_RADIUS = 34;
+var RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+function gaugeTone(value) {
+	if (value >= 70) return "text-primary";
+	if (value >= 40) return "text-amber-500";
+	return "text-destructive";
+}
+function PqiRing({ value }) {
+	const offset = RING_CIRCUMFERENCE * (1 - (value === null ? 0 : Math.max(0, Math.min(100, value))) / 100);
+	const tone = value === null ? "text-border" : gaugeTone(value);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "relative h-20 w-20 shrink-0",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
+			viewBox: "0 0 84 84",
+			className: "h-20 w-20 -rotate-90",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+				cx: "42",
+				cy: "42",
+				r: RING_RADIUS,
+				fill: "none",
+				strokeWidth: "8",
+				stroke: "currentColor",
+				className: "text-border"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+				cx: "42",
+				cy: "42",
+				r: RING_RADIUS,
+				fill: "none",
+				strokeWidth: "8",
+				strokeLinecap: "round",
+				stroke: "currentColor",
+				className: tone + " transition-[stroke-dashoffset] duration-700 ease-out",
+				strokeDasharray: RING_CIRCUMFERENCE,
+				strokeDashoffset: offset
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "absolute inset-0 flex flex-col items-center justify-center",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+				className: "font-display text-[18px] font-bold leading-none",
+				children: value === null ? "?" : value
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+				className: "text-[10px] text-muted-foreground",
+				children: "/100"
+			})]
+		})]
+	});
+}
+function DeltaLabel({ value }) {
+	if (value === null || value === void 0 || value === "") return null;
+	const text = String(value);
+	const isPositive = text.trim().startsWith("+");
+	const isNegative = text.trim().startsWith("-");
+	const Icon = isPositive ? ArrowUpRight : isNegative ? ArrowDownRight : null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+		className: "flex items-center gap-1 font-medium " + (isPositive ? "text-emerald-600" : isNegative ? "text-destructive" : "text-muted-foreground"),
+		children: [Icon ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, {
+			className: "h-3 w-3",
+			strokeWidth: 2
+		}) : null, text]
+	});
+}
+function TrendChart({ series }) {
+	if (series.length === 0) return null;
+	const width = 600;
+	const height = 160;
+	const padding = 10;
+	const values = series.map((point) => point.value);
+	const max = Math.max(...values);
+	const min = Math.min(...values);
+	const range = max - min || 1;
+	const points = series.map((point, index) => {
+		return [padding + index / Math.max(series.length - 1, 1) * 580, 150 - (point.value - min) / range * 140];
+	});
+	const firstPoint = points[0];
+	const lastPoint = points[points.length - 1];
+	if (!firstPoint || !lastPoint) return null;
+	const linePath = points.map(([x, y], index) => index === 0 ? `M${x},${y}` : `L${x},${y}`).join(" ");
+	const areaPath = `${linePath} L${lastPoint[0]},150 L${firstPoint[0]},150 Z`;
+	const middlePoint = series[Math.floor((series.length - 1) / 2)];
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
+		viewBox: `0 0 ${width} ${height}`,
+		preserveAspectRatio: "none",
+		className: "h-40 w-full text-primary",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+				d: areaPath,
+				fill: "currentColor",
+				fillOpacity: "0.08",
+				stroke: "none"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+				d: linePath,
+				fill: "none",
+				stroke: "currentColor",
+				strokeWidth: "2.5",
+				strokeLinecap: "round",
+				strokeLinejoin: "round"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+				cx: lastPoint[0],
+				cy: lastPoint[1],
+				r: "4",
+				fill: "currentColor"
+			})
+		]
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "mt-2 flex justify-between text-[12px] text-muted-foreground",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: series[0]?.date ?? "" }),
+			middlePoint ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: middlePoint.date }) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: series[series.length - 1]?.date ?? "" })
+		]
+	})] });
+}
+function AgencyAnalyticsPage() {
+	const pqiQuery = useQuery({
+		queryKey: [
+			"agency",
+			"analytics",
+			"pqi"
+		],
+		queryFn: getPqi
+	});
+	const pqiScore = pqiQuery.data?.score ?? null;
+	const pqiLabel = pqiQuery.data?.label ?? null;
+	const pqiFactors = pqiQuery.data?.factors ?? [];
+	const penaltyNote = pqiQuery.data?.penaltyNote ?? null;
+	const isPqiLoading = pqiQuery.isLoading;
+	const metricsQuery = useQuery({
+		queryKey: [
+			"agency",
+			"analytics",
+			"metrics"
+		],
+		queryFn: () => getAnalyticsMetrics("30d")
+	});
+	const emptyMetric = {
+		value: 0,
+		variation: "0%",
+		series: []
+	};
+	const profileViews = metricsQuery.data?.profileViews ?? emptyMetric;
+	const averagePosition = metricsQuery.data?.averagePosition ?? emptyMetric;
+	const averageRating = metricsQuery.data?.averageRating ?? emptyMetric;
+	const externalVisits = metricsQuery.data?.externalVisits ?? emptyMetric;
+	const isMetricsLoading = metricsQuery.isLoading;
+	const alertsQuery = useQuery({
+		queryKey: [
+			"agency",
+			"analytics",
+			"alerts"
+		],
+		queryFn: getProactiveAlerts
+	});
+	const alerts = alertsQuery.data ?? [];
+	const isAlertsLoading = alertsQuery.isLoading;
+	const recommendationsQuery = useQuery({
+		queryKey: [
+			"agency",
+			"analytics",
+			"recommendations"
+		],
+		queryFn: getRecommendations
+	});
+	const recommendations = recommendationsQuery.data ?? [];
+	const isRecommendationsLoading = recommendationsQuery.isLoading;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DashboardShell, {
+		role: "agency",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `.font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }` }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "mx-auto max-w-[1080px]",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "min-w-0",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
+							className: "font-display text-[24px] font-bold tracking-tight",
+							children: "Analytics PQI"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "mt-1 text-[14px] text-muted-foreground",
+							children: "Suivez vos performances et améliorez votre visibilité."
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "w-full sm:w-[200px]",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FilterSelect, {
+							label: "Période",
+							placeholder: "30 derniers jours"
+						})
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", {
+					className: "mt-7",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+						title: "Score PQI",
+						description: "Indice de performance et de qualité de votre agence.",
+						action: pqiLabel ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatusBadge, { label: pqiLabel }) : null,
+						children: isPqiLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StackSkeleton, { count: 4 }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-5",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-5",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PqiRing, { value: pqiScore }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartColumn, {
+											className: "h-[18px] w-[18px]",
+											strokeWidth: 1.7
+										})
+									})]
+								}),
+								pqiFactors.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, { message: "Aucune donnée disponible" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+									className: "space-y-3",
+									children: pqiFactors.map((factor) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-[13px]",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "truncate",
+											children: factor.label
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+											className: "font-semibold",
+											children: [
+												factor.value,
+												"/",
+												factor.max
+											]
+										})]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "mt-1.5 h-1.5 w-full rounded-full bg-accent",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "h-1.5 rounded-full bg-primary transition-[width]",
+											style: { width: `${factor.value / factor.max * 100}%` }
+										})
+									})] }, factor.id))
+								}),
+								penaltyNote ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "text-[13px] text-muted-foreground",
+									children: penaltyNote
+								}) : null
+							]
+						})
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", {
+					className: "mt-7",
+					children: isMetricsLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatSkeleton, { count: 4 }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(StatGrid, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatCard, {
+							icon: Eye,
+							label: "Vues du profil",
+							value: profileViews.value === null ? "?" : String(profileViews.value),
+							footer: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DeltaLabel, { value: profileViews.variation })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatCard, {
+							icon: TrendingUp,
+							label: "Position moyenne",
+							value: averagePosition.value === null ? "?" : String(averagePosition.value),
+							footer: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DeltaLabel, { value: averagePosition.variation })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatCard, {
+							icon: Star,
+							label: "Note moyenne",
+							value: averageRating.value === null ? "?" : String(averageRating.value),
+							suffix: "/5",
+							footer: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DeltaLabel, { value: averageRating.variation })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatCard, {
+							icon: ChartColumn,
+							label: "Visites externes",
+							value: externalVisits.value === null ? "?" : String(externalVisits.value),
+							footer: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DeltaLabel, { value: externalVisits.variation })
+						})
+					] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", {
+					className: "mt-7",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+						title: "Évolution",
+						description: "Courbe des vues de profil sur la période sélectionnée.",
+						children: isMetricsLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StackSkeleton, { count: 2 }) : profileViews.series.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, { message: "Aucune donnée disponible" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendChart, { series: profileViews.series })
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mt-7 grid grid-cols-1 gap-6 lg:grid-cols-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+						title: "Alertes proactives",
+						description: "Variations détectées sur vos indicateurs.",
+						children: isAlertsLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StackSkeleton, { count: 2 }) : alerts.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, { message: "Aucune donnée disponible" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+							className: "space-y-4",
+							children: alerts.map((alert) => {
+								const isPositive = alert.variationPercent >= 0;
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+									className: "flex items-start gap-3",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full " + (isPositive ? "bg-emerald-500/10 text-emerald-600" : "bg-destructive/10 text-destructive"),
+										children: isPositive ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowUpRight, {
+											className: "h-3.5 w-3.5",
+											strokeWidth: 2.2
+										}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowDownRight, {
+											className: "h-3.5 w-3.5",
+											strokeWidth: 2.2
+										})
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "min-w-0",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+												className: "text-[13.5px] font-semibold",
+												children: alert.title
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+												className: "text-[13px] text-muted-foreground",
+												children: alert.description
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+												className: "mt-0.5 text-[13px] font-semibold " + (isPositive ? "text-emerald-600" : "text-destructive"),
+												children: [
+													isPositive ? "+" : "",
+													alert.variationPercent,
+													"%"
+												]
+											})
+										]
+									})]
+								}, alert.title);
+							})
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+						title: "Recommandations",
+						description: "Actions suggérées pour améliorer votre score.",
+						children: isRecommendationsLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StackSkeleton, { count: 2 }) : recommendations.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, { message: "Aucune donnée disponible" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+							className: "space-y-4",
+							children: recommendations.map((recommendation) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+								className: "flex items-start gap-3",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lightbulb, {
+										className: "h-3.5 w-3.5",
+										strokeWidth: 1.8
+									})
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "min-w-0",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "text-[13.5px] font-semibold",
+										children: recommendation.title
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "text-[13px] text-muted-foreground",
+										children: recommendation.description
+									})]
+								})]
+							}, recommendation.id))
+						})
+					})]
+				})
+			]
+		})]
+	});
+}
+//#endregion
+export { AgencyAnalyticsPage as component };

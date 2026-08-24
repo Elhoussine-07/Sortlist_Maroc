@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: false
+        cors-configurations:
+          '[/**]':
+            allowed-origins:
+              - "http://localhost:3000"
+            allowed-methods:
+              - "GET"
+              - "POST"
+              - "PUT"
+              - "PATCH"
+              - "DELETE"
+              - "OPTIONS"
+            allowed-headers:
+              - "Authorization"
+              - "Content-Type"
+              - "Accept"
+              - "X-User-Email"
+              - "X-User-Type"
+              - "X-Agency-Id"
+              - "X-Internal-Token"
+            exposed-headers:
+              - "Authorization"
+            allow-credentials: true
+            max-age: 3600
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 30s
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:dev-insecure-secret-change-me}
+
+frontend:
+  url: ${FRONTEND_URL:http://localhost:3000}
+
+services:
+  # Optional explicit override (debug) — if FRAPPE_URL is set, it disables
+  # the automatic container/local fallback entirely, cf.
+  # com.platform.gateway.config.FrappeUrlResolver and docs/FRAPPE_FALLBACK.md.
+  frappe-url: ${FRAPPE_URL:}
+  frappe-url-container: ${FRAPPE_URL_CONTAINER:http://frappe:8000}
+  frappe-url-local: ${FRAPPE_URL_LOCAL:http://host.docker.internal:8000}
+  matching-url: ${MATCHING_URL:http://matching-service:8081}
+  ia-url: ${IA_URL:http://ia-service:8083}
+  prospection-url: ${PROSPECTION_URL:http://prospection-service:8084}
+  notifications-url: ${NOTIFICATIONS_URL:http://notifications-service:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.platform.gateway: INFO

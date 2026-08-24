@@ -1,0 +1,48 @@
+2026-08-20 23:49:02,253 ERROR scheduler Skipped queueing frappe.monitor.flush because it was found in queue for mysite2
+2026-08-20 23:49:02,293 ERROR scheduler Skipped queueing frappe.utils.telemetry.pulse.client.send_queued_events because it was found in queue for mysite2
+2026-08-20 23:49:02,320 ERROR scheduler Skipped queueing frappe.email.queue.flush because it was found in queue for mysite2
+2026-08-20 23:49:02,351 ERROR scheduler Skipped queueing frappe.email.queue.retry_sending_emails because it was found in queue for mysite2
+2026-08-20 23:49:02,418 ERROR scheduler Skipped queueing frappe.utils.global_search.sync_global_search because it was found in queue for mysite2
+2026-08-20 23:49:02,439 ERROR scheduler Skipped queueing frappe.oauth.delete_oauth2_data because it was found in queue for mysite2
+2026-08-20 23:49:02,516 ERROR scheduler Skipped queueing frappe.deferred_insert.save_to_db because it was found in queue for mysite2
+2026-08-20 23:49:02,809 ERROR scheduler Skipped queueing frappe.integrations.doctype.google_calendar.google_calendar.sync because it was found in queue for mysite2
+2026-08-20 23:49:02,863 ERROR scheduler Skipped queueing frappe.automation.doctype.reminder.reminder.send_reminders because it was found in queue for mysite2
+2026-08-20 23:49:02,948 ERROR scheduler Skipped queueing frappe.model.utils.link_count.update_link_count because it was found in queue for mysite2
+2026-08-21 01:24:10,928 ERROR scheduler Exception in Enqueue Events for Site mysite2
+Traceback (most recent call last):
+  File "/home/lahoussine/Plateform_B2B_V5/frappe-bench/env/lib/python3.12/site-packages/redis/client.py", line 1992, in _execute_transaction
+    response = self.parse_response(connection, "_")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lahoussine/Plateform_B2B_V5/frappe-bench/env/lib/python3.12/site-packages/redis/client.py", line 2060, in parse_response
+    result = Redis.parse_response(self, connection, command_name, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lahoussine/Plateform_B2B_V5/frappe-bench/env/lib/python3.12/site-packages/redis/client.py", line 1286, in parse_response
+    response = connection.read_response()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lahoussine/Plateform_B2B_V5/frappe-bench/env/lib/python3.12/site-packages/redis/connection.py", line 897, in read_response
+    raise response
+redis.exceptions.ExecAbortError: Transaction discarded because of previous errors.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/lahoussine/Plateform_B2B_V4/frappe-bench/apps/frappe/frappe/utils/scheduler.py", line 102, in enqueue_events_for_site
+    enqueue_events(site=site)
+  File "/home/lahoussine/Plateform_B2B_V4/frappe-bench/apps/frappe/frappe/utils/scheduler.py", line 122, in enqueue_events
+    if job_type.enqueue():
+       ^^^^^^^^^^^^^^^^^^
+  File "/home/lahoussine/Plateform_B2B_V4/frappe-bench/apps/frappe/frappe/core/doctype/scheduled_job_type/scheduled_job_type.py", line 75, in enqueue
+    enqueue(
+  File "/home/lahoussine/Plateform_B2B_V4/frappe-bench/apps/frappe/frappe/utils/background_jobs.py", line 172, in enqueue
+    return enqueue_call()
+           ^^^^^^^^^^^^^^
+  File "/home/lahoussine/Plateform_B2B_V4/frappe-bench/apps/frappe/frappe/utils/background_jobs.py", line 156, in enqueue_call
+    return q.enqueue_call(
+           ^^^^^^^^^^^^^^^
+  File "/home/lahoussine/Plateform_B2B_V5/frappe-bench/env/lib/python3.12/site-packages/rq/queue.py", line 721, in enqueue_call
+    return self.enqueue_job(job, pipeline=pipeline, at_front=at_front)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lahoussine/Plateform_B2B_V5/frappe-bench/env/lib/python3.12/site-packages/rq/queue.py", line 1095, in enqueue_job
+    return self._enqueue_job(job, pipeline=pipeline, at_front=at_front)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/lahoussine/Plateform_B2B_V5/frappe-bench/env/lib/pyt

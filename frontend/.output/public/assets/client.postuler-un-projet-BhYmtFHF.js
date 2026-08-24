@@ -1,0 +1,1 @@
+import{c as e}from"./middleware-nsF33x1I.js";import{t}from"./SmartBriefing-OOj2sWRn.js";import{n}from"./index-B3XwmCKH.js";var r=e();function i(){let{resume:e}=n.useSearch();return(0,r.jsx)(t,{resumeProjectId:e})}export{i as component};

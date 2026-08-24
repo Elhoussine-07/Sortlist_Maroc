@@ -1,0 +1,45 @@
+import { a as frappeCall, r as camelizeKeys } from "./http-BM0VI1yy.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/disputes.service-C_k2fHNI.js
+var CATEGORY_MAP = {
+	amicable: "Suspension amiable",
+	dispute: "Litige"
+};
+async function requestSuspension(payload) {
+	const raw = await frappeCall("project.request_suspension", {
+		project: payload.projectId,
+		category: CATEGORY_MAP[payload.category] ?? "Suspension amiable",
+		justification: payload.reason
+	});
+	const data = camelizeKeys(raw);
+	return {
+		requestId: String(data["requestId"] ?? data["name"] ?? ""),
+		status: "under_review"
+	};
+}
+async function getDispute(projectId) {
+	const raw = await frappeCall("project.get_dispute", { project: projectId });
+	const data = camelizeKeys(raw);
+	return {
+		status: String(data["status"] ?? ""),
+		statusLabel: String(data["statusLabel"] ?? data["status"] ?? ""),
+		history: Array.isArray(data["history"]) ? data["history"] : [],
+		category: data["category"] ?? null
+	};
+}
+async function resumeProject(projectId) {
+	const raw = await frappeCall("project.resume", { project: projectId });
+	const data = camelizeKeys(raw);
+	return { projectId: String(data["name"] ?? data["projectId"] ?? projectId) };
+}
+async function relaunchAgencySearch(projectId) {
+	const raw = await frappeCall("project.relaunch_search", { project: projectId });
+	const data = camelizeKeys(raw);
+	return { projectId: String(data["project"] ?? projectId) };
+}
+async function signalReady(projectId) {
+	const raw = await frappeCall("project.signal_ready", { project: projectId });
+	const data = camelizeKeys(raw);
+	return { notified: Boolean(data["notified"] ?? true) };
+}
+//#endregion
+export { signalReady as a, resumeProject as i, relaunchAgencySearch as n, requestSuspension as r, getDispute as t };

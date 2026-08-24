@@ -1,0 +1,37 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: matching-service
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      fail-on-unknown-properties: false
+
+# Config service-a-service vers Frappe (cf. docs/INTEGRATION.md §4 et §9,
+# et docs/FRAPPE_FALLBACK.md pour la bascule conteneur/local).
+# FRAPPE_URL est un override explicite optionnel (debug) : si absente, le
+# service bascule automatiquement entre url-container et url-local.
+frappe:
+  url: ${FRAPPE_URL:}
+  url-container: ${FRAPPE_URL_CONTAINER:http://frappe:8000}
+  url-local: ${FRAPPE_URL_LOCAL:http://host.docker.internal:8000}
+  internal-token: ${INTERNAL_SERVICE_TOKEN:dev-insecure-internal-token}
+
+matching:
+  # Nombre d'agences retournees dans la shortlist finale (triees par score desc).
+  shortlist-size: ${MATCHING_SHORTLIST_SIZE:10}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.platform.matching: INFO

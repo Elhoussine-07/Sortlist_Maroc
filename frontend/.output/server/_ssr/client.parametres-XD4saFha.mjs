@@ -1,0 +1,475 @@
+import { r as __toESM } from "../_runtime.mjs";
+import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
+import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
+import { B as Moon, Ft as Check, R as Palette, T as ShieldCheck, V as Monitor, Y as Lock, qt as Bell, s as User, y as Sun } from "../_libs/lucide-react.mjs";
+import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
+import { t as ApiError } from "./http-BM0VI1yy.mjs";
+import { t as changePassword } from "./auth.service-F3thChuN.mjs";
+import { t as Skeleton } from "./skeleton-D9W9wFsj.mjs";
+import { i as SectionCard, n as PreferenceRow, t as FormSkeleton, u as TextField } from "./Blocks-CStVFDlw.mjs";
+import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
+import { n as toast } from "../_libs/sonner.mjs";
+import { t as DashboardShell } from "./DashboardShell-t2TYp7B0.mjs";
+import { n as objectType, r as stringType } from "../_libs/zod.mjs";
+import { n as useForm, t as u } from "../_libs/@hookform/resolvers+[...].mjs";
+import { o as useThemeStore } from "./router-CW1fXXIG.mjs";
+import { a as TabsTrigger, i as TabsList, n as Tabs, r as TabsContent, t as Switch } from "./tabs-BAV5q_gl.mjs";
+import { i as getSettings, r as getClientProfile, s as updateSettings } from "./profile.service-C-cGw1M0.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/client.parametres-XD4saFha.js
+var import_react = /* @__PURE__ */ __toESM(require_react());
+var import_jsx_runtime = require_jsx_runtime();
+var FONT_OPTIONS = [
+	{
+		value: "default",
+		label: "Par défaut"
+	},
+	{
+		value: "inter",
+		label: "Inter"
+	},
+	{
+		value: "system",
+		label: "Système"
+	},
+	{
+		value: "serif",
+		label: "Serif"
+	},
+	{
+		value: "mono",
+		label: "Monospace"
+	}
+];
+var THEME_OPTIONS = [
+	{
+		value: "light",
+		label: "Clair",
+		icon: Sun
+	},
+	{
+		value: "dark",
+		label: "Sombre",
+		icon: Moon
+	},
+	{
+		value: "system",
+		label: "Suivre le système",
+		icon: Monitor
+	}
+];
+var passwordSchema = objectType({
+	currentPassword: stringType().min(1, "Champ requis").max(128),
+	newPassword: stringType().min(8, "8 caractères minimum").max(128),
+	confirmPassword: stringType().min(8, "8 caractères minimum").max(128)
+}).refine((values) => values.newPassword === values.confirmPassword, {
+	message: "Les mots de passe ne correspondent pas",
+	path: ["confirmPassword"]
+});
+function initialsOf(name) {
+	const parts = name.trim().split(/\s+/).filter(Boolean);
+	if (parts.length === 0) return "?";
+	return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
+}
+function hashSeed(seed) {
+	let hash = 0;
+	for (let i = 0; i < seed.length; i += 1) {
+		hash = (hash << 5) - hash + seed.charCodeAt(i);
+		hash |= 0;
+	}
+	return Math.abs(hash);
+}
+function seedGradient(seed) {
+	const hue = hashSeed(seed) % 360;
+	return `linear-gradient(135deg, hsl(${hue} 72% 56%), hsl(${(hue + 42) % 360} 72% 44%))`;
+}
+function passwordStrength(value) {
+	if (!value) return {
+		score: 0,
+		label: "",
+		className: "bg-border"
+	};
+	let score = 0;
+	if (value.length >= 8) score += 1;
+	if (value.length >= 12 && /[0-9]/.test(value) && /[a-zA-Z]/.test(value)) score += 1;
+	if (/[^a-zA-Z0-9]/.test(value) && /[A-Z]/.test(value)) score += 1;
+	if (score >= 3) return {
+		score: 3,
+		label: "Fort",
+		className: "bg-emerald-500"
+	};
+	if (score === 2) return {
+		score: 2,
+		label: "Moyen",
+		className: "bg-amber-500"
+	};
+	return {
+		score: 1,
+		label: "Faible",
+		className: "bg-destructive"
+	};
+}
+function ClientSettingsPage() {
+	const queryClient = useQueryClient();
+	const settingsQuery = useQuery({
+		queryKey: ["client", "settings"],
+		queryFn: getSettings
+	});
+	const settings = settingsQuery.data ?? null;
+	const isLoading = settingsQuery.isPending;
+	const profileQuery = useQuery({
+		queryKey: [
+			"client",
+			"profile",
+			"settings-summary"
+		],
+		queryFn: getClientProfile
+	});
+	(0, import_react.useEffect)(() => {
+		if (!settings) return;
+		useThemeStore.getState().setTheme(settings.theme);
+		useThemeStore.getState().setFont(settings.font);
+		useThemeStore.getState().setTextSize(settings.textSize);
+	}, [settings]);
+	const form = useForm({
+		resolver: u(passwordSchema),
+		defaultValues: {
+			currentPassword: "",
+			newPassword: "",
+			confirmPassword: ""
+		}
+	});
+	const newPasswordValue = form.watch("newPassword");
+	const strength = (0, import_react.useMemo)(() => passwordStrength(newPasswordValue), [newPasswordValue]);
+	const passwordMutation = useMutation({
+		mutationFn: (values) => changePassword({
+			oldPassword: values.currentPassword,
+			newPassword: values.newPassword
+		}),
+		onSuccess: () => {
+			toast.success("Mot de passe mis à jour");
+			form.reset();
+		},
+		onError: (error) => {
+			toast.error(error instanceof ApiError ? error.message : "Impossible de mettre à jour le mot de passe.");
+		}
+	});
+	const onSubmitPassword = form.handleSubmit((values) => {
+		passwordMutation.mutate(values);
+	});
+	const settingsMutation = useMutation({
+		mutationFn: (payload) => updateSettings(payload),
+		onSuccess: (updated) => {
+			queryClient.setQueryData(["client", "settings"], updated);
+			toast.success("Préférences mises à jour");
+		},
+		onError: (error) => {
+			toast.error(error instanceof ApiError ? error.message : "Impossible d'enregistrer les préférences.");
+		}
+	});
+	const updateSetting = (key, value) => {
+		if (key === "theme") useThemeStore.getState().setTheme(value);
+		if (key === "font") useThemeStore.getState().setFont(value);
+		if (key === "textSize") useThemeStore.getState().setTextSize(value);
+		if (key === "emailNotifications" || key === "pushNotifications") {
+			settingsMutation.mutate({
+				emailNotifications: key === "emailNotifications" ? value : settings?.emailNotifications ?? true,
+				pushNotifications: key === "pushNotifications" ? value : settings?.pushNotifications ?? true
+			});
+			return;
+		}
+		settingsMutation.mutate({ [key]: value });
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DashboardShell, {
+		role: "client",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `.font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }` }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "mx-auto max-w-[1080px] space-y-6",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
+				className: "font-display text-[26px] font-bold tracking-tight",
+				children: "Paramètres"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-[14px] text-muted-foreground",
+				children: "Gérez votre profil, vos préférences d'affichage, vos notifications et votre sécurité."
+			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
+				defaultValue: "profil",
+				className: "w-full",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
+						className: "h-auto flex-wrap gap-1 rounded-lg border border-border bg-transparent p-1",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+								value: "profil",
+								className: "gap-1.5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(User, {
+									className: "h-3.5 w-3.5",
+									strokeWidth: 1.8
+								}), "Profil"]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+								value: "apparence",
+								className: "gap-1.5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Palette, {
+									className: "h-3.5 w-3.5",
+									strokeWidth: 1.8
+								}), "Apparence"]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+								value: "notifications",
+								className: "gap-1.5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bell, {
+									className: "h-3.5 w-3.5",
+									strokeWidth: 1.8
+								}), "Notifications"]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+								value: "securite",
+								className: "gap-1.5",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, {
+									className: "h-3.5 w-3.5",
+									strokeWidth: 1.8
+								}), "Sécurité"]
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "profil",
+						className: "mt-6",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+							title: "Profil",
+							description: "Vos informations de compte.",
+							children: profileQuery.isPending ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormSkeleton, { fields: 2 }) : profileQuery.data ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex flex-wrap items-center justify-between gap-4",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-4",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										style: { backgroundImage: seedGradient(`${profileQuery.data.contactFirstName} ${profileQuery.data.contactLastName}`) },
+										className: "font-display flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[17px] font-bold text-white shadow-sm",
+										children: initialsOf(`${profileQuery.data.contactFirstName} ${profileQuery.data.contactLastName}`)
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "min-w-0",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+											className: "text-[15px] font-bold",
+											children: [
+												profileQuery.data.contactFirstName,
+												" ",
+												profileQuery.data.contactLastName
+											]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "text-[13px] text-muted-foreground",
+											children: profileQuery.data.companyName || "Entreprise non renseignée"
+										})]
+									})]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
+									to: "/client/mon-profil",
+									className: "rounded-md border border-border px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-accent",
+									children: "Modifier mon profil"
+								})]
+							}) : null
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsContent, {
+						value: "apparence",
+						className: "mt-6 space-y-6",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+							title: "Thème",
+							description: "Choisissez le thème d'affichage.",
+							children: isLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormSkeleton, { fields: 3 }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "grid grid-cols-1 gap-3 sm:grid-cols-3",
+								children: THEME_OPTIONS.map((option) => {
+									const Icon = option.icon;
+									const active = settings?.theme === option.value;
+									return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+										type: "button",
+										onClick: () => updateSetting("theme", option.value),
+										className: "relative flex flex-col items-center gap-2 rounded-lg border px-4 py-5 text-[13.5px] font-semibold transition-colors " + (active ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-accent"),
+										children: [
+											active ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground",
+												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Check, {
+													className: "h-2.5 w-2.5",
+													strokeWidth: 3
+												})
+											}) : null,
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, {
+												className: "h-5 w-5",
+												strokeWidth: 1.8
+											}),
+											option.label
+										]
+									}, option.value);
+								})
+							})
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+							title: "Préférences d'affichage",
+							description: "Langue, police et taille du texte.",
+							children: isLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormSkeleton, { fields: 3 }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreferenceRow, {
+									label: "Langue",
+									description: "Langue de l'interface",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", {
+										value: settings?.language ?? "",
+										onChange: (event) => updateSetting("language", event.target.value),
+										className: "rounded-md border border-border bg-transparent px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-primary/50",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+											value: "",
+											children: "—"
+										}), settings?.language ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+											value: settings.language,
+											children: settings.language
+										}) : null]
+									})
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreferenceRow, {
+									label: "Police",
+									description: "Police d'affichage",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", {
+										value: settings?.font ?? "",
+										onChange: (event) => updateSetting("font", event.target.value),
+										className: "rounded-md border border-border bg-transparent px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-primary/50",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+											value: "",
+											children: "—"
+										}), FONT_OPTIONS.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+											value: option.value,
+											children: option.label
+										}, option.value))]
+									})
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreferenceRow, {
+									label: "Taille du texte",
+									description: "Ajustez la lisibilité de l'interface",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center gap-3",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-[12px] text-muted-foreground",
+												children: "A"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												type: "range",
+												min: 80,
+												max: 130,
+												value: settings?.textSize ?? 100,
+												onChange: (event) => updateSetting("textSize", Number(event.target.value)),
+												className: "w-40 accent-primary"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-[16px] text-muted-foreground",
+												children: "A"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+												className: "w-11 shrink-0 text-[13px] font-semibold",
+												children: [settings?.textSize ?? 100, "%"]
+											})
+										]
+									})
+								})
+							] })
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "notifications",
+						className: "mt-6",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+							title: "Notifications",
+							description: "Choisissez comment vous souhaitez être informé.",
+							children: isLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormSkeleton, { fields: 2 }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreferenceRow, {
+								label: "Notifications par e-mail",
+								description: "Nouvelles propositions, litiges, factures",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Switch, {
+									checked: settings?.emailNotifications ?? false,
+									onCheckedChange: (value) => updateSetting("emailNotifications", value)
+								})
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreferenceRow, {
+								label: "Notifications push",
+								description: "Alertes en temps réel dans le navigateur",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Switch, {
+									checked: settings?.pushNotifications ?? false,
+									onCheckedChange: (value) => updateSetting("pushNotifications", value)
+								})
+							})] })
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsContent, {
+						value: "securite",
+						className: "mt-6 space-y-6",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+							title: "Mot de passe",
+							description: "Modifiez régulièrement votre mot de passe.",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+								onSubmit: onSubmitPassword,
+								className: "space-y-5",
+								noValidate: true,
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "grid grid-cols-1 gap-5 sm:grid-cols-3",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextField, {
+											label: "Mot de passe actuel",
+											type: "password",
+											error: form.formState.errors.currentPassword?.message,
+											...form.register("currentPassword")
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextField, {
+											label: "Nouveau mot de passe",
+											type: "password",
+											error: form.formState.errors.newPassword?.message,
+											...form.register("newPassword")
+										}), newPasswordValue ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "mt-2",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+												className: "flex gap-1",
+												children: [
+													1,
+													2,
+													3
+												].map((step) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "h-1 flex-1 rounded-full transition-colors " + (step <= strength.score ? strength.className : "bg-border") }, step))
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+												className: "mt-1 text-[12px] text-muted-foreground",
+												children: ["Robustesse : ", strength.label]
+											})]
+										}) : null] }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextField, {
+											label: "Confirmer le mot de passe",
+											type: "password",
+											error: form.formState.errors.confirmPassword?.message,
+											...form.register("confirmPassword")
+										})
+									]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+									type: "submit",
+									disabled: passwordMutation.isPending,
+									className: "rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
+									children: passwordMutation.isPending ? "Mise à jour..." : "Mettre à jour le mot de passe"
+								})]
+							})
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionCard, {
+							title: "Double authentification",
+							description: "Sécurisez votre compte avec un code de vérification envoyé par e-mail à chaque connexion.",
+							children: isLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Skeleton, { className: "h-9 w-full" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-start gap-3",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldCheck, {
+										className: "h-[18px] w-[18px]",
+										strokeWidth: 1.7
+									})
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "flex-1",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreferenceRow, {
+										label: "Authentification à deux facteurs (2FA)",
+										description: settings?.twoFactorEnabled ? "2FA activée" : "2FA désactivée",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Switch, {
+											checked: settings?.twoFactorEnabled ?? false,
+											onCheckedChange: (value) => updateSetting("twoFactorEnabled", value)
+										})
+									})
+								})]
+							})
+						})]
+					})
+				]
+			})]
+		})]
+	});
+}
+//#endregion
+export { ClientSettingsPage as component };

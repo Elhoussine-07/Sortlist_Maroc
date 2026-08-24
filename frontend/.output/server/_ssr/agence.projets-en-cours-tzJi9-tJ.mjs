@@ -1,0 +1,348 @@
+import { r as __toESM } from "../_runtime.mjs";
+import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
+import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
+import { Pt as ChevronDown, a as Users, b as Star, ut as Folder } from "../_libs/lucide-react.mjs";
+import { t as ApiError } from "./http-BM0VI1yy.mjs";
+import { t as ActionModal } from "./ActionModal-B-dtvezp.mjs";
+import { c as StatusTabs, l as TextAreaField, r as SearchInput, s as StatusBadge } from "./Blocks-CStVFDlw.mjs";
+import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
+import { n as toast } from "../_libs/sonner.mjs";
+import { t as DashboardShell } from "./DashboardShell-t2TYp7B0.mjs";
+import { n as ListPagination, t as FilterSelect } from "./ListControls-FMqnx6XI.mjs";
+import { t as DataTable } from "./DataTable-EspjDfBC.mjs";
+import { s as reviewClient, t as getAgencyProjects } from "./agency-projects.service-phWEnAJj.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/agence.projets-en-cours-tzJi9-tJ.js
+var import_react = /* @__PURE__ */ __toESM(require_react());
+var import_jsx_runtime = require_jsx_runtime();
+var TABS = [
+	{
+		value: "all",
+		label: "Tous"
+	},
+	{
+		value: "in_progress",
+		label: "En cours"
+	},
+	{
+		value: "suspended",
+		label: "Suspendus"
+	},
+	{
+		value: "finished",
+		label: "Terminés"
+	}
+];
+function describeRemainingTime(expectedEndDate) {
+	if (!expectedEndDate) return "Non définie";
+	const endOfDeadlineDay = new Date(expectedEndDate);
+	endOfDeadlineDay.setDate(endOfDeadlineDay.getDate() + 1);
+	const diffMs = endOfDeadlineDay.getTime() - Date.now();
+	if (diffMs <= 0) return "Délai dépassé — passage Terminé imminent";
+	const days = Math.floor(diffMs / 864e5);
+	const hours = Math.floor(diffMs % 864e5 / 36e5);
+	if (days > 0) return `${days}j ${hours}h restantes`;
+	return `${hours}h restantes`;
+}
+function buildColumns(onViewDetails, onReview) {
+	return [
+		{
+			key: "project",
+			header: "Projet",
+			width: "minmax(0,2.2fr)",
+			render: (project) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex min-w-0 items-start gap-3",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Folder, {
+					className: "mt-0.5 h-[18px] w-[18px] shrink-0",
+					strokeWidth: 1.6
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "min-w-0",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "truncate text-[13.5px] font-bold",
+						children: project.title
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "truncate text-[13px] text-muted-foreground",
+						children: project.reference
+					})]
+				})]
+			})
+		},
+		{
+			key: "client",
+			header: "Client",
+			render: (project) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+				className: "flex min-w-0 items-center gap-1.5 text-[13px]",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Users, {
+					className: "h-3.5 w-3.5 shrink-0",
+					strokeWidth: 1.7
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "truncate",
+					children: project.partnerAgencyName ?? "—"
+				})]
+			})
+		},
+		{
+			key: "status",
+			header: "Statut",
+			render: (project) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatusBadge, { label: project.statusLabel })
+		},
+		{
+			key: "budget",
+			header: "Budget",
+			render: (project) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "truncate text-[13px]",
+				children: project.budgetMin === null || project.budgetMax === null ? "—" : `${project.budgetMin} – ${project.budgetMax}`
+			})
+		},
+		{
+			key: "deadline",
+			header: "Échéance",
+			render: (project) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "truncate text-[13px] text-muted-foreground",
+				children: project.deadline
+			})
+		},
+		{
+			key: "action",
+			header: "Action",
+			render: (project) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-wrap gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					type: "button",
+					onClick: () => onViewDetails(project),
+					className: "rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent",
+					children: "Voir le projet"
+				}), project.status === "finished" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					type: "button",
+					onClick: () => onReview(project),
+					className: "flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Star, {
+						className: "h-3.5 w-3.5",
+						strokeWidth: 1.8
+					}), "Laisser un avis"]
+				}) : null]
+			})
+		}
+	];
+}
+function AgencyProjectsPage() {
+	const queryClient = useQueryClient();
+	const [selectedProject, setSelectedProject] = (0, import_react.useState)(null);
+	const [query, setQuery] = (0, import_react.useState)("");
+	const [activeTab, setActiveTab] = (0, import_react.useState)("all");
+	const [page, setPage] = (0, import_react.useState)(1);
+	const [sortDirection, setSortDirection] = (0, import_react.useState)("recent");
+	const [reviewTarget, setReviewTarget] = (0, import_react.useState)(null);
+	const [reviewRating, setReviewRating] = (0, import_react.useState)(5);
+	const [reviewComment, setReviewComment] = (0, import_react.useState)("");
+	const reviewMutation = useMutation({
+		mutationFn: () => {
+			if (!reviewTarget) throw new Error("Aucun projet sélectionné.");
+			return reviewClient(reviewTarget.id, reviewRating, reviewComment.trim() || void 0);
+		},
+		onSuccess: () => {
+			toast("Avis envoyé.");
+			queryClient.invalidateQueries({ queryKey: ["agency", "projects"] });
+			setReviewTarget(null);
+			setReviewRating(5);
+			setReviewComment("");
+		},
+		onError: (error) => {
+			toast(error instanceof ApiError ? error.message : "Impossible d'envoyer l'avis.");
+		}
+	});
+	const projectsQuery = useQuery({
+		queryKey: [
+			"agency",
+			"projects",
+			activeTab,
+			query,
+			page,
+			sortDirection
+		],
+		queryFn: () => getAgencyProjects({
+			...query.trim() ? { query: query.trim() } : {},
+			...activeTab !== "all" ? { status: activeTab } : {},
+			sort: "recent",
+			page,
+			pageSize: 20
+		})
+	});
+	const projects = (0, import_react.useMemo)(() => {
+		const items = projectsQuery.data?.items ?? [];
+		return sortDirection === "old" ? [...items].reverse() : items;
+	}, [projectsQuery.data, sortDirection]);
+	const isLoading = projectsQuery.isLoading;
+	const counts = projectsQuery.data?.counts ?? {};
+	const total = projectsQuery.data?.total ?? null;
+	const totalPages = projectsQuery.data?.totalPages ?? null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DashboardShell, {
+		role: "agency",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "mx-auto max-w-[1080px]",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
+						className: "text-[24px] font-bold tracking-tight",
+						children: "Projets en cours"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-1 text-[14px] text-muted-foreground",
+						children: "Suivez l'avancement de vos projets et leurs échéances."
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-7",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SearchInput, {
+							value: query,
+							onChange: setQuery,
+							placeholder: "Rechercher un projet..."
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-6",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatusTabs, {
+							tabs: TABS,
+							value: activeTab,
+							onChange: setActiveTab,
+							counts
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FilterSelect, {
+								label: "Client",
+								placeholder: "Tous les clients"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FilterSelect, {
+								label: "Statut",
+								placeholder: "Tous les statuts"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FilterSelect, {
+								label: "Période",
+								placeholder: "Toutes les périodes"
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+							className: "truncate text-[14px] font-semibold",
+							children: [total ?? 0, " projets"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							onClick: () => setSortDirection((current) => current === "recent" ? "old" : "recent"),
+							type: "button",
+							className: "flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground",
+							children: [
+								"Trier par : ",
+								sortDirection === "recent" ? "Plus récents" : "Plus anciens",
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronDown, {
+									className: "h-3.5 w-3.5",
+									strokeWidth: 1.8
+								})
+							]
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DataTable, {
+							columns: buildColumns(setSelectedProject, setReviewTarget),
+							rows: projects,
+							isLoading
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ListPagination, {
+						page,
+						totalPages,
+						onPageChange: setPage
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ActionModal, {
+				open: selectedProject !== null,
+				onOpenChange: (open) => {
+					if (!open) setSelectedProject(null);
+				},
+				title: selectedProject?.title ?? "",
+				...selectedProject?.reference ? { description: selectedProject.reference } : {},
+				confirmLabel: "Fermer",
+				onConfirm: () => setSelectedProject(null),
+				children: selectedProject ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "space-y-3 text-[13.5px]",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-semibold",
+							children: "Statut : "
+						}), selectedProject.statusLabel] }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-semibold",
+							children: "Client : "
+						}), selectedProject.partnerAgencyName ?? "—"] }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-semibold",
+							children: "Budget : "
+						}), selectedProject.budgetMin === null || selectedProject.budgetMax === null ? "—" : `${selectedProject.budgetMin} – ${selectedProject.budgetMax}`] }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-semibold",
+							children: "Échéance : "
+						}), selectedProject.deadline || "—"] }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-semibold",
+							children: "Temps restant : "
+						}), describeRemainingTime(selectedProject.expectedEndDate)] }),
+						selectedProject.objective ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "text-muted-foreground",
+							children: selectedProject.objective
+						}) : null
+					]
+				}) : null
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ActionModal, {
+				open: reviewTarget !== null,
+				onOpenChange: (open) => {
+					if (!open) {
+						setReviewTarget(null);
+						setReviewRating(5);
+						setReviewComment("");
+					}
+				},
+				title: "Laisser un avis",
+				description: reviewTarget ? `Client : ${reviewTarget.partnerAgencyName ?? "—"}` : "",
+				confirmLabel: reviewMutation.isPending ? "Envoi…" : "Envoyer l'avis",
+				onConfirm: () => reviewMutation.mutate(),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "space-y-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "text-[13px] text-muted-foreground",
+						children: "Note"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-1.5 flex items-center gap-1.5",
+						children: [
+							1,
+							2,
+							3,
+							4,
+							5
+						].map((value) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => setReviewRating(value),
+							"aria-label": `${value} étoile${value > 1 ? "s" : ""}`,
+							className: "text-foreground transition-opacity hover:opacity-70",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Star, {
+								className: "h-5 w-5",
+								strokeWidth: 1.8,
+								fill: value <= reviewRating ? "currentColor" : "none"
+							})
+						}, value))
+					})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaField, {
+						label: "Votre avis",
+						rows: 4,
+						value: reviewComment,
+						onChange: (event) => setReviewComment(event.target.value)
+					})]
+				})
+			})
+		]
+	});
+}
+//#endregion
+export { AgencyProjectsPage as component };

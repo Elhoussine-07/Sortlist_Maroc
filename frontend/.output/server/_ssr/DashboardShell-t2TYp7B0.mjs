@@ -1,0 +1,950 @@
+import { r as __toESM } from "../_runtime.mjs";
+import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
+import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
+import { D as Settings, E as ShieldAlert, F as Plus, Ft as Check, Ht as Building2, J as LogOut, Lt as ChartColumn, Mt as ChevronRight, Nt as ChevronLeft, O as Send, Ot as CircleQuestionMark, Pt as ChevronDown, U as MessageCircle, Ut as Briefcase, Wt as Bot, X as LoaderCircle, a as Users, b as Star, bt as Compass, dt as FileText, ht as ExternalLink, kt as CirclePlay, l as UserPlus, lt as Gavel, n as X, qt as Bell, r as Workflow, s as User, tt as LayoutGrid, ut as Folder } from "../_libs/lucide-react.mjs";
+import { a as DropdownMenuSeparator, i as DropdownMenuLabel, n as DropdownMenuContent, o as DropdownMenuTrigger, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-CHGFKbne.mjs";
+import { _ as useNavigate, g as Link, l as useRouterState } from "../_libs/@tanstack/react-router+[...].mjs";
+import { n as create, t as persist } from "../_libs/zustand.mjs";
+import { t as useAuthStore } from "./auth.store-DaIrLnl9.mjs";
+import { a as frappeCall, n as GATEWAY_URL, r as camelizeKeys, s as restCall, t as ApiError } from "./http-BM0VI1yy.mjs";
+import { b as searchAgencies, c as getMyAgencies, t as EmptyState, v as requestToJoinAgency } from "./EmptyState-CjCsYQbe.mjs";
+import { o as logout, u as switchAgency } from "./auth.service-F3thChuN.mjs";
+import { t as ActionModal } from "./ActionModal-B-dtvezp.mjs";
+import { u as TextField } from "./Blocks-CStVFDlw.mjs";
+import { n as StackSkeleton } from "./Skeletons-COgUvsAH.mjs";
+import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
+import { n as toast } from "../_libs/sonner.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/DashboardShell-t2TYp7B0.js
+var import_react = /* @__PURE__ */ __toESM(require_react());
+var import_jsx_runtime = require_jsx_runtime();
+var useAgencyStore = create()(persist((set) => ({
+	activeAgencyId: null,
+	agencies: [],
+	setActiveAgency: (agencyId) => set({ activeAgencyId: agencyId }),
+	setAgencies: (agencies) => set({ agencies })
+}), {
+	name: "agency-storage",
+	partialize: (state) => ({
+		activeAgencyId: state.activeAgencyId,
+		agencies: state.agencies
+	})
+}));
+var useNotificationsStore = create((set) => ({
+	notifications: [],
+	unreadCount: 0,
+	isLoading: false,
+	setNotifications: (notifications) => set({ notifications }),
+	setUnreadCount: (unreadCount) => set({ unreadCount }),
+	setLoading: (isLoading) => set({ isLoading })
+}));
+function mapNotification(raw) {
+	const data = camelizeKeys(raw);
+	return {
+		id: String(data["id"] ?? data["name"] ?? ""),
+		title: String(data["title"] ?? ""),
+		description: String(data["body"] ?? data["description"] ?? ""),
+		createdAt: String(data["creation"] ?? data["createdAt"] ?? ""),
+		read: Boolean(data["isRead"] ?? data["read"] ?? false),
+		recipient: data["recipient"] ?? void 0,
+		category: data["category"] ?? void 0,
+		link: data["link"] ?? void 0,
+		referenceDoctype: data["referenceDoctype"] ?? void 0,
+		referenceName: data["referenceName"] ?? void 0,
+		agencyContext: data["agencyContext"] ?? void 0,
+		channel: data["channel"] ?? void 0,
+		actionRequired: data["actionRequired"] ?? void 0,
+		readOn: data["readOn"] ?? void 0,
+		isArchived: data["isArchived"] ?? void 0
+	};
+}
+async function getNotifications(params) {
+	const page = params?.page ?? 1;
+	const pageSize = params?.pageSize ?? 20;
+	const raw = await frappeCall("notification.list_active", {});
+	let items = (Array.isArray(raw) ? raw : []).map((item) => mapNotification(item));
+	if (params?.unreadOnly) items = items.filter((item) => !item.read);
+	return {
+		items,
+		page,
+		pageSize,
+		total: items.length,
+		totalPages: 1
+	};
+}
+async function getNotificationHistory(params) {
+	const raw = await frappeCall("notification.list_history", {
+		category: params?.category,
+		search: params?.search,
+		page: params?.page ?? 1,
+		page_size: params?.pageSize ?? 20
+	});
+	return (Array.isArray(raw) ? raw : []).map((item) => mapNotification({
+		...item,
+		is_read: 1
+	}));
+}
+async function getUnreadCount() {
+	const raw = await frappeCall("notification.list_active", {});
+	return { count: (Array.isArray(raw) ? raw : []).map((item) => mapNotification(item)).filter((item) => !item.read).length };
+}
+async function markAsRead(id) {
+	const raw = await frappeCall("notification.mark_read", { notification: id });
+	const data = camelizeKeys(raw);
+	return { read: Boolean(data["read"] ?? data["isRead"] ?? true) };
+}
+async function markAllAsRead() {
+	await frappeCall("notification.mark_all_active_read", { agency_context: void 0 });
+}
+async function sendChatbotMessage(message, context = {}) {
+	const isAuthenticated = Boolean(useAuthStore.getState().token);
+	const raw = await restCall("ia", isAuthenticated ? "/chatbot" : "/chatbot/public", {
+		method: "POST",
+		body: {
+			message,
+			context
+		}
+	});
+	const data = camelizeKeys(raw);
+	return {
+		reply: String(data["reply"] ?? ""),
+		escalate: Boolean(data["escalate"] ?? false),
+		matchedTopic: data["matchedTopic"] ?? null
+	};
+}
+function Chatbot() {
+	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	const [entries, setEntries] = (0, import_react.useState)([]);
+	const [draft, setDraft] = (0, import_react.useState)("");
+	const [isSending, setIsSending] = (0, import_react.useState)(false);
+	const inputRef = (0, import_react.useRef)(null);
+	async function handleSubmit(event) {
+		event.preventDefault();
+		const content = draft.trim();
+		if (!content || isSending) return;
+		const userEntry = {
+			id: `u-${Date.now()}`,
+			author: "user",
+			content
+		};
+		setEntries((prev) => [...prev, userEntry]);
+		setDraft("");
+		setIsSending(true);
+		try {
+			const result = await sendChatbotMessage(content);
+			setEntries((prev) => [...prev, {
+				id: `b-${Date.now()}`,
+				author: "bot",
+				content: result.reply,
+				escalate: result.escalate
+			}]);
+		} catch (error) {
+			setEntries((prev) => [...prev, {
+				id: `b-${Date.now()}`,
+				author: "bot",
+				content: error instanceof ApiError ? error.message : "Le chatbot est momentanément indisponible, réessayez plus tard."
+			}]);
+		} finally {
+			setIsSending(false);
+			inputRef.current?.focus();
+		}
+	}
+	if (!isOpen) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+		type: "button",
+		onClick: () => setIsOpen(true),
+		"aria-label": "Ouvrir l'assistant",
+		className: "fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-opacity hover:opacity-90",
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MessageCircle, {
+			className: "h-6 w-6",
+			strokeWidth: 1.8
+		})
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "fixed bottom-6 right-6 z-50 flex h-[480px] w-[340px] flex-col overflow-hidden rounded-lg border border-border bg-background shadow-xl",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", {
+				className: "flex items-center justify-between border-b border-border px-4 py-3",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+					className: "flex items-center gap-2 text-[13.5px] font-semibold",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bot, {
+						className: "h-4 w-4",
+						strokeWidth: 1.8
+					}), "Assistant Sortlist"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					type: "button",
+					onClick: () => setIsOpen(false),
+					"aria-label": "Fermer l'assistant",
+					className: "text-muted-foreground transition-colors hover:text-foreground",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, {
+						className: "h-4 w-4",
+						strokeWidth: 1.8
+					})
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex-1 space-y-3 overflow-y-auto px-4 py-4",
+				children: [entries.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-[13px] text-muted-foreground",
+					children: "Posez une question — sur votre projet, votre facturation ou le fonctionnement de la plateforme."
+				}) : entries.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: entry.author === "user" ? "ml-6 rounded-lg border border-border px-3 py-2" : "mr-6 rounded-lg bg-accent px-3 py-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "whitespace-pre-line text-[13px] leading-[1.5]",
+						children: entry.content
+					}), entry.escalate ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-1.5 text-[11.5px] font-semibold text-muted-foreground",
+						children: "Transmis à un conseiller humain"
+					}) : null]
+				}, entry.id)), isSending ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mr-6 flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-muted-foreground",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, {
+						className: "h-3.5 w-3.5 animate-spin",
+						strokeWidth: 1.8
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-[12.5px]",
+						children: "L'assistant écrit..."
+					})]
+				}) : null]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				onSubmit: handleSubmit,
+				className: "flex items-center gap-2 border-t border-border p-3",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+					ref: inputRef,
+					type: "text",
+					value: draft,
+					onChange: (event) => setDraft(event.target.value),
+					placeholder: "Votre question...",
+					className: "min-w-0 flex-1 rounded-md border border-border bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					type: "submit",
+					disabled: isSending || !draft.trim(),
+					"aria-label": "Envoyer",
+					className: "flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Send, {
+						className: "h-3.5 w-3.5",
+						strokeWidth: 1.8
+					})
+				})]
+			})
+		]
+	});
+}
+async function getDemoGuide(accountType) {
+	const raw = await frappeCall("demo.get_guide", { account_type: accountType });
+	const data = camelizeKeys(raw);
+	return {
+		steps: (Array.isArray(data["steps"]) ? data["steps"] : []).map((item) => {
+			const s = camelizeKeys(item);
+			const rawUrl = String(s["videoUrl"] ?? "");
+			return {
+				step: Number(s["step"] ?? 0),
+				title: String(s["title"] ?? ""),
+				videoUrl: rawUrl.startsWith("http") ? rawUrl : `${GATEWAY_URL}${rawUrl}`
+			};
+		}),
+		currentStep: Number(data["currentStep"] ?? 0),
+		completed: Boolean(data["completed"] ?? false)
+	};
+}
+async function setDemoProgress(step, completed) {
+	const raw = await frappeCall("demo.set_progress", {
+		step,
+		completed: completed ? 1 : 0
+	});
+	const data = camelizeKeys(raw);
+	return {
+		step: Number(data["step"] ?? step),
+		completed: Boolean(data["completed"] ?? completed)
+	};
+}
+var FALLBACK_VIDEO_URL = "https://player.vimeo.com/video/000000000";
+var FALLBACK_STEPS = {
+	client: [
+		{
+			step: 0,
+			title: "Bienvenue",
+			videoUrl: FALLBACK_VIDEO_URL
+		},
+		{
+			step: 1,
+			title: "Postuler un projet (Smart Briefing IA)",
+			videoUrl: FALLBACK_VIDEO_URL
+		},
+		{
+			step: 2,
+			title: "Suivre Mes Projets",
+			videoUrl: FALLBACK_VIDEO_URL
+		},
+		{
+			step: 3,
+			title: "Actions rapides : Unicast & Multicast",
+			videoUrl: FALLBACK_VIDEO_URL
+		},
+		{
+			step: 4,
+			title: "Collaborations & avis",
+			videoUrl: FALLBACK_VIDEO_URL
+		}
+	],
+	agency: [
+		{
+			step: 0,
+			title: "Bienvenue",
+			videoUrl: FALLBACK_VIDEO_URL
+		},
+		{
+			step: 1,
+			title: "Compléter votre profil (PQI)",
+			videoUrl: FALLBACK_VIDEO_URL
+		},
+		{
+			step: 2,
+			title: "Gérer vos Opportunités",
+			videoUrl: FALLBACK_VIDEO_URL
+		},
+		{
+			step: 3,
+			title: "Analytics & Prospection",
+			videoUrl: FALLBACK_VIDEO_URL
+		},
+		{
+			step: 4,
+			title: "Facturation",
+			videoUrl: FALLBACK_VIDEO_URL
+		}
+	],
+	admin: [{
+		step: 0,
+		title: "Bienvenue",
+		videoUrl: FALLBACK_VIDEO_URL
+	}, {
+		step: 1,
+		title: "Traiter les litiges & suspensions",
+		videoUrl: FALLBACK_VIDEO_URL
+	}]
+};
+function DemoGuide({ accountType, open, onOpenChange }) {
+	const [steps, setSteps] = (0, import_react.useState)([]);
+	const [currentStep, setCurrentStep] = (0, import_react.useState)(0);
+	const [isLoading, setIsLoading] = (0, import_react.useState)(true);
+	const [hasError, setHasError] = (0, import_react.useState)(false);
+	(0, import_react.useEffect)(() => {
+		if (!open) return;
+		setIsLoading(true);
+		setHasError(false);
+		getDemoGuide(accountType).then((guide) => {
+			setSteps(guide.steps.length > 0 ? guide.steps : FALLBACK_STEPS[accountType]);
+			setCurrentStep(guide.currentStep);
+		}).catch(() => {
+			setHasError(true);
+			setSteps(FALLBACK_STEPS[accountType]);
+		}).finally(() => setIsLoading(false));
+	}, [open, accountType]);
+	function goTo(step) {
+		if (step < 0 || step >= steps.length) return;
+		setCurrentStep(step);
+		setDemoProgress(step, step === steps.length - 1).catch(() => {});
+	}
+	if (!open) return null;
+	const activeStep = steps[currentStep];
+	const progressPercent = steps.length > 0 ? Math.round((currentStep + 1) / steps.length * 100) : 0;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		className: "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4",
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "w-full max-w-[640px] rounded-lg border border-border bg-background shadow-xl",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", {
+				className: "flex items-center justify-between border-b border-border px-6 py-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+					className: "text-[15px] font-bold",
+					children: [
+						"Guide de démarrage —",
+						" ",
+						accountType === "agency" ? "Agence" : accountType === "admin" ? "Administration" : "Client"
+					]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					type: "button",
+					onClick: () => onOpenChange(false),
+					"aria-label": "Fermer le guide",
+					className: "text-muted-foreground transition-colors hover:text-foreground",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, {
+						className: "h-4 w-4",
+						strokeWidth: 1.8
+					})
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "px-6 py-6",
+				children: isLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StackSkeleton, { count: 2 }) : steps.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, { message: "Aucune étape de démonstration disponible." }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+					hasError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mb-3 text-[12.5px] text-muted-foreground",
+						children: "Guide affiché en mode hors-ligne (impossible de contacter le serveur)."
+					}) : null,
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "aspect-video w-full overflow-hidden rounded-md border border-border bg-accent/40",
+						children: activeStep ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
+							href: activeStep.videoUrl,
+							target: "_blank",
+							rel: "noreferrer",
+							className: "flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground transition-colors hover:text-foreground",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CirclePlay, {
+								className: "h-10 w-10",
+								strokeWidth: 1.5
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-[12.5px]",
+								children: "Regarder la vidéo"
+							})]
+						}) : null
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-4 text-[14px] font-bold",
+						children: activeStep?.title
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-4 h-1.5 w-full overflow-hidden rounded-full bg-accent",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "h-full rounded-full bg-primary transition-all",
+							style: { width: `${progressPercent}%` }
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-1.5 text-[12px] text-muted-foreground",
+						children: [
+							"Étape ",
+							currentStep + 1,
+							" sur ",
+							steps.length
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-6 flex items-center justify-between gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							onClick: () => goTo(currentStep - 1),
+							disabled: currentStep === 0,
+							className: "flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-[13.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronLeft, {
+								className: "h-3.5 w-3.5",
+								strokeWidth: 1.8
+							}), "Précédent"]
+						}), currentStep === steps.length - 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => onOpenChange(false),
+							className: "rounded-md bg-primary px-4 py-2 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90",
+							children: "Terminer"
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							onClick: () => goTo(currentStep + 1),
+							className: "flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90",
+							children: ["Suivant", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronRight, {
+								className: "h-3.5 w-3.5",
+								strokeWidth: 1.8
+							})]
+						})]
+					})
+				] })
+			})]
+		})
+	});
+}
+var CLIENT_NAV = [
+	{
+		label: "Tableau de bord",
+		to: "/client/tableau-de-bord",
+		icon: LayoutGrid
+	},
+	{
+		label: "Mon profil",
+		to: "/client/mon-profil",
+		icon: User
+	},
+	{
+		label: "Postuler un projet",
+		to: "/client/postuler-un-projet",
+		icon: Send
+	},
+	{
+		label: "Mes projets",
+		to: "/client/mes-projets",
+		icon: Folder
+	},
+	{
+		label: "Collaborations",
+		to: "/client/collaborations",
+		icon: Users
+	},
+	{
+		label: "Agences favorites",
+		to: "/client/agences-favorites",
+		icon: Star
+	},
+	{
+		label: "Historique des notifications",
+		to: "/client/notifications",
+		icon: Bell
+	},
+	{
+		label: "Paramètres",
+		to: "/client/parametres",
+		icon: Settings
+	}
+];
+var AGENCY_NAV = [
+	{
+		label: "Tableau de bord",
+		to: "/agence/tableau-de-bord",
+		icon: LayoutGrid
+	},
+	{
+		label: "Opportunités",
+		to: "/agence/opportunites",
+		icon: Briefcase
+	},
+	{
+		label: "Mes prospections",
+		to: "/agence/mes-prospections",
+		icon: Compass
+	},
+	{
+		label: "Workflow",
+		to: "/agence/workflow",
+		icon: Workflow
+	},
+	{
+		label: "Projets en cours",
+		to: "/agence/projets-en-cours",
+		icon: Folder
+	},
+	{
+		label: "Suspension",
+		to: "/agence/suspension",
+		icon: ShieldAlert
+	},
+	{
+		label: "Prospection",
+		to: "/agence/prospection",
+		icon: Users
+	},
+	{
+		label: "Analytics",
+		to: "/agence/analytics",
+		icon: ChartColumn
+	},
+	{
+		label: "Facturation",
+		to: "/agence/facturation",
+		icon: FileText
+	},
+	{
+		label: "Profil agence",
+		to: "/agence/profil",
+		icon: Building2
+	},
+	{
+		label: "Invitations",
+		to: "/agence/invitations",
+		icon: UserPlus
+	},
+	{
+		label: "Historique des notifications",
+		to: "/agence/notifications",
+		icon: Bell
+	},
+	{
+		label: "Paramètres",
+		to: "/agence/parametres",
+		icon: Settings
+	}
+];
+var ADMIN_NAV = [
+	{
+		label: "Tableau de bord",
+		to: "/admin/tableau-de-bord",
+		icon: LayoutGrid
+	},
+	{
+		label: "Litiges & suspensions",
+		to: "/admin/litiges",
+		icon: Gavel
+	},
+	{
+		label: "Avis & comptes",
+		to: "/admin/avis",
+		icon: Star
+	},
+	{
+		label: "Historique des notifications",
+		to: "/admin/notifications",
+		icon: Bell
+	}
+];
+function navForRole(role) {
+	if (role === "client") return CLIENT_NAV;
+	if (role === "agency") return AGENCY_NAV;
+	return ADMIN_NAV;
+}
+function hashSeed(seed) {
+	let hash = 0;
+	for (let i = 0; i < seed.length; i += 1) {
+		hash = (hash << 5) - hash + seed.charCodeAt(i);
+		hash |= 0;
+	}
+	return Math.abs(hash);
+}
+function seedGradient(seed) {
+	const hue = hashSeed(seed) % 360;
+	return `linear-gradient(135deg, hsl(${hue} 72% 56%), hsl(${(hue + 42) % 360} 72% 44%))`;
+}
+function DashboardShell({ role, children }) {
+	const items = navForRole(role);
+	const navigate = useNavigate();
+	const pathname = useRouterState({ select: (state) => state.location.pathname });
+	const user = useAuthStore((state) => state.user);
+	const unreadCount = useNotificationsStore((state) => state.unreadCount);
+	const setUnreadCount = useNotificationsStore((state) => state.setUnreadCount);
+	const unreadCountQuery = useQuery({
+		queryKey: ["notifications", "unread-count"],
+		queryFn: getUnreadCount,
+		refetchInterval: 6e4
+	});
+	(0, import_react.useEffect)(() => {
+		if (unreadCountQuery.data) setUnreadCount(unreadCountQuery.data.count);
+	}, [unreadCountQuery.data, setUnreadCount]);
+	const [isDemoOpen, setIsDemoOpen] = (0, import_react.useState)(false);
+	const roleLabel = role === "client" ? "Client (Entreprise)" : role === "agency" ? "Agence" : "Administration";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "min-h-screen bg-background",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `.font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }` }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", {
+				className: "sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-8",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+						to: "/",
+						className: "group flex min-w-0 shrink-0 items-center gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
+							viewBox: "0 0 28 28",
+							"aria-hidden": "true",
+							className: "h-6 w-6 shrink-0 text-primary",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									cx: "6",
+									cy: "6",
+									r: "3.2",
+									fill: "currentColor",
+									fillOpacity: "0.35"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									cx: "6",
+									cy: "22",
+									r: "3.2",
+									fill: "currentColor",
+									fillOpacity: "0.35"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+									cx: "22",
+									cy: "14",
+									r: "3.6",
+									fill: "currentColor"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									x1: "8.6",
+									y1: "7.4",
+									x2: "19.4",
+									y2: "12.6",
+									stroke: "currentColor",
+									strokeWidth: "1.6",
+									strokeOpacity: "0.5"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", {
+									x1: "8.6",
+									y1: "20.6",
+									x2: "19.4",
+									y2: "15.4",
+									stroke: "currentColor",
+									strokeWidth: "1.6",
+									strokeOpacity: "0.5"
+								})
+							]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-display truncate text-[20px] font-bold tracking-tight",
+							children: "Sortlist"
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex shrink-0 items-center gap-1.5",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+								onClick: () => setIsDemoOpen(true),
+								type: "button",
+								"aria-label": "Découvrir la plateforme",
+								title: "Découvrir la plateforme",
+								className: "flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CirclePlay, {
+									className: "h-[21px] w-[21px]",
+									strokeWidth: 1.6
+								})
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+								onClick: () => void navigate({ to: role === "client" ? "/client/notifications" : role === "agency" ? "/agence/notifications" : "/admin/notifications" }),
+								type: "button",
+								"aria-label": "Notifications",
+								className: "relative flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bell, {
+									className: "h-[21px] w-[21px]",
+									strokeWidth: 1.6
+								}), unreadCount > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground",
+									children: unreadCount
+								}) : null]
+							}),
+							role === "agency" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "mx-1 h-6 w-px bg-border",
+								"aria-hidden": true
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AgencySwitcher, {})] }) : null,
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "mx-1 h-6 w-px bg-border",
+								"aria-hidden": true
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
+								asChild: true,
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+									type: "button",
+									className: "flex items-center gap-2 rounded-md py-1.5 pl-1.5 pr-2 text-left transition-colors hover:bg-accent",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											style: { backgroundImage: seedGradient(user?.displayName ?? user?.initials ?? "?") },
+											className: "font-display flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12.5px] font-bold text-white",
+											children: user?.initials ?? ""
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+											className: "hidden min-w-0 leading-tight sm:block",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "block truncate text-[14.5px] font-semibold",
+												children: user?.displayName ?? ""
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "block truncate text-[12.5px] text-muted-foreground",
+												children: roleLabel
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronDown, {
+											className: "h-4 w-4 shrink-0 text-muted-foreground",
+											strokeWidth: 1.6
+										})
+									]
+								})
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
+								align: "end",
+								className: "w-56",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuLabel, { children: user?.displayName ?? "Mon compte" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}),
+									role !== "admin" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuItem, {
+										asChild: true,
+										className: "gap-2",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+											to: role === "client" ? "/client/parametres" : "/agence/parametres",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Settings, {
+												className: "h-4 w-4 shrink-0",
+												strokeWidth: 1.7
+											}), "Paramètres"]
+										})
+									}) : null,
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+										className: "gap-2",
+										onClick: () => {
+											logout().finally(() => {
+												navigate({ to: "/connexion" });
+											});
+										},
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LogOut, {
+											className: "h-4 w-4 shrink-0",
+											strokeWidth: 1.7
+										}), "Se déconnecter"]
+									})
+								]
+							})] })
+						]
+					})]
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", {
+					className: "sticky top-[65px] hidden h-[calc(100vh-65px)] w-[248px] shrink-0 flex-col justify-between border-r border-border px-3 py-6 lg:flex",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", {
+						className: "space-y-0.5",
+						children: items.map((item) => {
+							const isActive = pathname === item.to;
+							return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+								to: item.to,
+								className: isActive ? "flex items-center gap-3 rounded-md bg-primary/10 px-3 py-2.5 text-[14.5px] font-semibold text-primary" : "flex items-center gap-3 rounded-md px-3 py-2.5 text-[14.5px] font-medium text-foreground/75 transition-colors hover:bg-accent hover:text-foreground",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(item.icon, {
+									className: "h-[18px] w-[18px] shrink-0",
+									strokeWidth: 1.7
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "truncate",
+									children: item.label
+								})]
+							}, item.to);
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "rounded-lg border border-border p-3.5",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+							className: "flex items-center gap-2 text-[14px] font-semibold",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleQuestionMark, {
+								className: "h-4 w-4 text-primary",
+								strokeWidth: 1.7
+							}), "Besoin d'aide ?"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
+							href: "/centre-aide",
+							className: "mt-1.5 flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground",
+							children: ["Consulter notre centre d'aide", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExternalLink, {
+								className: "h-3 w-3",
+								strokeWidth: 1.7
+							})]
+						})]
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("main", {
+					className: "min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8",
+					children
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Chatbot, {}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DemoGuide, {
+				accountType: role,
+				open: isDemoOpen,
+				onOpenChange: setIsDemoOpen
+			})
+		]
+	});
+}
+function AgencySwitcher() {
+	const queryClient = useQueryClient();
+	const activeAgencyId = useAgencyStore((state) => state.activeAgencyId);
+	const setActiveAgency = useAgencyStore((state) => state.setActiveAgency);
+	const setAgencies = useAgencyStore((state) => state.setAgencies);
+	const [isJoinOpen, setIsJoinOpen] = (0, import_react.useState)(false);
+	const [joinQuery, setJoinQuery] = (0, import_react.useState)("");
+	const { data: agencies } = useQuery({
+		queryKey: ["agencies", "mine"],
+		queryFn: getMyAgencies
+	});
+	(0, import_react.useEffect)(() => {
+		if (!agencies) return;
+		setAgencies(agencies);
+		if (activeAgencyId === null && agencies.length > 0) setActiveAgency(agencies[0]?.id ?? null);
+	}, [
+		agencies,
+		activeAgencyId,
+		setAgencies,
+		setActiveAgency
+	]);
+	const switchMutation = useMutation({
+		mutationFn: switchAgency,
+		onSuccess: (_result, agencyId) => {
+			setActiveAgency(agencyId);
+			queryClient.invalidateQueries();
+			toast("Agence changée", { description: agencies?.find((agency) => agency.id === agencyId)?.name });
+		},
+		onError: (error) => {
+			toast(error instanceof ApiError ? error.message : "Impossible de changer d'agence.");
+		}
+	});
+	const joinMutation = useMutation({
+		mutationFn: async (query) => {
+			const trimmed = query.trim();
+			const targetId = (await searchAgencies({
+				query: trimmed,
+				pageSize: 5
+			})).items[0]?.id ?? trimmed;
+			return requestToJoinAgency(targetId);
+		},
+		onSuccess: () => {
+			toast("Demande envoyée", { description: "Le propriétaire de l'agence doit approuver votre demande." });
+			setIsJoinOpen(false);
+			setJoinQuery("");
+		},
+		onError: (error) => {
+			toast(error instanceof ApiError ? error.message : "Envoi de la demande impossible.");
+		}
+	});
+	const activeAgency = agencies?.find((agency) => agency.id === activeAgencyId) ?? agencies?.[0];
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
+		asChild: true,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+			type: "button",
+			className: "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13.5px] font-semibold transition-colors hover:bg-accent",
+			children: [
+				activeAgency ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					style: { backgroundImage: seedGradient(activeAgency.id) },
+					className: "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white",
+					children: activeAgency.initials
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Building2, {
+					className: "h-4 w-4 shrink-0 text-muted-foreground",
+					strokeWidth: 1.7
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "hidden max-w-[140px] truncate sm:block",
+					children: activeAgency?.name ?? "Mes agences"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronDown, {
+					className: "h-3.5 w-3.5 shrink-0 text-muted-foreground",
+					strokeWidth: 1.8
+				})
+			]
+		})
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
+		align: "end",
+		className: "w-64",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuLabel, { children: "Vos agences" }),
+			agencies === void 0 || agencies.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "px-2 py-1.5 text-[13px] text-muted-foreground",
+				children: "Aucune agence trouvée."
+			}) : agencies.map((agency) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+				onClick: () => {
+					if (agency.id !== activeAgencyId) switchMutation.mutate(agency.id);
+				},
+				className: "justify-between gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+					className: "flex min-w-0 items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						style: { backgroundImage: seedGradient(agency.id) },
+						className: "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white",
+						children: agency.initials
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "min-w-0 truncate",
+						children: agency.name
+					})]
+				}), agency.id === activeAgencyId ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Check, {
+					className: "h-3.5 w-3.5 shrink-0 text-primary",
+					strokeWidth: 2
+				}) : null]
+			}, agency.id)),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+				onClick: () => setIsJoinOpen(true),
+				className: "gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, {
+					className: "h-3.5 w-3.5 shrink-0",
+					strokeWidth: 1.8
+				}), "Rejoindre une agence"]
+			})
+		]
+	})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ActionModal, {
+		open: isJoinOpen,
+		onOpenChange: setIsJoinOpen,
+		title: "Rejoindre une agence",
+		description: "Envoyez une demande de rattachement au propriétaire de l'agence.",
+		confirmLabel: joinMutation.isPending ? "Envoi..." : "Envoyer la demande",
+		onConfirm: () => {
+			if (joinQuery.trim()) joinMutation.mutate(joinQuery);
+		},
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextField, {
+			label: "Nom ou identifiant de l'agence",
+			value: joinQuery,
+			onChange: (event) => setJoinQuery(event.target.value)
+		})
+	})] });
+}
+//#endregion
+export { markAsRead as a, markAllAsRead as i, getNotificationHistory as n, useNotificationsStore as o, getNotifications as r, DashboardShell as t };
