@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS visits (
     visitor_ip          TEXT,
     company_name        TEXT,
     company_domain      TEXT,
+    visitor_location     TEXT,                        -- "Ville, Pays" résolu par ipDetector.js (cf. resolveCompany().raw)
     session_id          TEXT NOT NULL,
     client_email        TEXT,                        -- identité du visiteur si connecté en tant que client
     action               TEXT NOT NULL,              -- canonical French label (LeadScoringRule.action)
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS leads (
     visitor_ip          TEXT,
     company_name        TEXT,
     company_domain      TEXT,
+    visitor_location     TEXT,                        -- "Ville, Pays" résolu par ipDetector.js
     client_email        TEXT,                        -- identité résolue (visiteur connecté en tant que client)
     client_name         TEXT,                        -- nom affiché du client identifié (jamais de coordonnées)
     cumulative_score    INTEGER NOT NULL DEFAULT 0,
@@ -49,7 +51,7 @@ CREATE TABLE IF NOT EXISTS leads (
     last_email_body     TEXT,
     last_email_provider TEXT,
     last_email_generated_at TIMESTAMPTZ,
-    last_email_status   TEXT NOT NULL DEFAULT 'None', -- None | Draft | Sent
+    last_email_status   TEXT NOT NULL DEFAULT 'None', -- None | Draft | Sent | Failed (cf. routes/prospection.js /send-email)
     last_email_sent_at  TIMESTAMPTZ,
     UNIQUE (agency, session_id)
 );
@@ -63,6 +65,8 @@ ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_email_sent_at TIMESTAMPTZ;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS client_email TEXT;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS client_name TEXT;
 ALTER TABLE visits ADD COLUMN IF NOT EXISTS client_email TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS visitor_location TEXT;
+ALTER TABLE visits ADD COLUMN IF NOT EXISTS visitor_location TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_leads_agency_classification ON leads (agency, classification);
 CREATE INDEX IF NOT EXISTS idx_leads_agency_last_seen ON leads (agency, last_seen_at DESC);

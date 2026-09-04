@@ -31,6 +31,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TarifsRouteImport } from './routes/tarifs'
 import { Route as AgencesIdRouteImport } from './routes/agences_.$id'
 import { Route as FonctionnalitesSlugRouteImport } from './routes/fonctionnalites.$slug'
+import { Route as ProjetsIdRouteImport } from './routes/projets_.$id'
 import { Route as AuthenticatedAdminAvisRouteImport } from './routes/_authenticated/admin.avis'
 import { Route as AuthenticatedAdminLitigesRouteImport } from './routes/_authenticated/admin.litiges'
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
@@ -63,6 +64,13 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+
+const ProjetsIdRoute = ProjetsIdRouteImport.update({
+  id: '/projets_/$id',
+  path: '/projets/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -345,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/tarifs': typeof TarifsRoute
   '/agences/$id': typeof AgencesIdRoute
   '/fonctionnalites/$slug': typeof FonctionnalitesSlugRoute
+  '/projets/$id': typeof ProjetsIdRoute
   '/admin/avis': typeof AuthenticatedAdminAvisRoute
   '/admin/litiges': typeof AuthenticatedAdminLitigesRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -394,6 +403,7 @@ export interface FileRoutesByTo {
   '/tarifs': typeof TarifsRoute
   '/agences/$id': typeof AgencesIdRoute
   '/fonctionnalites/$slug': typeof FonctionnalitesSlugRoute
+  '/projets/$id': typeof ProjetsIdRoute
   '/admin/avis': typeof AuthenticatedAdminAvisRoute
   '/admin/litiges': typeof AuthenticatedAdminLitigesRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -445,6 +455,7 @@ export interface FileRoutesById {
   '/tarifs': typeof TarifsRoute
   '/agences_/$id': typeof AgencesIdRoute
   '/fonctionnalites/$slug': typeof FonctionnalitesSlugRoute
+  '/projets_/$id': typeof ProjetsIdRoute
   '/_authenticated/admin/avis': typeof AuthenticatedAdminAvisRoute
   '/_authenticated/admin/litiges': typeof AuthenticatedAdminLitigesRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/tarifs'
     | '/agences/$id'
     | '/fonctionnalites/$slug'
+    | '/projets/$id'
     | '/admin/avis'
     | '/admin/litiges'
     | '/admin/notifications'
@@ -545,6 +557,7 @@ export interface FileRouteTypes {
     | '/tarifs'
     | '/agences/$id'
     | '/fonctionnalites/$slug'
+    | '/projets/$id'
     | '/admin/avis'
     | '/admin/litiges'
     | '/admin/notifications'
@@ -595,6 +608,7 @@ export interface FileRouteTypes {
     | '/tarifs'
     | '/agences_/$id'
     | '/fonctionnalites/$slug'
+    | '/projets_/$id'
     | '/_authenticated/admin/avis'
     | '/_authenticated/admin/litiges'
     | '/_authenticated/admin/notifications'
@@ -646,6 +660,7 @@ export interface RootRouteChildren {
   TarifsRoute: typeof TarifsRoute
   AgencesIdRoute: typeof AgencesIdRoute
   FonctionnalitesSlugRoute: typeof FonctionnalitesSlugRoute
+  ProjetsIdRoute: typeof ProjetsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -802,6 +817,13 @@ declare module '@tanstack/react-router' {
       path: '/fonctionnalites/$slug'
       fullPath: '/fonctionnalites/$slug'
       preLoaderRoute: typeof FonctionnalitesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projets_/$id': {
+      id: '/projets_/$id'
+      path: '/projets/$id'
+      fullPath: '/projets/$id'
+      preLoaderRoute: typeof ProjetsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/avis': {
@@ -1027,27 +1049,27 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgenceFacturationRoute: AuthenticatedAgenceFacturationRoute,
   AuthenticatedAgenceInvitationsRoute: AuthenticatedAgenceInvitationsRoute,
   AuthenticatedAgenceMesProspectionsRoute:
-    AuthenticatedAgenceMesProspectionsRoute,
+  AuthenticatedAgenceMesProspectionsRoute,
   AuthenticatedAgenceNotificationsRoute: AuthenticatedAgenceNotificationsRoute,
   AuthenticatedAgenceOpportunitesRoute: AuthenticatedAgenceOpportunitesRoute,
   AuthenticatedAgenceParametresRoute: AuthenticatedAgenceParametresRoute,
   AuthenticatedAgenceProfilRoute: AuthenticatedAgenceProfilRoute,
   AuthenticatedAgenceProjetsEnCoursRoute:
-    AuthenticatedAgenceProjetsEnCoursRoute,
+  AuthenticatedAgenceProjetsEnCoursRoute,
   AuthenticatedAgenceProspectionRoute: AuthenticatedAgenceProspectionRoute,
   AuthenticatedAgenceSuspensionRoute: AuthenticatedAgenceSuspensionRoute,
   AuthenticatedAgenceTableauDeBordRoute: AuthenticatedAgenceTableauDeBordRoute,
   AuthenticatedAgenceWorkflowRoute: AuthenticatedAgenceWorkflowRoute,
   AuthenticatedClientAgencesFavoritesRoute:
-    AuthenticatedClientAgencesFavoritesRoute,
+  AuthenticatedClientAgencesFavoritesRoute,
   AuthenticatedClientCollaborationsRoute:
-    AuthenticatedClientCollaborationsRoute,
+  AuthenticatedClientCollaborationsRoute,
   AuthenticatedClientMesProjetsRoute: AuthenticatedClientMesProjetsRoute,
   AuthenticatedClientMonProfilRoute: AuthenticatedClientMonProfilRoute,
   AuthenticatedClientNotificationsRoute: AuthenticatedClientNotificationsRoute,
   AuthenticatedClientParametresRoute: AuthenticatedClientParametresRoute,
   AuthenticatedClientPostulerUnProjetRoute:
-    AuthenticatedClientPostulerUnProjetRoute,
+  AuthenticatedClientPostulerUnProjetRoute,
   AuthenticatedClientTableauDeBordRoute: AuthenticatedClientTableauDeBordRoute,
   AuthenticatedClientMesProjetsIdRoute: AuthenticatedClientMesProjetsIdRoute,
 }
@@ -1078,6 +1100,7 @@ const rootRouteChildren: RootRouteChildren = {
   TarifsRoute: TarifsRoute,
   AgencesIdRoute: AgencesIdRoute,
   FonctionnalitesSlugRoute: FonctionnalitesSlugRoute,
+  ProjetsIdRoute: ProjetsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

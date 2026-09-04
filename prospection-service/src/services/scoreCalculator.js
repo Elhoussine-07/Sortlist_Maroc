@@ -183,16 +183,22 @@ async function computePoints(action, ctx = {}) {
 
 /**
  * Classifies a cumulative score per cahier des charges 2.6.1:
- *   Chaud: cumulative >= thresholds.hot, OR the triggering action is
- *          "Ajout aux favoris" (signal fort, always Chaud regardless of score).
+ *   Chaud: cumulative >= thresholds.hot
  *   Tiède: thresholds.warm_min <= cumulative < thresholds.hot
  *   Froid: cumulative < thresholds.warm_min
+ *
+ * BUG CORRIGÉ (demande explicite) : "Ajout aux favoris" forçait "Chaud"
+ * immédiatement, indépendamment du score cumulé — un simple clic sur
+ * l'étoile suffisait à classer "Chaud" même à 20/100. Retiré : les 20
+ * points de "Ajout aux favoris" (cf. FALLBACK_RULES) s'ajoutent désormais
+ * au score cumulé comme n'importe quelle autre action, et c'est uniquement
+ * ce score qui détermine la classification — plus de court-circuit.
  */
-async function classify(cumulativeScore, triggeringAction) {
+async function classify(cumulativeScore) {
   const { data } = await getRules();
   const thresholds = data.thresholds || FALLBACK_RULES.thresholds;
 
-  if (triggeringAction === "Ajout aux favoris" || cumulativeScore >= thresholds.hot) {
+  if (cumulativeScore >= thresholds.hot) {
     return "Chaud";
   }
   if (cumulativeScore >= thresholds.warm_min) {

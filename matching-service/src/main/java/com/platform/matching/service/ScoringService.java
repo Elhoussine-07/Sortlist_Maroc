@@ -43,12 +43,26 @@ public class ScoringService {
 
     // ------------------------------------------------------------------
     // Ponderation du matching_score (somme = 1.0)
+    // PONDERATION AJUSTEE (25/08) : rééquilibrage suite a analyse des
+    // incoherences internes du systeme de scoring. Details :
+    //   - PQI releve 0.15 -> 0.20 : c'est une metrique propriete de la
+    //     plateforme, deja auditee (PQICriterion), plus fiable que Location.
+    //   - LOCATION baissee 0.20 -> 0.15 : score deja "court-circuite" a 100
+    //     des qu'une agence est en remote_work, ce qui reduit son pouvoir
+    //     discriminant pour une part croissante d'agences.
+    //   - RATING baissee 0.20 -> 0.15 : deja pris en compte a 30% dans le
+    //     success_prediction (SP_RATING_WEIGHT) ; le laisser a 20% ici
+    //     revenait a compter deux fois le meme signal de qualite.
+    //   - BUDGET relevee 0.10 -> 0.15 : la capacite financiere reste un
+    //     risque business reel, meme via un proxy imparfait (CA annuel).
+    //   - SKILLS inchangee a 0.35 : reste le critere central du matching.
+    // Somme = 1.0 (35+20+15+15+15).
     // ------------------------------------------------------------------
-    public static final double LOCATION_WEIGHT = 0.20;
+    public static final double LOCATION_WEIGHT = 0.15;
     public static final double SKILLS_WEIGHT = 0.35;
-    public static final double BUDGET_WEIGHT = 0.10;
-    public static final double RATING_WEIGHT = 0.20;
-    public static final double PQI_WEIGHT = 0.15;
+    public static final double BUDGET_WEIGHT = 0.15;
+    public static final double RATING_WEIGHT = 0.15;
+    public static final double PQI_WEIGHT = 0.20;
 
     // Score neutre utilise quand une donnee necessaire au calcul d'un
     // facteur est absente (evite de penalizer/avantager injustement une
@@ -87,7 +101,7 @@ public class ScoringService {
      * decroissant.
      */
     public List<AgencyScore> score(ProjectRequest project, double clientTrustScore,
-                                    List<CandidateAgency> candidates, int limit) {
+                                   List<CandidateAgency> candidates, int limit) {
         return candidates.stream()
                 .map(candidate -> scoreCandidate(project, clientTrustScore, candidate))
                 .sorted(Comparator.comparingDouble(AgencyScore::matchingScore).reversed())
@@ -184,8 +198,9 @@ public class ScoringService {
     // get_project_context ne renvoie pas price_range (AgencyService), donc
     // impossible de comparer directement une fourchette de prix agence au
     // budget du projet. On utilise le chiffre d'affaires annuel comme proxy
-    // de capacite financiere, avec un poids volontairement faible
-    // (BUDGET_WEIGHT). C'est pourquoi ce facteur pese moins que les autres.
+    // de capacite financiere. Poids releve a 0.15 (voir note en tete de
+    // fichier) car ce risque business reste pertinent malgre la donnee
+    // approximative.
     // ------------------------------------------------------------------
     private double scoreBudgetFit(ProjectRequest project, CandidateAgency agency) {
         Double budgetMax = project.budgetMax();

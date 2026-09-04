@@ -58,7 +58,7 @@
    "reqd": 1
   },
   {
-   "default": "48",
+   "default": "24",
    "fieldname": "invoice_payment_deadline_hours",
    "fieldtype": "Int",
    "in_list_view": 1,

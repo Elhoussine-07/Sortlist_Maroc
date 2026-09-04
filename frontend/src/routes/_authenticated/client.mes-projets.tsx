@@ -226,6 +226,16 @@ function ClientProjectsPage() {
     const result: Partial<Record<"all" | ProjectStatus, number>> = { all: allProjects.length };
     for (const project of allProjects) {
       result[project.status] = (result[project.status] ?? 0) + 1;
+      // AJOUTÉ (demande explicite) : un projet refusé par une agence reste
+      // "Postulé" côté statut réel (toujours visible/contactable par
+      // d'autres agences, cf. opportunity.py::recompute_project_status) —
+      // mais doit AUSSI compter/apparaître dans l'onglet "Rejetés", avec le
+      // nom de l'agence qui a refusé (AgencyLink). Les deux onglets à la
+      // fois, jusqu'à ce qu'une agence accepte (passage réel à "En cours",
+      // qui efface `declinedByAgency` côté backend).
+      if (project.status !== "rejected" && project.declinedByAgency) {
+        result.rejected = (result.rejected ?? 0) + 1;
+      }
     }
     return result;
   }, [allProjects]);
@@ -233,7 +243,10 @@ function ClientProjectsPage() {
   const filteredProjects = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     let items = allProjects.filter((project) => {
-      const matchesStatus = activeStatus === "all" || project.status === activeStatus;
+      const matchesStatus =
+        activeStatus === "all" ||
+        project.status === activeStatus ||
+        (activeStatus === "rejected" && Boolean(project.declinedByAgency));
       const matchesQuery =
         normalizedQuery.length === 0 ||
         project.title.toLowerCase().includes(normalizedQuery) ||
@@ -377,7 +390,7 @@ function ClientProjectsPage() {
             <ul className="divide-y divide-border">
               {projects.map((project) => (
                 <li key={project.id}>
-                  <ProjectRow project={project} />
+                  <ProjectRow project={project} viewedFromTab={activeStatus} />
                 </li>
               ))}
             </ul>
@@ -395,14 +408,14 @@ function ClientProjectsPage() {
 /* -------------------------------------------------------------------------- */
 
 function ProjectActionsMenu({
-  canRepost,
-  canDelete,
-  isReposting,
-  isDeleting,
-  onRepost,
-  onDelete,
-  className,
-}: {
+                              canRepost,
+                              canDelete,
+                              isReposting,
+                              isDeleting,
+                              onRepost,
+                              onDelete,
+                              className,
+                            }: {
   canRepost: boolean;
   canDelete: boolean;
   isReposting: boolean;
@@ -462,8 +475,27 @@ function ProjectActionsMenu({
 /* -------------------------------------------------------------------------- */
 
 function AgencyLink({ project }: { project: Project }) {
-  // Si pas d'agence, afficher "—"
+  // AJOUTÉ (demande explicite) : un refus n'entraîne plus jamais le rejet
+  // automatique du projet (il reste "Postulé", visible dans "Disponibles"
+  // pour d'autres agences, cf. opportunity.py::recompute_project_status) —
+  // le client doit néanmoins pouvoir voir QUI a refusé, tant qu'aucune
+  // agence n'a encore gagné le projet.
   if (!project.agencyId) {
+    // AJOUTÉ (demande explicite) : l'agence qui a refusé doit être
+    // cliquable (vers son profil public), comme l'agence gagnante ci-dessous
+    // — ce n'était jusqu'ici qu'un texte statique.
+    if (project.declinedByAgencyName && project.declinedByAgency) {
+      return (
+        <Link
+          to="/agences/$id"
+          params={{ id: project.declinedByAgency }}
+          className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground hover:underline"
+        >
+          <Building2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+          <span className="truncate">{project.declinedByAgencyName} (a refusé)</span>
+        </Link>
+      );
+    }
     return <span className="text-[13px] text-muted-foreground">—</span>;
   }
 
@@ -483,7 +515,13 @@ function AgencyLink({ project }: { project: Project }) {
 /*                              PROJECT ROW (CORRIGÉ)                         */
 /* -------------------------------------------------------------------------- */
 
-function ProjectRow({ project }: { project: Project }) {
+function ProjectRow({
+                      project,
+                      viewedFromTab,
+                    }: {
+  project: Project;
+  viewedFromTab: "all" | ProjectStatus;
+}) {
   const queryClient = useQueryClient();
 
   const repostMutation = useMutation({
@@ -520,8 +558,19 @@ function ProjectRow({ project }: { project: Project }) {
   const categoryStyle = CATEGORY_STYLES[project.category] ?? DEFAULT_CATEGORY_STYLE;
   const CategoryIcon = categoryStyle.icon;
 
+  // AJOUTÉ (demande explicite) : un projet refusé par une agence garde son
+  // vrai statut "Postulé" (toujours contactable, cf. recompute_project_
+  // status) mais apparaît aussi dans l'onglet "Rejetés" (cf. `counts`/
+  // `filteredProjects` ci-dessus) — afficher le badge "Publié" dans une
+  // liste "Rejetés" n'était pas clair. Le badge reflète donc le statut réel
+  // partout SAUF quand on le consulte spécifiquement depuis l'onglet
+  // "Rejetés" pour un projet refusé (où il affiche "Rejeté").
+  const displayStatus: ProjectStatus =
+    viewedFromTab === "rejected" && project.status !== "rejected" && project.declinedByAgency
+      ? "rejected"
+      : project.status;
   // ✅ CORRECTION : Utilisation sécurisée de getStatusConfig
-  const statusConfig = getStatusConfig(project.status);
+  const statusConfig = getStatusConfig(displayStatus);
   const StatusIcon = statusConfig.icon;
   const title = formatProjectTitle(project.title);
 
@@ -674,7 +723,7 @@ function ProjectRow({ project }: { project: Project }) {
         </div>
 
         {/* ✅ Agence en mobile */}
-        {project.agencyId ? (
+        {project.agencyId || project.declinedByAgencyName ? (
           <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
             <span className="text-[11px] uppercase tracking-wide">Agence :</span>
             <AgencyLink project={project} />

@@ -9,6 +9,7 @@
   "client",
   "title",
   "description",
+  "cover_image",
   "deliverables",
   "exclusions",
   "deadlines",
@@ -19,6 +20,11 @@
   "budget_min",
   "budget_max",
   "delivery_delay_days",
+  "urgency",
+  "estimated_duration",
+  "skills",
+  "interested_agencies_count",
+  "budget_flexible",
   "location",
   "status",
   "rejection_substatus",
@@ -57,6 +63,11 @@
    "label": "Description"
   },
   {
+   "fieldname": "cover_image",
+   "fieldtype": "Attach Image",
+   "label": "Photo du projet"
+  },
+  {
    "fieldname": "deliverables",
    "fieldtype": "Small Text",
    "label": "Livrables"
@@ -69,7 +80,7 @@
   {
    "fieldname": "deadlines",
    "fieldtype": "Small Text",
-   "label": "\u00c9ch\u00e9ances"
+   "label": "Échéances"
   },
   {
    "default": "Projet",
@@ -92,13 +103,13 @@
   {
    "fieldname": "category",
    "fieldtype": "Link",
-   "label": "Cat\u00e9gorie",
+   "label": "Catégorie",
    "options": "ServiceCategory"
   },
   {
    "fieldname": "sub_category",
    "fieldtype": "Link",
-   "label": "Sous-cat\u00e9gorie",
+   "label": "Sous-catégorie",
    "options": "ServiceSubCategory"
   },
   {
@@ -114,8 +125,36 @@
   {
    "fieldname": "delivery_delay_days",
    "fieldtype": "Int",
-   "label": "D\u00e9lai de r\u00e9alisation (jours)",
+   "label": "Délai de réalisation (jours)",
    "reqd": 1
+  },
+  {
+   "fieldname": "urgency",
+   "fieldtype": "Select",
+   "label": "Urgence",
+   "options": "\nNormal\nMoyennement urgent\nUrgent"
+  },
+  {
+   "fieldname": "estimated_duration",
+   "fieldtype": "Data",
+   "label": "Durée estimée"
+  },
+  {
+   "fieldname": "skills",
+   "fieldtype": "Small Text",
+   "label": "Compétences recherchées (séparées par des virgules)"
+  },
+  {
+   "fieldname": "interested_agencies_count",
+   "fieldtype": "Int",
+   "label": "Nombre d'agences intéressées",
+   "default": "0"
+  },
+  {
+   "fieldname": "budget_flexible",
+   "fieldtype": "Check",
+   "label": "Budget flexible",
+   "default": "0"
   },
   {
    "fieldname": "location",
@@ -134,7 +173,7 @@
    "fieldname": "rejection_substatus",
    "fieldtype": "Select",
    "label": "Sous-statut de rejet",
-   "options": "Refus\u00e9\nSupprim\u00e9\nClient inactif\nAgence d\u00e9faillante"
+   "options": "Refusé\nSupprimé\nClient inactif\nAgence défaillante"
   },
   {
    "fieldname": "cdc_file",
@@ -145,7 +184,7 @@
    "default": "0",
    "fieldname": "cdc_locked",
    "fieldtype": "Check",
-   "label": "CDC verrouill\u00e9"
+   "label": "CDC verrouillé"
   },
   {
    "fieldname": "shortlist_ia",
@@ -160,7 +199,7 @@
   {
    "fieldname": "start_date",
    "fieldtype": "Datetime",
-   "label": "Date de d\u00e9but"
+   "label": "Date de début"
   },
   {
    "fieldname": "initial_end_date",
@@ -171,24 +210,24 @@
    "default": "0",
    "fieldname": "total_suspension_days",
    "fieldtype": "Int",
-   "label": "Jours de suspension cumul\u00e9s"
+   "label": "Jours de suspension cumulés"
   },
   {
    "fieldname": "expected_end_date",
    "fieldtype": "Date",
-   "label": "Date de fin pr\u00e9vue (recalcul\u00e9e)"
+   "label": "Date de fin prévue (recalculée)"
   },
   {
    "default": "0",
    "fieldname": "completion_confirmed_by_client",
    "fieldtype": "Check",
-   "label": "Confirm\u00e9 par le client"
+   "label": "Confirmé par le client"
   },
   {
    "default": "0",
    "fieldname": "completion_validated_by_moderator",
    "fieldtype": "Check",
-   "label": "Valid\u00e9 par le mod\u00e9rateur"
+   "label": "Validé par le modérateur"
   },
   {
    "default": "0",
@@ -197,11 +236,11 @@
    "label": " Nombre de republications"
   },
   {
-   "default": "Non factur\u00e9",
+   "default": "Non facturé",
    "fieldname": "payment_status",
    "fieldtype": "Select",
    "label": "Statut de paiement",
-   "options": "Non factur\u00e9\n\u00c0 payer\nPay\u00e9"
+   "options": "Non facturé\nÀ payer\nPayé"
   }
  ],
  "grid_page_length": 50,

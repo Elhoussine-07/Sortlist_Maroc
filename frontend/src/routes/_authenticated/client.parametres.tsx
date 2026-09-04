@@ -229,20 +229,38 @@ function ClientSettingsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div
-                      style={{
-                        backgroundImage: seedGradient(
-                          `${profileQuery.data.contactFirstName} ${profileQuery.data.contactLastName}`,
-                        ),
-                      }}
-                      className="font-display flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-[17px] font-bold text-white shadow-sm"
+                      style={
+                        profileQuery.data.logo
+                          ? undefined
+                          : {
+                              backgroundImage: seedGradient(
+                                `${profileQuery.data.contactFirstName} ${profileQuery.data.contactLastName}`,
+                              ),
+                            }
+                      }
+                      className="font-display flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full text-[17px] font-bold text-white shadow-sm"
                     >
-                      {initialsOf(
-                        `${profileQuery.data.contactFirstName} ${profileQuery.data.contactLastName}`,
+                      {profileQuery.data.logo ? (
+                        <img
+                          src={profileQuery.data.logo}
+                          alt="Logo de l'entreprise"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        initialsOf(
+                          `${profileQuery.data.contactFirstName} ${profileQuery.data.contactLastName}`,
+                        )
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[15px] font-bold">
+                      <p className="flex items-center gap-2 text-[15px] font-bold">
                         {profileQuery.data.contactFirstName} {profileQuery.data.contactLastName}
+                        {profileQuery.data.identityVerified ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                            <ShieldCheck className="h-3 w-3" strokeWidth={2} />
+                            Identité vérifiée
+                          </span>
+                        ) : null}
                       </p>
                       <p className="text-[13px] text-muted-foreground">
                         {profileQuery.data.companyName || "Entreprise non renseignée"}

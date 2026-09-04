@@ -1,18 +1,16 @@
 [
-    "tabDocType Link",
-    "tabTag",
-    "tabScheduled Job Type",
     "tabDocType",
-    "tabProjectSuspension",
-    "tabScheduled",
-    "tabTag Link",
-    "tabSingles",
-    "tabInstalled Application",
+    "tabTag",
     "tabInstalled",
     "tabNotification",
-    "tabDocField",
-    "tabDocType State",
+    "tabTag Link",
+    "tabPrint",
+    "tabDocType Link",
+    "tabSingles",
+    "tabInstalled Application",
+    "tabDocPerm",
     "tabDocType Action",
-    "tabInvoice",
-    "tabDocPerm"
+    "tabPrint Format",
+    "tabDocType State",
+    "tabDocField"
 ]

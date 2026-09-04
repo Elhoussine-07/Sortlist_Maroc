@@ -32,11 +32,12 @@ def _ensure_roles():
 def _ensure_platform_settings():
 	settings = frappe.get_single("PlatformSettings")
 	defaults = {
-		"commission_rate": 15,
+		"commission_rate": 1,
 		"quote_response_hours": 48,
 		"reminder_extra_hours": 24,
 		"suspension_grace_hours": 24,
 		"invoice_due_days": 7,
+		"invoice_payment_deadline_hours": 24,
 		"auto_debit_notice_hours": 24,
 		"lead_hot_threshold": 40,
 		"lead_warm_min": 15,

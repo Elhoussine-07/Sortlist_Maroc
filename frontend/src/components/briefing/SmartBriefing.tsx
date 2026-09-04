@@ -1,8 +1,8 @@
 import {
   Calendar,
   Check,
+  ChevronDown,
   ChevronLeft,
-  ChevronRight,
   CreditCard,
   FileText,
   Info,
@@ -17,6 +17,15 @@ import {
   RotateCcw,
   Star,
   Heading,
+  ArrowRight,
+  Building2,
+  Globe,
+  Clock,
+  DollarSign,
+  PenLine,
+  Send,
+  Users,
+  Briefcase,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -25,6 +34,16 @@ import { BriefingStepper } from "./BriefingStepper";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StackSkeleton } from "@/components/common/Skeletons";
 import type { Agency } from "@/lib/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   enrichBriefingDescription,
   generateCdcPdf,
@@ -47,23 +66,10 @@ import { ApiError } from "@/services/http";
 import { useAuthStore } from "@/store/auth.store";
 import { useBriefingStore, type BriefingBrief } from "@/store/briefing.store";
 
-/**
- * SMART BRIEFING IA — écrans 04a (questionnaire) et 04b (récapitulatif final).
- *
- * Réécrit en questionnaire à 6 étapes fixes (5 champs réels du Project + titre).
- * La logique est conservée du 2ème code, le design du 1er.
- */
-
-const NEED_TYPE_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "Projet", label: "Projet" },
-  { value: "Stage", label: "Stage" },
-  { value: "Job", label: "Emploi (Job)" },
-];
-
-const DELAY_PRESETS: Array<{ label: string; days: number }> = [
-  { label: "Urgent (7 jours)", days: 7 },
-  { label: "Normal (30 jours)", days: 30 },
-  { label: "Flexible (60 jours)", days: 60 },
+const DELAY_PRESETS: Array<{ label: string; days: number; icon: typeof Clock }> = [
+  { label: "Urgent (7 jours)", days: 7, icon: Clock },
+  { label: "Normal (30 jours)", days: 30, icon: Clock },
+  { label: "Flexible (60 jours)", days: 60, icon: Clock },
 ];
 
 type SummaryKey = keyof BriefingSummary | "title";
@@ -72,13 +78,29 @@ const SUMMARY_ROWS: Array<{
   key: SummaryKey;
   label: string;
   icon: typeof LayoutGrid;
+  description: string;
 }> = [
-  { key: "category", label: "Catégorie du besoin", icon: LayoutGrid },
-  { key: "description", label: "Description du besoin", icon: FileText },
-  { key: "budget", label: "Budget", icon: CreditCard },
-  { key: "location", label: "Localisation", icon: MapPin },
-  { key: "deadline", label: "Délai de réalisation", icon: Calendar },
-  { key: "title", label: "Titre du projet", icon: Heading },
+  {
+    key: "category",
+    label: "Catégorie du besoin",
+    icon: LayoutGrid,
+    description: "Type de prestation recherchée",
+  },
+  {
+    key: "description",
+    label: "Description du besoin",
+    icon: FileText,
+    description: "Détails de votre projet",
+  },
+  { key: "budget", label: "Budget", icon: CreditCard, description: "Enveloppe budgétaire" },
+  { key: "location", label: "Localisation", icon: MapPin, description: "Lieu d'exécution" },
+  {
+    key: "deadline",
+    label: "Délai de réalisation",
+    icon: Calendar,
+    description: "Calendrier souhaité",
+  },
+  { key: "title", label: "Titre du projet", icon: Heading, description: "Nom de votre projet" },
 ];
 
 function isStepSkippable(step: number): boolean {
@@ -252,7 +274,7 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
       }
 
       setPublishedProjectId(finalProjectId);
-      toast("Votre projet est publié — il est maintenant visible par les agences.");
+      toast("Votre projet est publié ! Il est maintenant visible par les agences.");
       await loadShortlist(finalProjectId);
     } catch (error) {
       toast(error instanceof ApiError ? error.message : "Impossible de publier le projet.");
@@ -361,9 +383,7 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
       link.href = url;
       link.download = `cdc-${newProjectId}.pdf`;
       link.click();
-      toast(
-        "CDC généré — votre projet a été publié et est déjà visible des agences (le backend actuel ne permet pas de générer un aperçu sans publier).",
-      );
+      toast("CDC généré ! Votre projet a été publié et est déjà visible des agences.");
     } catch (error) {
       toast(error instanceof ApiError ? error.message : "Impossible de générer le CDC.");
     } finally {
@@ -401,70 +421,83 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
   const canGoNext = isStepValid(step, currentBrief);
   const showRecommencer = !ready && hasAnyBriefValue(currentBrief);
 
+  // Get current step data safely
+  const currentStepData = step > 0 && step <= SUMMARY_ROWS.length ? SUMMARY_ROWS[step - 1] : null;
+
   if (isLoadingResumedDraft) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-50">
         <StackSkeleton count={3} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto grid max-w-[1180px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <Link to="/" className="truncate text-[22px] font-bold tracking-tight">
-            Sortlist Pro
-          </Link>
-          <div className="flex shrink-0 items-center gap-4">
-            {showRecommencer ? (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto max-w-[1180px] px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-[22px] font-bold tracking-tight text-slate-900 hover:opacity-80 transition-opacity"
+            >
+              <img src="/logo.ico" alt="Sortlist Pro" className="h-8 w-auto" />
+              <span>Sortlist</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              {showRecommencer ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Recommencer le Smart Briefing ? Les réponses déjà saisies seront perdues.",
+                      )
+                    ) {
+                      resetBriefing();
+                    }
+                  }}
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-4 py-2 text-[14px] font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 shadow-sm"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Recommencer
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Recommencer le Smart Briefing ? Les réponses déjà saisies seront perdues.",
-                    )
-                  ) {
-                    resetBriefing();
-                  }
-                }}
-                className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-[14px] font-semibold text-muted-foreground transition-colors hover:bg-accent"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-4 py-2 text-[14px] font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
               >
-                <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Recommencer
+                {isSavingDraft ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} />
+                ) : (
+                  <Save className="h-3.5 w-3.5" strokeWidth={1.8} />
+                )}
+                Enregistrer brouillon
               </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={handleSaveDraft}
-              disabled={isSavingDraft}
-              className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-[14px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSavingDraft ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} />
-              ) : (
-                <Save className="h-3.5 w-3.5" strokeWidth={1.8} />
-              )}
-              Enregistrer brouillon
-            </button>
-            <Link
-              to={token ? "/client/tableau-de-bord" : "/connexion"}
-              aria-label="Mon compte"
-              className="transition-opacity hover:opacity-70"
-            >
-              <CircleUserRound className="h-[22px] w-[22px]" strokeWidth={1.5} />
-            </Link>
+              <Link
+                to={token ? "/client/tableau-de-bord" : "/connexion"}
+                aria-label="Mon compte"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 transition-all hover:bg-indigo-100 hover:scale-105"
+              >
+                <CircleUserRound className="h-[20px] w-[20px]" strokeWidth={1.8} />
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-[1180px] px-4 pb-20 pt-8 sm:px-6 lg:px-8">
-        <BriefingStepper
-          currentStep={ready ? 6 : step}
-          completedSteps={ready ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6].filter((id) => id < step)}
-          onStepClick={ready ? (id) => handleEdit(id) : undefined}
-        />
+        <div className="mb-12">
+          <BriefingStepper
+            currentStep={ready ? 6 : step}
+            completedSteps={
+              ready ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6].filter((id) => id < step)
+            }
+            onStepClick={ready ? (id) => handleEdit(id) : undefined}
+          />
+        </div>
 
         {ready ? (
           <RecapView
@@ -489,11 +522,21 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
             }}
           />
         ) : (
-          <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
-            <section>
-              <h2 className="flex items-center gap-2 text-[15px] font-semibold">
-                {SUMMARY_ROWS[step - 1]?.label ?? ""}
-              </h2>
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-2xl bg-white/70 p-8 shadow-sm border border-slate-200/60 backdrop-blur-sm">
+              <div className="mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+                    {currentStepData?.icon && <currentStepData.icon className="h-5 w-5" />}
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {currentStepData?.label || ""}
+                  </h2>
+                </div>
+                <p className="mt-2 text-sm text-slate-500 ml-13">
+                  {currentStepData?.description || ""}
+                </p>
+              </div>
 
               <div className="mt-6">
                 {step === 1 ? (
@@ -521,14 +564,14 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                 {step === 6 ? <TitleStep brief={currentBrief} updateBrief={updateBrief} /> : null}
               </div>
 
-              <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-6">
+              <div className="mt-10 flex items-center justify-between gap-3 border-t border-slate-200/60 pt-6">
                 <button
                   type="button"
                   onClick={goPrev}
                   disabled={step === 1}
-                  className="flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-[13.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-5 py-2.5 text-[14px] font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
                 >
-                  <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  <ChevronLeft className="h-4 w-4" strokeWidth={1.8} />
                   Précédent
                 </button>
                 <div className="flex items-center gap-2">
@@ -536,33 +579,35 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                     <button
                       type="button"
                       onClick={goNext}
-                      className="flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-[13.5px] font-semibold text-muted-foreground transition-colors hover:bg-accent"
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-[14px] font-semibold text-slate-500 transition-all hover:bg-slate-50 hover:border-slate-300"
                     >
                       <SkipForward className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      Passer cette étape
+                      Passer
                     </button>
                   ) : null}
                   <button
                     type="button"
                     onClick={goNext}
                     disabled={!canGoNext}
-                    className="flex items-center gap-1.5 rounded-md bg-primary px-5 py-2 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {step === 6 ? "Terminer" : "Suivant"}
-                    <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
                   </button>
                 </div>
               </div>
-            </section>
+            </div>
 
-            {/* Colonne droite — résumé du CDC en temps réel (design du 1er) */}
-            <section>
-              <h2 className="text-[13.5px] font-semibold">
-                Résumé de votre CDC{" "}
-                <span className="font-normal text-muted-foreground">(en temps réel)</span>
+            <div className="rounded-2xl bg-white/70 p-8 shadow-sm border border-slate-200/60 backdrop-blur-sm">
+              <h2 className="flex items-center gap-2 text-[15px] font-bold text-slate-900">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                  <FileText className="h-4 w-4" strokeWidth={1.8} />
+                </span>
+                Résumé de votre CDC
+                <span className="ml-1 text-sm font-normal text-slate-400">(temps réel)</span>
               </h2>
 
-              <div className="mt-5 space-y-6">
+              <div className="mt-6 space-y-5">
                 {SUMMARY_ROWS.map((row) => {
                   let displayValue: string | null = null;
                   let isDone = false;
@@ -579,37 +624,48 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                   }
 
                   return (
-                    <div key={row.key} className="flex items-start gap-3">
-                      <row.icon className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.6} />
+                    <div
+                      key={row.key}
+                      className="group flex items-start gap-4 p-3 rounded-xl hover:bg-slate-50 transition-all"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all">
+                        <row.icon className="h-4 w-4" strokeWidth={1.6} />
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13.5px] font-bold">{row.label}</p>
+                        <p className="text-sm font-semibold text-slate-700">{row.label}</p>
                         {displayValue ? (
-                          <p className="mt-0.5 whitespace-pre-line text-[13px] leading-[1.5]">
+                          <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed text-slate-600">
                             {displayValue}
                           </p>
                         ) : (
-                          <p className="mt-0.5 text-[13px] text-muted-foreground">À compléter</p>
+                          <p className="mt-0.5 text-sm text-slate-400 italic">À compléter</p>
                         )}
-                        {subValue ? (
-                          <p className="text-[13px] text-muted-foreground">{subValue}</p>
-                        ) : null}
+                        {subValue ? <p className="text-sm text-slate-400">{subValue}</p> : null}
                       </div>
                       {isDone ? (
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary">
-                          <Check className="h-3 w-3 text-primary-foreground" strokeWidth={2.6} />
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                          <Check className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2.6} />
                         </span>
-                      ) : null}
+                      ) : (
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                        </span>
+                      )}
                     </div>
                   );
                 })}
               </div>
 
-              <p className="mt-7 flex items-start gap-2 text-[13px] leading-[1.5] text-muted-foreground">
-                <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-                Une étape = un champ. Vous pourrez revenir modifier certaines réponses depuis le
-                récapitulatif final, avant de générer le CDC.
-              </p>
-            </section>
+              <div className="mt-8 rounded-xl bg-gradient-to-br from-indigo-50 to-slate-50 p-4 border border-indigo-100/50">
+                <p className="flex items-start gap-2 text-sm leading-relaxed text-slate-600">
+                  <Lock className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" strokeWidth={1.8} />
+                  <span>
+                    Une étape = un champ. Vous pourrez revenir modifier certaines réponses depuis le
+                    récapitulatif final.
+                  </span>
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -628,80 +684,136 @@ function CategoryStep({
   categories: CategoryOption[];
   isLoadingCategories: boolean;
 }) {
-  const selectedCategory = categories.find((c) => c.id === brief.category) ?? null;
-
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-[13.5px] font-semibold">Type de besoin</label>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {NEED_TYPE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => updateBrief({ need_type: option.value })}
-              className={
-                brief.need_type === option.value
-                  ? "rounded-md bg-primary px-4 py-2 text-[13.5px] font-semibold text-primary-foreground"
-                  : "rounded-md border border-border px-4 py-2 text-[13.5px] font-semibold transition-colors hover:bg-accent"
-              }
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="briefing-category" className="block text-[13.5px] font-semibold">
-          Catégorie de prestation{" "}
-          <span className="font-normal text-muted-foreground">(optionnel)</span>
+        <label className="block text-sm font-semibold text-slate-700">
+          Catégorie de prestation
+          <span className="ml-2 text-sm font-normal text-slate-400">(optionnel)</span>
         </label>
-        {isLoadingCategories ? (
-          <p className="mt-2 text-[13px] text-muted-foreground">Chargement du catalogue...</p>
-        ) : categories.length === 0 ? (
-          <p className="mt-2 text-[13px] text-muted-foreground">
-            Aucune catégorie disponible pour le moment — vous pouvez passer cette étape.
-          </p>
-        ) : (
-          <select
-            id="briefing-category"
-            value={brief.category ?? ""}
-            onChange={(event) =>
-              updateBrief({ category: event.target.value || undefined, sub_category: undefined })
-            }
-            className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2.5 text-[13.5px] outline-none"
-          >
-            <option value="">Sélectionner...</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        )}
+        <CategoryCascadeMenu
+          categories={categories}
+          isLoadingCategories={isLoadingCategories}
+          selectedCategoryId={brief.category}
+          selectedSubCategoryId={brief.sub_category}
+          onSelect={(categoryId, subCategoryId) =>
+            updateBrief({ category: categoryId, sub_category: subCategoryId })
+          }
+        />
+        <p className="mt-2 text-sm text-slate-400">
+          Sélectionnez la catégorie qui correspond le mieux à votre projet
+        </p>
       </div>
+    </div>
+  );
+}
 
-      {selectedCategory && selectedCategory.subCategories.length > 0 ? (
-        <div>
-          <label htmlFor="briefing-subcategory" className="block text-[13.5px] font-semibold">
-            Sous-catégorie <span className="font-normal text-muted-foreground">(optionnel)</span>
-          </label>
-          <select
-            id="briefing-subcategory"
-            value={brief.sub_category ?? ""}
-            onChange={(event) => updateBrief({ sub_category: event.target.value || undefined })}
-            className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2.5 text-[13.5px] outline-none"
+function CategoryCascadeMenu({
+  categories,
+  isLoadingCategories,
+  selectedCategoryId,
+  selectedSubCategoryId,
+  onSelect,
+}: {
+  categories: CategoryOption[];
+  isLoadingCategories: boolean;
+  selectedCategoryId: string | undefined;
+  selectedSubCategoryId: string | undefined;
+  onSelect: (categoryId: string | undefined, subCategoryId: string | undefined) => void;
+}) {
+  const selectedCategory =
+    categories.find((category) => category.id === selectedCategoryId) ?? null;
+  const selectedSub =
+    selectedCategory?.subCategories.find((sub) => sub.id === selectedSubCategoryId) ?? null;
+
+  const label = selectedCategory
+    ? selectedSub
+      ? `${selectedCategory.name} → ${selectedSub.name}`
+      : selectedCategory.name
+    : "Sélectionner une catégorie...";
+
+  if (isLoadingCategories) {
+    return (
+      <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+        <p className="text-sm text-slate-500">Chargement du catalogue...</p>
+      </div>
+    );
+  }
+  if (categories.length === 0) {
+    return (
+      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <p className="text-sm text-slate-500">
+          Aucune catégorie disponible pour le moment — vous pouvez passer cette étape.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm outline-none transition-all hover:border-slate-300 hover:shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           >
-            <option value="">Sélectionner...</option>
-            {selectedCategory.subCategories.map((sub) => (
-              <option key={sub.id} value={sub.id}>
-                {sub.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
+            <span className={selectedCategory ? "text-slate-700" : "text-slate-400"}>{label}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="min-w-[280px] rounded-xl border-slate-200 shadow-lg p-1"
+        >
+          {selectedCategory ? (
+            <>
+              <DropdownMenuItem
+                onClick={() => onSelect(undefined, undefined)}
+                className="rounded-lg text-sm text-slate-400 hover:bg-slate-50"
+              >
+                Effacer la sélection
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
+          {categories.map((category) =>
+            category.subCategories.length > 0 ? (
+              <DropdownMenuSub key={category.id}>
+                <DropdownMenuSubTrigger className="rounded-lg text-sm">
+                  {category.name}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="rounded-xl border-slate-200 shadow-lg p-1">
+                  <DropdownMenuItem
+                    onClick={() => onSelect(category.id, undefined)}
+                    className="rounded-lg text-sm font-medium text-indigo-600"
+                  >
+                    {category.name} (toutes)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {category.subCategories.map((sub) => (
+                    <DropdownMenuItem
+                      key={sub.id}
+                      onClick={() => onSelect(category.id, sub.id)}
+                      className="rounded-lg text-sm hover:bg-indigo-50"
+                    >
+                      {sub.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            ) : (
+              <DropdownMenuItem
+                key={category.id}
+                onClick={() => onSelect(category.id, undefined)}
+                className="rounded-lg text-sm hover:bg-indigo-50"
+              >
+                {category.name}
+              </DropdownMenuItem>
+            ),
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -720,33 +832,43 @@ function DescriptionStep({
   onEnrich: () => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <label htmlFor="briefing-description" className="block text-[13.5px] font-semibold">
-          Décrivez votre besoin
+        <label
+          htmlFor="briefing-description"
+          className="block text-sm font-semibold text-slate-700"
+        >
+          Décrivez votre besoin <span className="ml-1 text-sm font-normal text-red-500">*</span>
         </label>
         <textarea
           id="briefing-description"
           value={brief.description ?? ""}
           onChange={(event) => updateBrief({ description: event.target.value })}
           rows={8}
-          placeholder="Décrivez le projet que vous souhaitez confier à un prestataire..."
-          className="mt-2 w-full resize-none rounded-md border border-border bg-transparent px-3 py-2.5 text-[13.5px] leading-[1.55] outline-none placeholder:text-muted-foreground"
+          placeholder="Décrivez votre projet en détail : objectifs, cibles, contraintes, périmètre..."
+          className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         />
+        <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
+          <span>Minimum 20 caractères pour une description complète</span>
+          <span>{brief.description?.length || 0} caractères</span>
+        </div>
       </div>
       <button
         type="button"
         onClick={onEnrich}
         disabled={isEnriching || !(brief.description ?? "").trim()}
-        className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-[13.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+        className="group flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition-all hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
       >
         {isEnriching ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} />
+          <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} />
         ) : (
-          <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
+          <Sparkles
+            className="h-4 w-4 text-indigo-500 group-hover:scale-110 transition-transform"
+            strokeWidth={1.8}
+          />
         )}
         {isAuthenticated
-          ? "Reformuler avec l'IA + suggérer un budget"
+          ? "Assistance IA : reformulation + suggestion de budget"
           : "Connectez-vous pour l'assistance IA"}
       </button>
     </div>
@@ -761,47 +883,70 @@ function BudgetStep({
   updateBrief: (patch: Partial<BriefingBrief>) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div>
-        <label htmlFor="briefing-budget-min" className="block text-[13.5px] font-semibold">
-          Budget minimum (€)
-        </label>
-        <input
-          id="briefing-budget-min"
-          type="number"
-          min={0}
-          value={brief.budget_min ?? ""}
-          onChange={(event) =>
-            updateBrief({
-              budget_min: event.target.value === "" ? undefined : Number(event.target.value),
-            })
-          }
-          placeholder="Ex : 2000"
-          className="mt-2 w-full rounded-md border border-border bg-transparent px-3 py-2.5 text-[13.5px] outline-none placeholder:text-muted-foreground"
-        />
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div>
+          <label
+            htmlFor="briefing-budget-min"
+            className="block text-sm font-semibold text-slate-700"
+          >
+            Budget minimum (€)
+          </label>
+          <div className="relative mt-2">
+            <DollarSign
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              strokeWidth={1.8}
+            />
+            <input
+              id="briefing-budget-min"
+              type="number"
+              min={0}
+              value={brief.budget_min ?? ""}
+              onChange={(event) =>
+                updateBrief({
+                  budget_min: event.target.value === "" ? undefined : Number(event.target.value),
+                })
+              }
+              placeholder="0"
+              className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+        </div>
+        <div>
+          <label
+            htmlFor="briefing-budget-max"
+            className="block text-sm font-semibold text-slate-700"
+          >
+            Budget maximum (€)
+          </label>
+          <div className="relative mt-2">
+            <DollarSign
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              strokeWidth={1.8}
+            />
+            <input
+              id="briefing-budget-max"
+              type="number"
+              min={0}
+              value={brief.budget_max ?? ""}
+              onChange={(event) =>
+                updateBrief({
+                  budget_max: event.target.value === "" ? undefined : Number(event.target.value),
+                })
+              }
+              placeholder="0"
+              className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+        </div>
       </div>
-      <div>
-        <label htmlFor="briefing-budget-max" className="block text-[13.5px] font-semibold">
-          Budget maximum (€)
-        </label>
-        <input
-          id="briefing-budget-max"
-          type="number"
-          min={0}
-          value={brief.budget_max ?? ""}
-          onChange={(event) =>
-            updateBrief({
-              budget_max: event.target.value === "" ? undefined : Number(event.target.value),
-            })
-          }
-          placeholder="Ex : 5000"
-          className="mt-2 w-full rounded-md border border-border bg-transparent px-3 py-2.5 text-[13.5px] outline-none placeholder:text-muted-foreground"
-        />
+      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+        <p className="flex items-start gap-2 text-sm text-slate-500">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
+          Champ optionnel — vous pouvez passer cette étape si vous ne connaissez pas encore votre
+          budget.
+        </p>
       </div>
-      <p className="text-[13px] text-muted-foreground sm:col-span-2">
-        Champ optionnel — vous pouvez passer cette étape si vous ne connaissez pas encore votre
-        budget.
-      </p>
     </div>
   );
 }
@@ -814,21 +959,32 @@ function LocationStep({
   updateBrief: (patch: Partial<BriefingBrief>) => void;
 }) {
   return (
-    <div>
-      <label htmlFor="briefing-location" className="block text-[13.5px] font-semibold">
-        Localisation
-      </label>
-      <input
-        id="briefing-location"
-        type="text"
-        value={brief.location ?? ""}
-        onChange={(event) => updateBrief({ location: event.target.value })}
-        placeholder="Ville, pays, ou « à distance »"
-        className="mt-2 w-full rounded-md border border-border bg-transparent px-3 py-2.5 text-[13.5px] outline-none placeholder:text-muted-foreground"
-      />
-      <p className="mt-2 text-[13px] text-muted-foreground">
-        Champ optionnel — vous pouvez passer cette étape.
-      </p>
+    <div className="space-y-5">
+      <div>
+        <label htmlFor="briefing-location" className="block text-sm font-semibold text-slate-700">
+          Localisation
+        </label>
+        <div className="relative mt-2">
+          <MapPin
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            strokeWidth={1.8}
+          />
+          <input
+            id="briefing-location"
+            type="text"
+            value={brief.location ?? ""}
+            onChange={(event) => updateBrief({ location: event.target.value })}
+            placeholder="Ville, pays, ou « à distance »"
+            className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+        <div className="mt-2 rounded-xl bg-slate-50 p-4 border border-slate-100">
+          <p className="flex items-start gap-2 text-sm text-slate-500">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
+            Champ optionnel — vous pouvez passer cette étape.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -841,41 +997,59 @@ function DelayStep({
   updateBrief: (patch: Partial<BriefingBrief>) => void;
 }) {
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
-        {DELAY_PRESETS.map((preset) => (
-          <button
-            key={preset.days}
-            type="button"
-            onClick={() => updateBrief({ delivery_delay_days: preset.days })}
-            className={
-              brief.delivery_delay_days === preset.days
-                ? "rounded-md bg-primary px-4 py-2 text-[13.5px] font-semibold text-primary-foreground"
-                : "rounded-md border border-border px-4 py-2 text-[13.5px] font-semibold transition-colors hover:bg-accent"
-            }
-          >
-            {preset.label}
-          </button>
-        ))}
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 mb-3">
+          Délai de réalisation <span className="ml-1 text-sm font-normal text-red-500">*</span>
+        </label>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {DELAY_PRESETS.map((preset) => {
+            const isActive = brief.delivery_delay_days === preset.days;
+            return (
+              <button
+                key={preset.days}
+                type="button"
+                onClick={() => updateBrief({ delivery_delay_days: preset.days })}
+                className={`group flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-sm font-semibold transition-all ${
+                  isActive
+                    ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50/50"
+                }`}
+              >
+                <Clock
+                  className={`h-4 w-4 ${isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-indigo-500"}`}
+                  strokeWidth={1.8}
+                />
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div>
-        <label htmlFor="briefing-delay-custom" className="block text-[13.5px] font-semibold">
-          Ou précisez un nombre de jours
+        <label htmlFor="briefing-delay" className="block text-sm font-semibold text-slate-700">
+          Ou préciser un nombre de jours
         </label>
-        <input
-          id="briefing-delay-custom"
-          type="number"
-          min={1}
-          value={brief.delivery_delay_days ?? ""}
-          onChange={(event) =>
-            updateBrief({
-              delivery_delay_days:
-                event.target.value === "" ? undefined : Number(event.target.value),
-            })
-          }
-          placeholder="Ex : 21"
-          className="mt-2 w-full rounded-md border border-border bg-transparent px-3 py-2.5 text-[13.5px] outline-none placeholder:text-muted-foreground"
-        />
+        <div className="relative mt-2 max-w-[200px]">
+          <Calendar
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            strokeWidth={1.8}
+          />
+          <input
+            id="briefing-delay"
+            type="number"
+            min={1}
+            value={brief.delivery_delay_days ?? ""}
+            onChange={(event) =>
+              updateBrief({
+                delivery_delay_days:
+                  event.target.value === "" ? undefined : Number(event.target.value),
+              })
+            }
+            placeholder="Jours"
+            className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
       </div>
     </div>
   );
@@ -889,22 +1063,34 @@ function TitleStep({
   updateBrief: (patch: Partial<BriefingBrief>) => void;
 }) {
   return (
-    <div>
-      <label htmlFor="briefing-title" className="block text-[13.5px] font-semibold">
-        Titre du projet <span className="font-normal text-muted-foreground">(optionnel)</span>
-      </label>
-      <input
-        id="briefing-title"
-        type="text"
-        value={brief.title ?? ""}
-        onChange={(event) => updateBrief({ title: event.target.value })}
-        placeholder="Ex : Refonte site e-commerce, Création d'application mobile..."
-        className="mt-2 w-full rounded-md border border-border bg-transparent px-3 py-2.5 text-[13.5px] outline-none placeholder:text-muted-foreground"
-      />
-      <p className="mt-2 text-[13px] text-muted-foreground">
-        Ce titre apparaîtra dans votre tableau de bord. S'il est laissé vide, un titre automatique
-        sera attribué.
-      </p>
+    <div className="space-y-5">
+      <div>
+        <label htmlFor="briefing-title" className="block text-sm font-semibold text-slate-700">
+          Titre du projet
+          <span className="ml-2 text-sm font-normal text-slate-400">(optionnel)</span>
+        </label>
+        <div className="relative mt-2">
+          <Heading
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            strokeWidth={1.8}
+          />
+          <input
+            id="briefing-title"
+            type="text"
+            value={brief.title ?? ""}
+            onChange={(event) => updateBrief({ title: event.target.value })}
+            placeholder="Ex: Refonte site e-commerce, Création d'application mobile..."
+            className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+        <div className="mt-2 rounded-xl bg-slate-50 p-4 border border-slate-100">
+          <p className="flex items-start gap-2 text-sm text-slate-500">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
+            Ce titre apparaîtra dans votre tableau de bord. S'il est laissé vide, un titre
+            automatique sera attribué.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -932,107 +1118,135 @@ function RecapView({
   isGeneratingCdc: boolean;
   isPublishing: boolean;
   onEdit: () => void;
-  onGenerateCdc: () => void | Promise<void>;
-  onPublish: () => void | Promise<void>;
+  onGenerateCdc: () => void;
+  onPublish: () => void;
   publishedProjectId: string | null;
   shortlist: Agency[];
   isLoadingShortlist: boolean;
   contactedAgencyIds: string[];
   contactingAgencyId: string | null;
-  onContactAgency: (agencyId: string) => void | Promise<void>;
+  onContactAgency: (agencyId: string) => void;
   onResetBriefing: () => void;
 }) {
   return (
-    <div className="mx-auto mt-12 max-w-[720px]">
-      <h1 className="text-center text-[30px] font-bold tracking-tight">Votre brief est prêt !</h1>
-      <p className="mt-2 text-center text-[14px] text-muted-foreground">
-        Voici le récapitulatif de votre cahier des charges. Cliquez sur une étape ci-dessus pour la
-        modifier.
-      </p>
+    <div className="mx-auto max-w-[820px]">
+      <div className="text-center mb-12">
+        <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
+          <Check className="h-8 w-8" strokeWidth={2} />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Votre brief est prêt !</h1>
+        <p className="mt-3 text-base text-slate-500 max-w-lg mx-auto">
+          Voici le récapitulatif de votre cahier des charges. Cliquez sur une étape ci-dessus pour
+          la modifier.
+        </p>
+      </div>
 
-      <dl className="mt-10 space-y-7">
-        {SUMMARY_ROWS.map((row) => {
-          let displayValue: string | null = null;
-          let subValue: string | null = null;
+      <div className="rounded-2xl bg-white/80 p-8 shadow-sm border border-slate-200/60 backdrop-blur-sm">
+        <dl className="space-y-6">
+          {SUMMARY_ROWS.map((row) => {
+            let displayValue: string | null = null;
+            let subValue: string | null = null;
 
-          if (row.key === "title") {
-            displayValue = title || null;
-          } else {
-            const entry = summary[row.key as keyof BriefingSummary];
-            displayValue = entry?.value ?? null;
-            if (entry && "subValue" in entry) subValue = entry.subValue;
-          }
+            if (row.key === "title") {
+              displayValue = title || null;
+            } else {
+              const entry = summary[row.key as keyof BriefingSummary];
+              displayValue = entry?.value ?? null;
+              if (entry && "subValue" in entry) subValue = entry.subValue;
+            }
 
-          return (
-            <div
-              key={row.key}
-              className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[auto_200px_minmax(0,1fr)]"
-            >
-              <row.icon className="mt-0.5 h-[19px] w-[19px] shrink-0" strokeWidth={1.6} />
-              <dt className="min-w-0 text-[13.5px] font-bold">{row.label}</dt>
-              <dd className="col-span-2 min-w-0 sm:col-span-1">
-                {displayValue ? (
-                  <p className="whitespace-pre-line text-[13.5px] font-bold leading-[1.55]">
-                    {displayValue}
-                  </p>
-                ) : (
-                  <p className="text-[13.5px] font-bold text-muted-foreground">À compléter</p>
+            return (
+              <div
+                key={row.key}
+                className="flex items-start gap-4 pb-6 border-b border-slate-100 last:border-0 last:pb-0"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                  <row.icon className="h-4.5 w-4.5" strokeWidth={1.6} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <dt className="text-sm font-semibold text-slate-700">{row.label}</dt>
+                  <dd className="mt-1">
+                    {displayValue ? (
+                      <p className="whitespace-pre-line text-sm font-medium text-slate-900 leading-relaxed">
+                        {displayValue}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-slate-400 italic">À compléter</p>
+                    )}
+                    {subValue ? <p className="mt-0.5 text-sm text-slate-400">{subValue}</p> : null}
+                  </dd>
+                </div>
+                {displayValue && (
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                    <Check className="h-4 w-4 text-emerald-600" strokeWidth={2.6} />
+                  </span>
                 )}
-                {subValue ? (
-                  <p className="mt-0.5 text-[13px] text-muted-foreground">{subValue}</p>
-                ) : null}
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
+              </div>
+            );
+          })}
+        </dl>
+      </div>
 
       {!publishedProjectId ? (
-        <>
+        <div className="mt-10">
           {!isComplete ? (
-            <p className="mt-8 flex items-start gap-2 rounded-md border border-border bg-accent/40 px-4 py-3 text-[13px] leading-[1.5] text-muted-foreground">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-              La description et le délai de réalisation sont obligatoires — cliquez sur ces étapes
-              ci-dessus pour les compléter avant de générer le CDC.
-            </p>
+            <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200/60 p-5">
+              <p className="flex items-start gap-3 text-sm text-amber-700">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.8} />
+                <span>
+                  La description et le délai de réalisation sont obligatoires. Cliquez sur ces
+                  étapes ci-dessus pour les compléter avant de générer le CDC.
+                </span>
+              </p>
+            </div>
           ) : null}
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <button
               type="button"
               onClick={onEdit}
-              className="rounded-md border border-border py-3.5 text-[14px] font-semibold transition-colors hover:bg-accent"
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 shadow-sm"
             >
+              <PenLine className="h-4 w-4" strokeWidth={1.8} />
               Modifier
             </button>
             <button
               type="button"
               onClick={onGenerateCdc}
               disabled={isGeneratingCdc || !isComplete}
-              className="flex items-center justify-center gap-2 rounded-md border border-border py-3.5 text-[14px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
             >
               {isGeneratingCdc ? (
                 <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} />
-              ) : null}
+              ) : (
+                <FileText className="h-4 w-4 text-indigo-500" strokeWidth={1.8} />
+              )}
               Générer le CDC (PDF)
             </button>
             <button
               type="button"
               onClick={onPublish}
               disabled={isPublishing || !isComplete}
-              className="flex items-center justify-center gap-2 rounded-md bg-primary py-3.5 text-[14px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 text-sm font-semibold text-white transition-all hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isPublishing ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : null}
-              Postuler le projet
+              {isPublishing ? (
+                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} />
+              ) : (
+                <Send className="h-4 w-4" strokeWidth={1.8} />
+              )}
+              Publier le projet
             </button>
           </div>
 
-          <p className="mt-5 flex items-start gap-2 text-[13px] leading-[1.5] text-muted-foreground">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-            En l'état du backend, "Générer le CDC" publie déjà votre projet aux agences (pas
-            d'aperçu sans effet de bord disponible) — "Postuler le projet" reste le point d'entrée
-            normal.
-          </p>
-        </>
+          <div className="mt-6 rounded-xl bg-slate-50 p-4 border border-slate-100">
+            <p className="flex items-start gap-2 text-sm text-slate-500">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
+              <span>
+                « Générer le CDC » publie automatiquement votre projet aux agences. « Publier le
+                projet » est le point d'entrée normal.
+              </span>
+            </p>
+          </div>
+        </div>
       ) : (
         <ShortlistSection
           projectId={publishedProjectId}
@@ -1066,60 +1280,98 @@ function ShortlistSection({
   onResetBriefing: () => void;
 }) {
   return (
-    <div className="mt-10 border-t border-border pt-10">
-      <h2 className="text-[18px] font-bold tracking-tight">Shortlist d'agences recommandées</h2>
-      <p className="mt-1 text-[13.5px] text-muted-foreground">
-        Sélection générée par le matching IA pour votre projet{" "}
-        <span className="font-semibold">{projectId}</span>.
-      </p>
+    <div className="mt-12">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+          <Users className="h-6 w-6" strokeWidth={1.8} />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Agences recommandées</h2>
+          <p className="text-sm text-slate-500">
+            Sélection générée par l'IA pour votre projet{" "}
+            <span className="font-semibold text-slate-700">#{projectId}</span>
+          </p>
+        </div>
+      </div>
 
       <div className="mt-6">
         {isLoading ? (
-          <StackSkeleton count={3} />
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="animate-pulse rounded-2xl bg-white/70 p-6 border border-slate-200/60"
+              >
+                <div className="h-6 w-32 rounded-lg bg-slate-200" />
+                <div className="mt-3 h-4 w-24 rounded-lg bg-slate-100" />
+                <div className="mt-4 h-12 rounded-lg bg-slate-100" />
+                <div className="mt-4 flex gap-2">
+                  <div className="h-10 w-24 rounded-xl bg-slate-200" />
+                  <div className="h-10 w-24 rounded-xl bg-slate-100" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : shortlist.length === 0 ? (
-          <EmptyState message="Aucune agence recommandée pour le moment." />
+          <div className="rounded-2xl bg-white/70 p-12 text-center border border-slate-200/60">
+            <EmptyState message="Aucune agence recommandée pour le moment." />
+          </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {shortlist.map((agency) => {
               const isContacted = contactedAgencyIds.includes(agency.id);
               return (
-                <article key={agency.id} className="rounded-lg border border-border p-4">
+                <article
+                  key={agency.id}
+                  className="group rounded-2xl bg-white/80 p-6 border border-slate-200/60 shadow-sm transition-all hover:shadow-md hover:border-indigo-200"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[15px] font-bold">{agency.name}</p>
-                      <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-slate-400" strokeWidth={1.8} />
+                        <h3 className="text-base font-bold text-slate-900 truncate">
+                          {agency.name}
+                        </h3>
+                      </div>
+                      <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
                         <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
                         {agency.location}
                       </p>
                     </div>
                     {agency.matchingScore !== null ? (
-                      <span className="flex shrink-0 items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[12.5px] font-semibold">
-                        <Star className="h-3 w-3 fill-current" strokeWidth={0} />
+                      <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
+                        <Star className="h-3.5 w-3.5 fill-current" strokeWidth={0} />
                         {agency.matchingScore}%
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-2 line-clamp-2 text-[13px] text-muted-foreground">
-                    {agency.description}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <p className="mt-3 line-clamp-2 text-sm text-slate-500">{agency.description}</p>
+                  <div className="mt-5 flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => onContactAgency(agency.id)}
                       disabled={isContacted || contactingAgencyId === agency.id}
-                      className="rounded-md bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                        isContacted
+                          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                          : "bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md hover:shadow-indigo-200"
+                      }`}
                     >
-                      {contactingAgencyId === agency.id
-                        ? "Envoi..."
-                        : isContacted
-                          ? "Envoyé"
-                          : "Envoyer"}
+                      {contactingAgencyId === agency.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isContacted ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      {isContacted ? "Contactée" : "Contacter"}
                     </button>
                     <Link
                       to="/agences/$id"
                       params={{ id: agency.id }}
-                      className="rounded-md border border-border px-3.5 py-2 text-[13px] font-semibold transition-colors hover:bg-accent"
+                      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300"
                     >
+                      <Globe className="h-4 w-4" strokeWidth={1.8} />
                       Voir profil
                     </Link>
                   </div>
@@ -1130,19 +1382,21 @@ function ShortlistSection({
         )}
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-8 flex flex-wrap gap-3 pt-8 border-t border-slate-200/60">
         <Link
           to="/client/mes-projets"
-          className="rounded-md bg-primary px-5 py-3 text-[14px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200"
         >
+          <Briefcase className="h-4 w-4" strokeWidth={1.8} />
           Voir mes projets
         </Link>
         <button
           type="button"
           onClick={onResetBriefing}
-          className="rounded-md border border-border px-5 py-3 text-[14px] font-semibold transition-colors hover:bg-accent"
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300"
         >
-          Publier un nouveau projet
+          <RotateCcw className="h-4 w-4" strokeWidth={1.8} />
+          Nouveau projet
         </button>
       </div>
     </div>

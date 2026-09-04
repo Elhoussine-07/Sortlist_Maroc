@@ -102,12 +102,93 @@ const ADMIN_NAV: NavItem[] = [
   },
 ];
 
+// AJOUT : routes réservées au owner de l'agence (pas aux membres invités).
+// Un membre n'a pas de droit d'accès sur ces écrans côté backend non plus
+// (paramètres/invitations/profil de l'agence relèvent du propriétaire) — on
+// les masque donc aussi côté nav pour éviter d'exposer un lien mort/403.
+const OWNER_ONLY_AGENCY_ROUTES = new Set([
+  "/agence/parametres",
+  "/agence/invitations",
+  "/agence/profil",
+]);
+
 function navForRole(role: UserRole): NavItem[] {
   if (role === "client") return CLIENT_NAV;
   if (role === "agency") return AGENCY_NAV;
   return ADMIN_NAV;
 }
 
+/**
+ * Regroupement purement visuel de la nav (aucun impact sur les routes/icônes
+ * affichées ni sur le filtre owner/membre appliqué en amont) : classe les
+ * items déjà résolus par `navForRole`/le filtre owner-only dans de petites
+ * sections repliables visuellement (juste un libellé, pas de logique) pour
+ * que la sidebar reste lisible malgré le nombre d'entrées côté Agence.
+ * `route` -> libellé de section ; tout item non listé ici (aucun cas
+ * aujourd'hui) retombe dans une section "Autres" plutôt que de disparaître.
+ */
+const NAV_SECTION_BY_ROUTE: Record<string, string> = {
+  "/client/tableau-de-bord": "Principal",
+  "/agence/tableau-de-bord": "Principal",
+  "/admin/tableau-de-bord": "Principal",
+
+  "/client/postuler-un-projet": "Projets",
+  "/client/mes-projets": "Projets",
+  "/client/collaborations": "Projets",
+  "/client/agences-favorites": "Projets",
+
+  "/agence/opportunites": "Activité",
+  "/agence/mes-prospections": "Activité",
+  "/agence/workflow": "Activité",
+  "/agence/projets-en-cours": "Activité",
+  "/agence/suspension": "Activité",
+
+  "/agence/prospection": "Performance",
+  "/agence/analytics": "Performance",
+  "/agence/facturation": "Performance",
+
+  "/agence/profil": "Agence",
+  "/agence/invitations": "Agence",
+
+  "/admin/litiges": "Modération",
+  "/admin/avis": "Modération",
+
+  "/client/mon-profil": "Compte",
+  "/client/notifications": "Compte",
+  "/client/parametres": "Compte",
+  "/agence/notifications": "Compte",
+  "/agence/parametres": "Compte",
+  "/admin/notifications": "Compte",
+};
+
+const NAV_SECTION_ORDER = [
+  "Principal",
+  "Projets",
+  "Activité",
+  "Performance",
+  "Agence",
+  "Modération",
+  "Compte",
+  "Autres",
+];
+
+function groupNavItems(items: NavItem[]): { section: string; items: NavItem[] }[] {
+  const bySection = new Map<string, NavItem[]>();
+  for (const item of items) {
+    const section = NAV_SECTION_BY_ROUTE[item.to] ?? "Autres";
+    const bucket = bySection.get(section) ?? [];
+    bucket.push(item);
+    bySection.set(section, bucket);
+  }
+  return NAV_SECTION_ORDER.map((section) => ({
+    section,
+    items: bySection.get(section) ?? [],
+  })).filter((group) => group.items.length > 0);
+}
+
+/* Avatar coloré déterministe, cohérent avec le reste du site : même
+   personne/agence = même couleur, dérivée d'une chaîne stable, sans champ
+   "couleur" côté API. */
 function hashSeed(seed: string): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
@@ -123,16 +204,36 @@ function seedGradient(seed: string): string {
 }
 
 export function DashboardShell({ role, children }: { role: UserRole; children: ReactNode }) {
-  const items = navForRole(role);
   const navigate = useNavigate();
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
 
+  // API CALL : GET /api/auth/me -> alimente le store utilisateur (aucune donnée en dur)
   const user = useAuthStore((state) => state.user);
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
   const setUnreadCount = useNotificationsStore((state) => state.setUnreadCount);
 
+  // AJOUT : membership de l'agence active, pour filtrer la nav (voir items
+  // ci-dessous). Alimenté par AgencySwitcher via setAgencies/setActiveAgency
+  // (même store), donc disponible ici sans appel API supplémentaire.
+  const activeAgencyId = useAgencyStore((state) => state.activeAgencyId);
+  const agencies = useAgencyStore((state) => state.agencies);
+  const activeMembership = agencies.find((agency) => agency.id === activeAgencyId)?.membership;
+
+  // AJOUT : un membre (non-owner) d'une agence ne voit pas Paramètres,
+  // Invitations et Profil agence. Les comptes client/admin ne sont pas
+  // concernés (activeMembership reste undefined pour eux).
+  const items = navForRole(role).filter((item) => {
+    if (role !== "agency" || activeMembership !== "member") return true;
+    return !OWNER_ONLY_AGENCY_ROUTES.has(item.to);
+  });
+  const navGroups = groupNavItems(items);
+
+  // Le badge de notifications non lues n'était jusque-là mis à jour qu'en
+  // visitant l'écran Notifications. Interrogé ici (montage du shell, présent
+  // sur tout le dashboard) avec un rafraîchissement périodique pour rester à
+  // jour sans action de l'utilisateur.
   const unreadCountQuery = useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: getUnreadCount,
@@ -144,22 +245,12 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
     }
   }, [unreadCountQuery.data, setUnreadCount]);
 
+  // CDC module 5 : bouton "Démo / Découvrir la plateforme" accessible depuis
+  // le dashboard, quel que soit le contexte d'agence actif.
   const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   const roleLabel =
     role === "client" ? "Client (Entreprise)" : role === "agency" ? "Agence" : "Administration";
-
-  function Logo() {
-    return (
-      <Link to="/" className="group flex shrink-0 items-center gap-2">
-        <img
-          src="/favicon.ico"
-          alt="Sortlist"
-          className="h-8 w-8 rounded-md object-contain transition-transform group-hover:scale-105"
-        />
-        <span className="font-display text-[20px] font-bold tracking-tight">Sortlist</span>
-      </Link>
-    );}
 
   return (
     <div className="min-h-screen bg-background">
@@ -168,7 +259,10 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
           <Link to="/" className="group flex min-w-0 shrink-0 items-center gap-2">
-            <Logo />
+            <img src="/logo.ico" alt="Sortlist Pro" className="h-8 w-auto" />
+            <span className="font-display truncate text-[20px] font-bold tracking-tight">
+              Sortlist
+            </span>
           </Link>
 
           <div className="flex shrink-0 items-center gap-1.5">
@@ -256,6 +350,8 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
                 <DropdownMenuItem
                   className="gap-2"
                   onClick={() => {
+                    // Le JWT Frappe est sans état (pas de révocation serveur) :
+                    // `logout()` vide juste le store local, cf. auth.service.ts.
                     void logout().finally(() => {
                       void navigate({ to: "/connexion" });
                     });
@@ -271,28 +367,39 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
       </header>
 
       <div className="flex">
-        <aside className="sticky top-[65px] hidden h-[calc(100vh-65px)] w-[248px] shrink-0 flex-col justify-between border-r border-border px-3 py-6 lg:flex">
-          <nav className="space-y-0.5">
-            {items.map((item) => {
-              const isActive = pathname === item.to;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={
-                    isActive
-                      ? "flex items-center gap-3 rounded-md bg-primary/10 px-3 py-2.5 text-[14.5px] font-semibold text-primary"
-                      : "flex items-center gap-3 rounded-md px-3 py-2.5 text-[14.5px] font-medium text-foreground/75 transition-colors hover:bg-accent hover:text-foreground"
-                  }
-                >
-                  <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.7} />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              );
-            })}
+        <aside className="sticky top-[65px] hidden h-[calc(100vh-65px)] w-[248px] shrink-0 flex-col justify-between overflow-y-auto border-r border-border px-3 py-6 lg:flex">
+          <nav className="space-y-5">
+            {navGroups.map((group) => (
+              <div key={group.section}>
+                {navGroups.length > 1 ? (
+                  <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    {group.section}
+                  </p>
+                ) : null}
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.to;
+                    return (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        className={
+                          isActive
+                            ? "flex items-center gap-3 rounded-md bg-primary/10 px-3 py-2.5 text-[14.5px] font-semibold text-primary"
+                            : "flex items-center gap-3 rounded-md px-3 py-2.5 text-[14.5px] font-medium text-foreground/75 transition-colors hover:bg-accent hover:text-foreground"
+                        }
+                      >
+                        <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.7} />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          <div className="rounded-lg border border-border p-3.5">
+          <div className="mt-6 rounded-lg border border-border p-3.5">
             <p className="flex items-center gap-2 text-[14px] font-semibold">
               <CircleHelp className="h-4 w-4 text-primary" strokeWidth={1.7} />
               Besoin d'aide ?
@@ -316,6 +423,19 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
   );
 }
 
+/**
+ * Sélecteur d'agence (bascule multi-agences) + bouton "+" pour rejoindre une
+ * agence — CDC §2.1.1. Visible uniquement pour les comptes Agence (rendu
+ * conditionnel dans `DashboardShell`), affiché discrètement à côté du
+ * nom/avatar dans le header. Réutilise les primitives shadcn déjà utilisées
+ * ailleurs dans le repo (`DropdownMenu`, `ActionModal`).
+ *
+ * Branché sur `agencies.service.ts::getMyAgencies` (liste), `auth.service.ts::switchAgency`
+ * (bascule — récupère et stocke un nouveau JWT scoped) et
+ * `agencies.service.ts::requestToJoinAgency` (bouton "+"). L'agence active est
+ * conservée dans `agency.store.ts` (`activeAgencyId`), consommée ensuite par
+ * `profile.service.ts::getAgencyProfile`/`getAgencyDashboard`.
+ */
 function AgencySwitcher() {
   const queryClient = useQueryClient();
   const activeAgencyId = useAgencyStore((state) => state.activeAgencyId);
@@ -330,6 +450,9 @@ function AgencySwitcher() {
     queryFn: getMyAgencies,
   });
 
+  // Alimente le store (persisté) dès que la liste est connue, et choisit la
+  // première agence comme agence active par défaut si aucune n'est encore
+  // sélectionnée (premier chargement / nouvel appareil).
   useEffect(() => {
     if (!agencies) return;
     setAgencies(agencies);
@@ -342,7 +465,8 @@ function AgencySwitcher() {
     mutationFn: switchAgency,
     onSuccess: (_result, agencyId) => {
       setActiveAgency(agencyId);
-
+      // L'agence active a changé : tout ce qui dépendait de l'ancienne
+      // (profil, dashboard, analytics...) doit être rechargé.
       void queryClient.invalidateQueries();
       toast("Agence changée", {
         description: agencies?.find((agency) => agency.id === agencyId)?.name,
@@ -356,7 +480,8 @@ function AgencySwitcher() {
   const joinMutation = useMutation({
     mutationFn: async (query: string) => {
       const trimmed = query.trim();
-
+      // Le champ accepte un nom (recherché via `agency.list_agencies`) ou un
+      // identifiant d'agence saisi directement.
       const results = await searchAgencies({ query: trimmed, pageSize: 5 });
       const targetId = results.items[0]?.id ?? trimmed;
       return requestToJoinAgency(targetId);
@@ -422,6 +547,14 @@ function AgencySwitcher() {
                     {agency.initials}
                   </span>
                   <span className="min-w-0 truncate">{agency.name}</span>
+                  {/* AJOUT : badge "Moi" sur l'agence dont l'utilisateur
+                      connecté est le owner (créée par lui), pour la
+                      distinguer des agences rejointes comme membre. */}
+                  {agency.membership === "owner" ? (
+                    <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                      Moi
+                    </span>
+                  ) : null}
                 </span>
                 {agency.id === activeAgencyId ? (
                   <Check className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2} />

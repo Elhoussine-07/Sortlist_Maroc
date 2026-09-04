@@ -15,6 +15,7 @@
  "redis_socketio_port": "6382",
  "restart_supervisor_on_update": false,
  "restart_systemd_on_update": false,
+ "wkhtmltopdf_path": "/usr/local/bin/wkhtmltopdf",
  "serve_default_site": true,
  "shallow_clone": true,
  "socketio_port": 9000,

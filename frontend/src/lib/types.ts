@@ -125,6 +125,7 @@ export interface AgencyPortfolioItem {
 /** CDC §2.2.4 — Staff (Équipe). `member` référence un AgencyMember existant. */
 export interface AgencyTeamItem {
   member: string;
+  memberName: string;
   photo: string;
   role: string;
   description: string;
@@ -193,6 +194,28 @@ export interface Project {
   paymentStatus?: string | undefined;
   /** Montant dû par le client à l'agence (offre acceptée), cf. `project.get_project`. */
   agencyProjectAmount?: number | null | undefined;
+  /**
+   * Dernière agence ayant refusé ce projet (opportunité archivée avec motif
+   * "Refus agence"/"Devis refusé"), renseigné uniquement quand aucune agence
+   * n'a encore gagné le projet — cf. `project.my_projects`. Un refus ne fait
+   * plus jamais passer le projet "Rejeté" automatiquement (il reste
+   * "Postulé", visible dans "Disponibles" pour d'autres agences) ; ce champ
+   * permet au client de voir qui a refusé sans que ça bloque la recherche.
+   */
+  declinedByAgency?: string | null | undefined;
+  declinedByAgencyName?: string | null | undefined;
+  /**
+   * Champs additionnels utilisés par la page publique de recherche de
+   * projets (`routes/projets.tsx`) — sans équivalent doctype `Project`
+   * direct connu ; renseignés en best-effort par `projects.service.ts::
+   * mapProject` quand le backend les fournit.
+   */
+  urgency?: string | null | undefined;
+  estimatedDuration?: string | null | undefined;
+  interestedAgenciesCount?: number | undefined;
+  budgetFlexible?: boolean | undefined;
+  /** Photo optionnelle du projet (Attach Image côté doctype `Project`) — sinon visuel par défaut selon `category`. */
+  coverImage?: string | null | undefined;
 }
 
 export interface Agency {
@@ -204,6 +227,25 @@ export interface Agency {
   rating: number;
   reviewsCount: number;
   matchingScore: number | null;
+  /** URL du logo (Frappe "Attach Image"), affiché dans les cartes de résultats de recherche. */
+  logo?: string | null | undefined;
+  /**
+   * Champs additionnels utilisés par la page publique de recherche
+   * d'agences (`routes/agences.tsx`) — sans équivalent doctype
+   * `AgencyProfile` direct connu ; renseignés en best-effort quand le
+   * backend les fournit.
+   */
+  badge?: string | null | undefined;
+  tags?: string[] | undefined;
+  portfolioCount?: number | undefined;
+  startingPrice?: string | null | undefined;
+  // Distinct de `AgencyProfile.teamSize` (string, ex. "11-50") — celui-ci
+  // est l'effectif numérique brut utilisé pour le bucketing des cartes de
+  // résultats de recherche (`routes/agences.tsx`). Même nom = collision de
+  // type dans `Agency & Partial<AgencyProfile>` (cf. getAgencyProfile()).
+  teamSizeCount?: number | null | undefined;
+  avgResponseHours?: number | null | undefined;
+  onTimeDeliveryRate?: number | null | undefined;
 }
 
 export interface Opportunity {
@@ -301,6 +343,23 @@ export interface Notification {
   isArchived?: boolean | undefined;
 }
 
+export interface CollaborationProjectReview {
+  /** `name` du Project côté Frappe — c'est cet id qui doit être envoyé à `submitCollaborationReview`. */
+  id: string;
+  title: string;
+  period: string;
+  /** Dates brutes (ISO), pour le filtre "Période" — `period` reste la version déjà formatée pour l'affichage. */
+  startDate: string | null;
+  endDate: string | null;
+  budgetMin: number | null;
+  budgetMax: number | null;
+  reviewed: boolean;
+  yourRating: number;
+  yourComment: string;
+  /** Note laissée par l'AGENCE sur le client pour ce projet (`ClientReview`), absente tant qu'aucun avis reçu. */
+  ratingReceived: number | null;
+}
+
 export interface Collaboration {
   id: string;
   agencyInitials: string;
@@ -313,6 +372,7 @@ export interface Collaboration {
   publicReview: string;
   reviewLength: number;
   yourRating: number;
+  projects: CollaborationProjectReview[];
 }
 
 export interface HistoryEntry {

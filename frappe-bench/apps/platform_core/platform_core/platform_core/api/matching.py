@@ -4,12 +4,11 @@
 
 import frappe
 
-from platform_core.platform_core.auth import require_body_arg, require_internal_token
+from platform_core.platform_core.auth import require_internal_token
 
 
 @frappe.whitelist(allow_guest=True)
-def get_project_context(project=None):
-	project = require_body_arg(project, "project", "Projet manquant")
+def get_project_context(project):
 	require_internal_token()
 
 	project_doc = frappe.get_doc("Project", project).as_dict()
@@ -23,7 +22,12 @@ def get_project_context(project=None):
 
 	candidates = frappe.get_all(
 		"AgencyProfile",
-		filters={"offers_suspended": 0},
+		# DÉSACTIVÉ (demande explicite, phase de test) : filters={"offers_suspended": 0}
+		# excluait du Shortlist IA toute agence flaguée un jour par
+		# tasks.py::process_invoice_reminders — flag jamais remis à 0
+		# automatiquement (cf. proposal.py/search.py, même correctif), même
+		# après paiement de la facture. Réactiver avec le filtre une fois un
+		# vrai mécanisme de levée automatique en place.
 		fields=["name", "agency_name", "location", "coverage", "remote_work", "rating",
 		        "pqi_score", "team_size", "year_founded", "annual_revenue"],
 	)

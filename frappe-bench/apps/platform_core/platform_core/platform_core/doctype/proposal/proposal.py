@@ -45,10 +45,16 @@ class Proposal(Document):
         if project_status != "Posted":
             frappe.throw("Le projet doit être au statut Posted pour envoyer une offre.")
 
-        # Vérifier que l'agence n'a pas ses offres suspendues
-        agency_suspended = frappe.db.get_value("AgencyProfile", self.agency, "offers_suspended")
-        if agency_suspended:
-            frappe.throw("Cette agence a ses offres suspendues (impayé) et ne peut pas soumettre d'offre.")
+        # DÉSACTIVÉ (demande explicite, phase de test) : ce blocage empêchait
+        # toute agence dont une facture de commission avait dépassé le seuil
+        # "très en retard" (cf. tasks.py::process_invoice_reminders) d'envoyer
+        # un devis sur N'IMPORTE QUEL projet, sans aucun moyen automatique de
+        # lever le blocage même après paiement. Gardé en commentaire (pas
+        # supprimé) pour réactivation facile une fois un vrai mécanisme de
+        # levée automatique du flag en place.
+        # agency_suspended = frappe.db.get_value("AgencyProfile", self.agency, "offers_suspended")
+        # if agency_suspended:
+        #     frappe.throw("Cette agence a ses offres suspendues (impayé) et ne peut pas soumettre d'offre.")
 
     def _prevent_duplicate_active_proposal(self):
         """Empêche les doublons d'offres actives (Sent ou Accepted) pour un même projet et agence"""
@@ -86,9 +92,16 @@ class Proposal(Document):
         self.save(ignore_permissions=True)
         return self
 
-    def refuse(self):
+    def refuse(self, message=None):
         self.status = "Refused"
         self.decision_date = frappe.utils.now()
+        # AJOUTÉ (demande explicite, négociation) : message optionnel du
+        # client (motif / contre-proposition), transmis à l'agence via
+        # _handle_refusal(). self.flags (fourni par Frappe, jamais persisté
+        # ni validé comme un vrai champ du doctype) évite d'avoir à ajouter
+        # une colonne à Proposal juste pour faire transiter cette valeur
+        # jusqu'à on_update(), appelé sur cette même instance par save().
+        self.flags.refusal_message = message
         self.save(ignore_permissions=True)
         return self
 
@@ -98,26 +111,42 @@ class Proposal(Document):
         # ne sera donc jamais invoqué. Conservé pour ne pas perdre l'intention
         # si is_submittable est activé plus tard. Le cycle d'annulation réel
         # (cf. champ cancellation_status) n'est pas câblé dans ce périmètre.
-        self._update_opportunity(status="Archivée")
+        self._update_opportunity(status="Archivée", archive_reason="Devis annulé")
 
     def _update_opportunity(self, status, archive_reason=None):
         """Met à jour le statut de l'opportunité associée.
-        BUG CORRIGÉ : utilisait `frappe.db.set_value` (écriture DB directe),
-        qui NE DÉCLENCHE PAS `Opportunity.on_update` — toute la logique de
-        transition côté Opportunity (_handle_won, _handle_archiving,
-        recompute_project_status...) était donc silencieusement contournée
-        sur le parcours réel (client répond à un devis). On passe par
-        `.save()` pour que ces hooks s'exécutent normalement."""
-        opportunity = frappe.get_all(
-            "Opportunity", filters={"project": self.project, "agency": self.agency}, limit=1, pluck="name"
+
+        BUG CORRIGÉ : passe désormais par .save() (via frappe.get_doc), pas
+        frappe.db.set_value() — l'ancienne écriture SQL directe contournait
+        entièrement Opportunity.on_update(), qui porte pourtant toute la
+        vraie logique de transition : _handle_won() (Projet -> En cours,
+        verrouillage CDC, échéance, clôture automatique des autres relations
+        actives sur le même projet, cf. CDC §1.5.7) pour "Gagnée",
+        _handle_archiving() (recompute_project_status, qui ne rejette le
+        projet que si AUCUNE autre relation n'est encore active, cf.
+        §1.5.6/§1.5.7) pour "Archivée". Sur l'ancien chemin (accepter/refuser
+        un devis, le flux normal côté client), rien de tout ça ne s'exécutait
+        jamais — seule la réécriture partielle et en dur faite directement
+        dans _handle_acceptance()/_handle_refusal() avait un effet visible.
+
+        BUG CORRIGÉ (2) : recherchait l'Opportunity par (project, agency)
+        (frappe.get_all(..., limit=1), sans tri) au lieu d'utiliser le lien
+        direct et fiable self.opportunity (champ Link obligatoire, renseigné
+        dès la création du devis par send_quote) — si cette recherche ne
+        retombait pas sur la bonne ligne (ou sur rien), l'Opportunity liée au
+        devis réellement accepté/refusé n'était jamais mise à jour, sans la
+        moindre erreur visible.
+        """
+        opportunity_name = self.opportunity or frappe.db.get_value(
+            "Opportunity", {"project": self.project, "agency": self.agency}, "name"
         )
-        if not opportunity:
+        if not opportunity_name:
             return
-        doc = frappe.get_doc("Opportunity", opportunity[0])
-        doc.status = status
+        opp_doc = frappe.get_doc("Opportunity", opportunity_name)
+        opp_doc.status = status
         if archive_reason:
-            doc.archive_reason = archive_reason
-        doc.save(ignore_permissions=True)
+            opp_doc.archive_reason = archive_reason
+        opp_doc.save(ignore_permissions=True)
 
     def _notify_client(self):
         """Notifie le client qu'un devis a été envoyé"""
@@ -143,15 +172,14 @@ class Proposal(Document):
 
     def on_update(self):
         """Gère les changements de statut de l'offre"""
-        # BUG CORRIGÉ : `frappe.db.get_value` relit la DB APRÈS que save() ait
-        # déjà écrit le nouveau statut (on_update tourne après l'écriture) —
-        # il renvoyait donc toujours `self.status`, jamais l'ancien statut.
-        # Conséquence réelle : `self.status == "Accepted" and old_status !=
-        # "Accepted"` était TOUJOURS fausse (old_status valait aussi
-        # "Accepted"), donc `_handle_acceptance()`/`_handle_refusal()` ne se
-        # déclenchaient jamais — `accept()`/`refuse()` changeaient le statut
-        # du devis sans jamais répercuter quoi que ce soit sur l'Opportunity
-        # ou le Project (ni facture, ni notification). `get_doc_before_save()`
+        # BUG CORRIGÉ : ce `frappe.db.get_value` relisait la DB APRÈS que
+        # save() ait déjà écrit le nouveau statut (on_update tourne après
+        # l'écriture) — il renvoyait donc toujours self.status, jamais le
+        # statut précédent, donc `old_status != "Accepted"`/`!= "Refused"`
+        # étaient TOUJOURS faux et _handle_acceptance()/_handle_refusal()
+        # n'étaient jamais appelées, quel que soit leur contenu. Même bug déjà
+        # corrigé (avec le même correctif) dans Opportunity.on_update() et
+        # Project.on_update() — jamais appliqué ici. self.get_doc_before_save()
         # donne le vrai état d'avant modification.
         before = self.get_doc_before_save()
         old_status = before.status if before else None
@@ -165,49 +193,70 @@ class Proposal(Document):
             self._handle_refusal()
 
     def _handle_acceptance(self):
-        """Lorsque le client accepte l'offre : met à jour projet et opportunité.
-        BUG CORRIGÉ : passait auparavant par `_update_opportunity` en écriture
-        DB brute (`frappe.db.set_value`), qui contourne `Opportunity.on_update`
-        et donc `_handle_won` (CDC verrouillé, date de début, clôture
-        automatique des autres relations — cf. §1.5.7) — cette méthode
-        dupliquait seulement le passage `Project.status = "In Progress"` sans
-        le reste. `_update_opportunity` passe désormais par `.save()`, donc
-        `_handle_won` s'exécute réellement et couvre tout ça ; la ligne
-        redondante ci-dessous est retirée."""
-        # Mettre à jour l'opportunité (déclenche Opportunity._handle_won)
+        """Lorsque le client accepte l'offre : fait gagner l'opportunité.
+
+        BUG CORRIGÉ : ne réécrit plus Project.status en dur ici —
+        _update_opportunity(status="Gagnée") passe maintenant par .save(),
+        donc Opportunity._handle_won() s'exécute réellement et gère TOUT
+        l'effet de bord du gain (Projet -> En cours, verrouillage CDC,
+        expected_end_date/initial_end_date, clôture automatique des autres
+        relations actives sur le projet, notification agence dédiée) — la
+        réécriture partielle faite ici en double faisait double emploi tout
+        en oubliant la moitié de ces effets (jamais déclenchés avant ce fix).
+        """
         self._update_opportunity(status="Gagnée")
 
         # Mettre à jour la date de décision
         frappe.db.set_value(self.doctype, self.name, "decision_date", now())
 
-        # Créer une notification pour l'agence
+        # Créer une notification pour l'agence (distincte de celle, plus
+        # générique, envoyée par Opportunity._handle_won)
         self._notify_agency("Offre acceptée", f"Votre offre pour le projet a été acceptée.")
 
-        # AJOUTÉ (demande explicite) : le montant de l'offre (frais de projet)
-        # est dû par le CLIENT à l'AGENCE — distinct de la commission
-        # plateforme facturée ci-dessous via _create_invoice(). Le client règle
-        # ce montant via api.client.pay_agency_for_project (cf. ProjectPayment).
-        frappe.db.set_value("Project", self.project, "payment_status", "À payer")
-
-        # Générer automatiquement la facture de commission plateforme, avec
-        # échéance de règlement (CDC : 48h avant suspension automatique du projet)
+        # Générer automatiquement la facture (commission)
         self._create_invoice()
 
     def _handle_refusal(self):
-        """Lorsque le client refuse l'offre : met à jour projet et opportunité.
-        BUG CORRIGÉ : rejetait le projet inconditionnellement, même si
-        d'autres relations (autres agences, cf. Multicast §1.5.7) étaient
-        encore actives sur le même projet — celui-ci passait Rejeté alors
-        qu'il aurait dû rester Postulé/En attente en attendant les autres
-        agences. `_update_opportunity` passe désormais par `.save()`, ce qui
-        déclenche `Opportunity._handle_archiving` -> `recompute_project_status`,
-        qui applique la bonne règle (Rejeté seulement si TOUTES les relations
-        sont closes)."""
-        # Mettre à jour l'opportunité (déclenche Opportunity._handle_archiving)
-        self._update_opportunity(status="Archivée", archive_reason="Refus client")
+        """Lorsque le client refuse un DEVIS : rouvre la négociation au lieu
+        de fermer la relation.
+
+        CHANGEMENT PRODUIT (demande explicite) : refuser un devis n'archive
+        plus l'Opportunity — elle repasse "Acceptée" (le même état qu'avant
+        l'envoi du premier devis), ce qui permet à l'agence d'en renvoyer un
+        nouveau, ajusté, sans repartir de zéro. Un vrai refus définitif de
+        relation (l'agence qui décline l'invitation avant même de proposer
+        un prix) reste possible via Opportunity.decline(), inchangé.
+
+        Écriture directe (frappe.db.set_value), pas .save() : passer par
+        .save() redéclencherait Opportunity._handle_accepted() (accepted_on,
+        notification client "L'agence a accepté votre projet...") — un faux
+        signal ici, puisque rien de nouveau n'a été accepté. recompute_
+        project_status() est donc appelé explicitement pour rouvrir le
+        projet à "Postulé" si plus aucune autre relation n'est en attente
+        (même logique que pour un archivage, cf. Opportunity._handle_
+        archiving), sans repasser par les hooks d'acceptation.
+        """
+        opportunity_name = self.opportunity or frappe.db.get_value(
+            "Opportunity", {"project": self.project, "agency": self.agency}, "name"
+        )
+        if opportunity_name:
+            frappe.db.set_value("Opportunity", opportunity_name, "status", "Acceptée")
+            from platform_core.platform_core.doctype.opportunity.opportunity import (
+                recompute_project_status,
+            )
+            recompute_project_status(self.project)
 
         # Mettre à jour la date de décision
         frappe.db.set_value(self.doctype, self.name, "decision_date", now())
+
+        # Notifie l'agence, avec le message de négociation du client s'il en
+        # a laissé un — la relation reste ouverte, elle peut directement
+        # renvoyer un devis ajusté (pas besoin de repostuler).
+        feedback = self.flags.refusal_message
+        body = "Le client a refusé votre devis"
+        body += f" : « {feedback} »" if feedback else "."
+        body += " Vous pouvez lui envoyer un nouveau devis ajusté."
+        self._notify_agency("Devis refusé — vous pouvez renégocier", body)
 
     def _notify_agency(self, title, message):
         """Notifie l'agence propriétaire de l'offre"""
@@ -230,27 +279,15 @@ class Proposal(Document):
         ).insert(ignore_permissions=True)
 
     def _create_invoice(self):
-        """Génère automatiquement une facture de commission lorsque l'offre est
-        acceptée (CDC 2.5.1), puis tente de la régler immédiatement (CDC
-        §2.5.1 : « le paiement doit se faire automatiquement » — l'agence ne
-        doit pas avoir à payer manuellement une facture après acceptation du
-        devis par le client). Le règlement automatique n'a lieu que si
-        l'agence a déjà un moyen de paiement par défaut enregistré (cf.
-        `payment.register_payment_method`) ; sinon la facture reste "Pending",
-        réglable plus tard via `payment.pay_invoice` — mais au-delà de
-        `invoice_payment_deadline_hours` (défaut 48h, demande explicite) sans
-        règlement, le projet est automatiquement suspendu (cf.
-        tasks.suspend_projects_for_unpaid_commission /
-        ProjectSuspension.suspend_for_unpaid_invoice)."""
-        settings = frappe.get_single("PlatformSettings")
-        # Seuls 5% (et non le montant total du projet) sont dus à la
-        # plateforme — le solde de l'offre revient à l'agence, réglé
-        # directement par le client (cf. _handle_acceptance ci-dessus).
-        commission_rate = settings.commission_rate or 5
-        deadline_hours = settings.invoice_payment_deadline_hours or 48
+        """Génère automatiquement une facture de commission lorsque l'offre est acceptée (CDC 2.5.1)"""
+        # Récupérer le projet pour obtenir le client
+        project = frappe.get_doc("Project", self.project)
+
+        # Récupérer la commission_rate depuis PlatformSettings
+        commission_rate = frappe.db.get_single_value("PlatformSettings", "commission_rate") or 10
 
         # Créer la facture
-        invoice = frappe.get_doc(
+        frappe.get_doc(
             {
                 "doctype": "Invoice",
                 "agency": self.agency,
@@ -260,29 +297,9 @@ class Proposal(Document):
                 "commission_rate": commission_rate,
                 "status": "Pending",
                 "issue_date": frappe.utils.nowdate(),
-                "payment_deadline": now_datetime() + timedelta(hours=deadline_hours),
+                "due_date": frappe.utils.add_days(frappe.utils.nowdate(), 7),
             }
-        )
-        invoice.insert(ignore_permissions=True)
-
-        from platform_core.platform_core.api.payment import _charge_invoice
-
-        result = _charge_invoice(invoice, self.agency)
-
-        if not result:
-            # Pas de moyen de paiement par défaut : la facture reste "Pending"
-            # — l'agence doit être avertie explicitement du délai, sans quoi
-            # elle découvrirait la suspension automatique après coup.
-            invoice.reload()
-            invoice._notify_agency(
-                title="Facture de commission à régler sous "
-                f"{deadline_hours}h",
-                message=(
-                    f"Une facture de commission de {invoice.commission_amount} a été générée pour "
-                    f"le projet. Réglez-la avant le {invoice.payment_deadline} pour éviter la "
-                    "suspension automatique du projet."
-                ),
-            )
+        ).insert(ignore_permissions=True)
 
 
 def send_quote(opportunity, amount, description=None, devis_file=None):
@@ -302,16 +319,4 @@ def send_quote(opportunity, amount, description=None, devis_file=None):
         "devis_file": devis_file,
     })
     doc.insert(ignore_permissions=True)
-
-    # CDC : « ce devis doit contenir les infos de l'agence en format PDF
-    # pour une bonne expérience utilisateur » — généré automatiquement
-    # (le frontend actuel n'envoie jamais `devis_file`, cf. `sendQuote` côté
-    # `opportunities.service.ts`) sauf si un fichier a déjà été fourni par
-    # l'appelant.
-    if not doc.devis_file:
-        from platform_core.platform_core.devis import generate_devis
-
-        generate_devis(doc.name)
-        doc.reload()
-
     return doc

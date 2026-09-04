@@ -111,10 +111,14 @@ export async function getInvoicesSummary(): Promise<{
 
   return items.reduce(
     (summary, invoice) => {
+      // BUG CORRIGÉ : sommait `invoice.amount` (le montant HT du PROJET,
+      // cf. Invoice.amount) au lieu du montant réellement dû à la plateforme
+      // (`amountDue`, désormais basé sur la commission — cf. invoice.py).
+      const owed = invoice.amountDue ?? invoice.amount;
       if (invoice.status === "paid") {
-        summary.totalPaid += invoice.amount;
+        summary.totalPaid += owed;
       } else {
-        summary.pendingAmount += invoice.amount;
+        summary.pendingAmount += owed;
       }
       return summary;
     },
@@ -138,6 +142,23 @@ export async function getInvoicesSummary(): Promise<{
 export async function downloadInvoice(id: string): Promise<Blob> {
   const url = `${GATEWAY_URL}/api/method/platform_core.platform_core.api.payment.download_invoice_pdf`;
   return fetchBlob(url, undefined, { invoice: id });
+}
+
+/**
+ * Règlement manuel en un clic d'une facture de commission "À payer"/"En
+ * retard", via le moyen de paiement par défaut déjà enregistré
+ * (`PaymentMethodSection`) — repli si le débit automatique à l'acceptation
+ * du devis n'a pas eu lieu (aucun moyen par défaut à ce moment-là).
+ *
+ * // API CALL : frappeCall("payment.pay_invoice", { invoice: id })
+ */
+export async function payInvoice(id: string): Promise<{ payment: string; status: string }> {
+  const raw = await frappeCall<unknown>("payment.pay_invoice", { invoice: id });
+  const data = camelizeKeys(raw) as Record<string, unknown>;
+  return {
+    payment: String(data["payment"] ?? ""),
+    status: String(data["status"] ?? ""),
+  };
 }
 
 /**

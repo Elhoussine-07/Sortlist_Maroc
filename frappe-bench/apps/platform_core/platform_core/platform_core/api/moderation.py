@@ -175,6 +175,19 @@ def validate_completion(project=None):
 	doc.completion_validated_by_moderator = 1
 	doc.complete()
 
+	# AJOUTÉ (demande explicite, rectification) : `complete()` refuse de
+	# clôturer un projet dont la facture de commission n'est pas réglée et
+	# suspend le projet à la place (cf. Project.complete()) — l'Opportunity
+	# ne doit alors pas passer "Terminée", et le modérateur doit être informé
+	# que sa validation n'a pas suffi.
+	if doc.status != "Completed":
+		frappe.throw(
+			_(
+				"Le projet a été suspendu : la facture de commission de l'agence n'est pas "
+				"réglée. Il ne peut pas passer Terminé tant qu'elle ne l'est pas."
+			)
+		)
+
 	opportunity_name = frappe.db.get_value("Opportunity", {"project": project, "status": "Gagnée"}, "name")
 	if opportunity_name:
 		frappe.get_doc("Opportunity", opportunity_name).mark_completed()

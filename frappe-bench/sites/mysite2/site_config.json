@@ -1,7 +1,8 @@
 {
+ "assets_path": "/home/lahoussine/Plateform_B2B_V5/frappe-bench/sites/assets",
  "db_name": "_9fd44918e590e80c",
  "db_password": "0XIhV5nEA4m4nrMy",
  "db_type": "mariadb",
  "encryption_key": "DVD2AAG3Ifz5-96tVohf6sgRT45pNGIMqpH9s_QkfCA=",
- "assets_path": "/home/lahoussine/Plateform_B2B_V5/frappe-bench/sites/assets"
+ "host_name": "http://127.0.0.1:8000"
 }

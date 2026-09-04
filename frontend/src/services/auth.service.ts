@@ -16,6 +16,14 @@ export interface LoginResponse {
   detectedRole: UserRole;
 
   roleKnown: boolean;
+
+  /**
+   * `true` quand `settings.toggle_two_factor` est actif sur ce compte :
+   * `auth.login` n'a alors renvoyé aucun token, seulement `{ email }` — un
+   * code de connexion vient de partir par email et doit être validé via
+   * `verifyLoginOtp` avant d'obtenir un token exploitable.
+   */
+  requires2fa: boolean;
 }
 
 const ROLE_FIELD_CANDIDATES = [
@@ -82,6 +90,23 @@ function mapUser(raw: unknown, fallbackRole: UserRole): User {
 
 function mapLoginResponse(raw: unknown, requestedRole: UserRole): LoginResponse {
   const data = camelizeKeys(raw) as Record<string, unknown>;
+
+  if (data["requires2fa"] === true) {
+    return {
+      token: "",
+      user: {
+        id: "",
+        role: requestedRole,
+        displayName: "",
+        initials: "?",
+        email: String(data["email"] ?? ""),
+      },
+      detectedRole: requestedRole,
+      roleKnown: false,
+      requires2fa: true,
+    };
+  }
+
   const token = String(data["token"] ?? data["accessToken"] ?? data["jwt"] ?? "");
 
   const userData = (data["user"] ?? data) as Record<string, unknown>;
@@ -93,7 +118,7 @@ function mapLoginResponse(raw: unknown, requestedRole: UserRole): LoginResponse 
 
   const user = mapUser(userData, detectedRole);
 
-  return { token, user, detectedRole, roleKnown };
+  return { token, user, detectedRole, roleKnown, requires2fa: false };
 }
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
@@ -102,6 +127,20 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     password: payload.password,
   });
   return mapLoginResponse(raw, payload.role);
+}
+
+/**
+ * Seconde étape de `login` quand la réponse porte `requires2fa: true`
+ * (compte avec "Authentification à deux facteurs" activée dans Paramètres).
+ * // API CALL : frappeCall("auth.verify_login_otp", { email, code }) → JWT
+ */
+export async function verifyLoginOtp(
+  email: string,
+  code: string,
+  expectedRole: UserRole,
+): Promise<LoginResponse> {
+  const raw = await frappeCall<unknown>("auth.verify_login_otp", { email, code });
+  return mapLoginResponse(raw, expectedRole);
 }
 
 export async function requestEmailCode(email: string): Promise<{

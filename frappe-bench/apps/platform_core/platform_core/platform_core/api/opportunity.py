@@ -368,7 +368,7 @@ def list_available_projects(budget_min=None, budget_max=None, location=None, sub
 	results = frappe.db.sql(
 		f"""
 		select p.name as project, p.title, p.need_type, p.budget_min, p.budget_max, p.location,
-		       p.sub_category, p.category, p.creation as project_created_on
+		       p.sub_category, p.category, p.cover_image, p.client, p.creation as project_created_on
 		from `tabProject` p
 		where {" and ".join(conditions)}
 		  and not exists (
@@ -380,8 +380,74 @@ def list_available_projects(budget_min=None, budget_max=None, location=None, sub
 		{**values, "limit": page_size, "offset": (page - 1) * page_size},
 		as_dict=True,
 	)
+	# BUG CORRIGÉ (demande explicite) : contrairement à `list_opportunities`,
+	# cette réponse ne renvoyait jamais de nom de client lisible — seulement
+	# via `p.client` ci-dessus (le NOM du ClientProfile, ex. "CL-00003"),
+	# jamais sélectionné avant ce correctif. L'onglet "Disponibles" affichait
+	# donc toujours le mot générique "Client" côté frontend, contrairement
+	# aux autres onglets déjà corrigés.
+	for row in results:
+		row["client_name"] = _client_display_name(row.get("client"))
 	counts = _tab_counts(claims["agency_id"])
 	return {"results": results, "total": count, "page": page, "page_size": page_size, "counts": counts}
+
+
+@frappe.whitelist(allow_guest=True)
+def list_public_projects(budget_min=None, budget_max=None, sub_category=None, category=None,
+	query=None, page=1, page_size=20):
+	"""AJOUTÉ (demande explicite) : recherche publique de projets (page /projets,
+	accessible sans connexion — client ET visiteur anonyme). BUG CORRIGÉ :
+	`projects.service.ts::searchProjects` appelait déjà cette méthode
+	(`opportunity.list_public_projects`), qui n'avait en réalité jamais été
+	implémentée côté backend — seule `list_available_projects` (ci-dessus)
+	existait, mais elle est réservée aux comptes Agence (`require_active_agency`)
+	et exclut les projets pour lesquels l'agence a déjà une Opportunity, ce qui
+	n'a aucun sens pour un visiteur public. Reprend la même logique de filtre
+	que `list_available_projects`, sans restriction de rôle ni exclusion par
+	agence."""
+	conditions = ["p.status = 'Posted'", "p.client is not null"]
+	values = {}
+
+	if budget_min:
+		conditions.append("p.budget_max >= %(budget_min)s")
+		values["budget_min"] = budget_min
+	if budget_max:
+		conditions.append("p.budget_min <= %(budget_max)s")
+		values["budget_max"] = budget_max
+	if sub_category:
+		conditions.append("p.sub_category = %(sub_category)s")
+		values["sub_category"] = sub_category
+	if category:
+		conditions.append("p.category = %(category)s")
+		values["category"] = category
+	if query:
+		conditions.append("(p.title like %(query)s or p.description like %(query)s)")
+		values["query"] = f"%{query}%"
+
+	page = max(int(page or 1), 1)
+	page_size = min(max(int(page_size or 20), 1), 100)
+	count = frappe.db.sql(
+		f"""
+		select count(*)
+		from `tabProject` p
+		where {" and ".join(conditions)}
+		""",
+		values,
+	)[0][0]
+
+	results = frappe.db.sql(
+		f"""
+		select p.name as project, p.title, p.need_type, p.budget_min, p.budget_max, p.location,
+		       p.sub_category, p.category, p.status, p.cover_image, p.creation as project_created_on
+		from `tabProject` p
+		where {" and ".join(conditions)}
+		order by p.creation desc
+		limit %(limit)s offset %(offset)s
+		""",
+		{**values, "limit": page_size, "offset": (page - 1) * page_size},
+		as_dict=True,
+	)
+	return {"results": results, "total": count, "page": page, "page_size": page_size}
 
 
 @frappe.whitelist()

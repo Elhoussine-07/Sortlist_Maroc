@@ -28,7 +28,7 @@ CHILD_TABLES = {
 
 EDITABLE_FIELDS = [
 	"agency_name", "logo", "slogan", "description", "year_founded", "team_size", "website",
-	"languages", "remote_work", "cover_image", "coverage", "location", "annual_revenue",
+	"languages", "skills", "tech_stack", "remote_work", "cover_image", "coverage", "location", "annual_revenue",
 	"country", "legal_id", "phone_country_code", "phone", "address", "email",
 	# Section "Informations de facturation" (Paramètres agence) — cf. bug
 	# corrigé côté frontend : ce formulaire appelait auparavant

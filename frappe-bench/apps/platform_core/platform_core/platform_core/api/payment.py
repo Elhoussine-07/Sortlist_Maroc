@@ -156,9 +156,24 @@ def download_invoice_pdf(invoice=None):
 	if doc.agency != claims["agency_id"]:
 		frappe.throw(_("Accès non autorisé"), frappe.PermissionError)
 
-	from frappe.utils.print_format import download_pdf
-
-	download_pdf(doctype="Invoice", name=invoice)
+	# BUG CORRIGÉ (v3) : `download_pdf()` natif plante avec `OSError:
+	# wkhtmltopdf reported an error ... HostNotFoundError`.
+	# `load-error-handling`/`load-media-error-handling: ignore` (tenté en v2)
+	# n'a rien changé — wkhtmltopdf les accepte silencieusement (ils
+	# n'apparaissent pas dans la liste des switches "ignored" du message
+	# d'erreur, contrairement à --header-html etc.) mais ne couvrent
+	# visiblement pas ce cas précis. Cause la plus probable restante : un
+	# Letter Head (en-tête d'impression) actif référence une image hébergée
+	# à une URL externe injoignable depuis cette machine — `no_letterhead=1`
+	# saute complètement cette étape plutôt que de compter sur wkhtmltopdf
+	# pour ignorer son échec.
+	pdf_content = frappe.get_print(
+		"Invoice", invoice, as_pdf=True, no_letterhead=1,
+		pdf_options={"load-error-handling": "ignore", "load-media-error-handling": "ignore"},
+	)
+	frappe.local.response.filename = f"{doc.invoice_number or invoice}.pdf"
+	frappe.local.response.filecontent = pdf_content
+	frappe.local.response.type = "download"
 
 
 @frappe.whitelist()

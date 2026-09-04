@@ -117,6 +117,39 @@ def list_collaborations():
 		(client_name,),
 		as_dict=True,
 	)
+	if not rows:
+		return []
+
+	project_names = [row.project for row in rows]
+
+	# BUG CORRIGÉ (demande explicite) : un seul avis ("le plus récent") était
+	# rattaché à l'AGENCE entière, alors qu'`AgencyReview` est déjà scopé par
+	# projet (cf. `review.submit_agency_review`) — impossible de laisser un
+	# avis distinct par projet Terminé avec la même agence. Indexé par projet
+	# ci-dessous pour que chaque entrée de `projects[]` porte SON PROPRE avis.
+	given_reviews = frappe.get_all(
+		"AgencyReview",
+		filters={"client": claims["sub"], "project": ["in", project_names]},
+		fields=["project", "rating", "comment"],
+	)
+	given_review_by_project = {r.project: r for r in given_reviews}
+
+	# AJOUTÉ : avis REÇUS de l'agence sur le client (`ClientReview`, cf.
+	# `opportunity.review_client`) — jamais interrogé ici jusqu'ici, "Note
+	# reçue" restait donc toujours à 0 côté frontend quel que soit l'avis
+	# réellement laissé par l'agence.
+	# BUG CORRIGÉ : `ClientReview.client` stocke le NOM du ClientProfile
+	# (`project.client`, cf. `opportunity.review_client`), pas l'email de
+	# session — contrairement à `AgencyReview.client` qui stocke bien
+	# `claims["sub"]`. Filtrer sur `claims["sub"]` ici ne matchait donc
+	# jamais aucun ClientReview réel, quel que soit l'avis laissé par
+	# l'agence : "Note reçue" restait à 0 même avec des avis existants.
+	received_reviews = frappe.get_all(
+		"ClientReview",
+		filters={"client": client_name, "project": ["in", project_names]},
+		fields=["project", "rating", "comment"],
+	)
+	received_review_by_project = {r.project: r for r in received_reviews}
 
 	by_agency = {}
 	for row in rows:
@@ -125,29 +158,47 @@ def list_collaborations():
 			"agency_name": frappe.db.get_value("AgencyProfile", row.agency, "agency_name"),
 			"projects": [],
 		})
+		received = received_review_by_project.get(row.project)
 		entry["projects"].append({
 			"project": row.project,
 			"title": row.title,
 			"budget_min": row.budget_min,
 			"budget_max": row.budget_max,
+			"start_date": row.start_date,
+			"expected_end_date": row.expected_end_date,
 			"period": f"{row.start_date} → {row.expected_end_date}",
+			"review": given_review_by_project.get(row.project),
+			"rating_received": received.rating if received else None,
 		})
 
-	# AJOUTÉ : la page Collaborations (onglets "Avis publiés"/"Avis à publier")
-	# n'avait aucun moyen de savoir si le client avait déjà noté cette agence —
-	# `AgencyReview` n'était jamais interrogé ici, donc `publicReview` côté
-	# frontend (mapCollaboration) retombait toujours sur "" et le compteur
-	# "Avis publiés" restait bloqué à 0 quel que soit l'avis réellement envoyé.
+	# BUG CORRIGÉ : "Projets terminés"/"Période"/"Budget" (résumé par agence,
+	# cf. client.collaborations.tsx) n'étaient jamais renvoyés au niveau
+	# agence — seulement imbriqués par projet — ces colonnes restaient donc
+	# toujours vides côté UI quel que soit le nombre réel de projets.
 	for entry in by_agency.values():
-		project_ids = [p["project"] for p in entry["projects"]]
-		existing_reviews = frappe.get_all(
-			"AgencyReview",
-			filters={"client": claims["sub"], "agency": entry["agency"], "project": ["in", project_ids]},
-			fields=["rating", "comment", "project"],
-			order_by="creation desc",
-			limit_page_length=1,
+		projects = entry["projects"]
+		entry["finished_projects_count"] = len(projects)
+
+		start_dates = [p["start_date"] for p in projects if p["start_date"]]
+		end_dates = [p["expected_end_date"] for p in projects if p["expected_end_date"]]
+		entry["period"] = (
+			f"{min(start_dates)} → {max(end_dates)}" if start_dates and end_dates else ""
 		)
-		entry["review"] = existing_reviews[0] if existing_reviews else None
+
+		budgets = [
+			p["budget_max"] or p["budget_min"] for p in projects if p["budget_max"] or p["budget_min"]
+		]
+		entry["budget"] = sum(budgets) if budgets else None
+
+		received_ratings = [p["rating_received"] for p in projects if p["rating_received"] is not None]
+		entry["rating_received"] = (
+			round(sum(received_ratings) / len(received_ratings), 1) if received_ratings else None
+		)
+
+		# Avis DONNÉ le plus récent, pour le résumé de ligne (rétro-compat) —
+		# le détail par projet reste dans `projects[].review`.
+		given = [p["review"] for p in projects if p["review"]]
+		entry["review"] = given[0] if given else None
 
 	return list(by_agency.values())
 
@@ -245,11 +296,56 @@ def get_dashboard():
 	return {
 		"trust_score": profile.trust_score,
 		"projects_published_count": profile.projects_published_count,
-		"response_rate": profile.response_rate,
+		"response_rate": _agency_acceptance_rate(client_name),
 		"active_projects_count": active_projects_count,
 		"collaborations_count": len(list_collaborations()),
 		"recent_projects": recent_projects,
 	}
+
+
+# Fenêtre glissante + échantillon minimal (demande explicite) : sur un
+# faible nombre d'Opportunity, un pourcentage saute mécaniquement à 0%/100%
+# (une seule donnée ne peut pas produire de valeur intermédiaire) — pas un
+# bug, mais trompeur tant que l'échantillon est trop petit pour être
+# représentatif. En dessous du seuil, `None` (affiché "—" côté frontend,
+# cf. `client.tableau-de-bord.tsx`) plutôt qu'un chiffre non significatif.
+RESPONSE_RATE_WINDOW_DAYS = 90
+RESPONSE_RATE_MIN_SAMPLE = 5
+
+
+def _agency_acceptance_rate(client_name):
+	"""« Taux de réponse » du tableau de bord client (demande explicite) :
+	parmi les agences ayant reçu un de ses projets postulés (`Opportunity`,
+	un par agence contactée/shortlistée) au cours des `RESPONSE_RATE_WINDOW_DAYS`
+	derniers jours, quelle proportion a accepté l'offre plutôt que de rester
+	sans réponse ("Reçue") ou de la refuser ("Archivée") ? BUG CORRIGÉ :
+	`ClientProfile.response_rate` était un champ stocké jamais écrit nulle
+	part (aucun hook, aucune tâche planifiée) — toujours 0 par défaut.
+	Calculé ici à la volée plutôt que via un compteur stocké, pour éviter de
+	reproduire le bug de `projects_published_count` (compteur figé si le
+	hook qui l'incrémente ne se déclenche jamais) — et donc naturellement
+	glissant : un ancien événement isolé ne domine jamais indéfiniment le
+	résultat, seule l'activité récente compte.
+	"""
+	project_names = frappe.get_all("Project", {"client": client_name}, pluck="name")
+	if not project_names:
+		return None
+	since = frappe.utils.add_days(frappe.utils.now_datetime(), -RESPONSE_RATE_WINDOW_DAYS)
+	total = frappe.db.count(
+		"Opportunity",
+		{"project": ["in", project_names], "creation": [">=", since]},
+	)
+	if total < RESPONSE_RATE_MIN_SAMPLE:
+		return None
+	accepted = frappe.db.count(
+		"Opportunity",
+		{
+			"project": ["in", project_names],
+			"creation": [">=", since],
+			"status": ["not in", ["Reçue", "Archivée"]],
+		},
+	)
+	return round(100 * accepted / total, 1)
 
 
 @frappe.whitelist()

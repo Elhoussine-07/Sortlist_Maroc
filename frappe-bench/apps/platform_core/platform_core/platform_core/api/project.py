@@ -29,7 +29,7 @@ DISPUTE_STATUS_LABELS = {
 
 BRIEF_FIELDS = [
 	"need_type", "category", "sub_category", "budget_min", "budget_max",
-	"location", "delivery_delay_days", "description", "title",
+	"location", "delivery_delay_days", "description", "title", "cover_image",
 ]
 
 
@@ -147,7 +147,7 @@ def my_projects(status=None):
 		filters=filters,
 		fields=["name", "title", "description", "status", "rejection_substatus", "need_type",
 		        "channel", "category", "sub_category", "location", "budget_min", "budget_max",
-		        "expected_end_date", "creation"],
+		        "expected_end_date", "cover_image", "creation"],
 		order_by="creation desc",
 	)
 	for row in rows:
@@ -156,6 +156,46 @@ def my_projects(status=None):
 			if row["category"]
 			else None
 		)
+		# BUG CORRIGÉ : contrairement à `get_project()` (page détail), cette
+		# liste ne renvoyait jamais l'agence liée au projet — la colonne
+		# "Agence" restait vide même pour un projet En cours/En pause.
+		agency = _linked_agency(row["name"])
+		row["agency"] = agency
+		row["partner_agency_name"] = (
+			frappe.db.get_value("AgencyProfile", agency, "agency_name") if agency else None
+		)
+
+		# AJOUTÉ (demande explicite) : depuis que recompute_project_status()
+		# ne rejette plus automatiquement un projet quand toutes les agences
+		# contactées refusent (cf. opportunity.py — il reste "Postulé" pour
+		# rester visible dans "Disponibles"), le client doit néanmoins
+		# pouvoir voir dans "Mes projets" QUI a refusé. Remonte la dernière
+		# agence ayant décliné (refus direct de l'opportunité ou refus d'un
+		# devis envoyé — "Refus client" dans les deux cas, cf.
+		# proposal.py::_handle_refusal), uniquement quand aucune agence n'a
+		# encore gagné — sinon `partner_agency_name` ci-dessus prime déjà.
+		if not agency:
+			declined = frappe.get_all(
+				"Opportunity",
+				filters={
+					"project": row["name"],
+					"status": "Archivée",
+					"archive_reason": ["in", ["Refus agence", "Refus client"]],
+				},
+				fields=["agency"],
+				order_by="modified desc",
+				limit=1,
+			)
+			declined_agency = declined[0].agency if declined else None
+			row["declined_by_agency"] = declined_agency
+			row["declined_by_agency_name"] = (
+				frappe.db.get_value("AgencyProfile", declined_agency, "agency_name")
+				if declined_agency
+				else None
+			)
+		else:
+			row["declined_by_agency"] = None
+			row["declined_by_agency_name"] = None
 	return rows
 
 
@@ -360,8 +400,8 @@ def get_pending_proposals(project=None):
 def download_cdc(project=None):
 	"""Pendant client de `opportunity.download_cdc` (côté agence) : sert
 	directement le contenu du PDF du CDC (`Project.cdc_file`, cf.
-	`cdc.py::generate_cdc`) plutôt que l'URL Frappe `/private/files/...` —
-	cette route native ignore le JWT Bearer de cette installation (elle
+	`cdc.py::generate_cdc`) plutôt que l'URL Frappe `/private/files/...`
+	— cette route native ignore le JWT Bearer de cette installation (elle
 	attend une session cookie classique) et renvoie donc un 403 même pour
 	le client propriétaire du projet."""
 	project = require_body_arg(project, "project", _("Projet manquant"))
@@ -403,10 +443,16 @@ def download_devis(proposal=None):
 
 
 @frappe.whitelist()
-def respond_to_quote(proposal=None, decision=None):
-	"""Étape 4 (cf. 1.3.3) : le client Accepte ou Refuse le devis reçu."""
+def respond_to_quote(proposal=None, decision=None, message=None):
+	"""Étape 4 (cf. 1.3.3) : le client Accepte ou Refuse le devis reçu.
+
+	AJOUTÉ (demande explicite, négociation) : `message` optionnel joint à un
+	refus — motif ou contre-proposition transmis à l'agence, cf.
+	Proposal.refuse()/_handle_refusal(). Un refus n'archive plus la relation
+	(l'agence peut renvoyer un devis ajusté)."""
 	proposal = require_body_arg(proposal, "proposal", _("Devis manquant"))
 	decision = require_body_arg(decision, "decision", _("Décision manquante"))
+	message = get_body_arg("message", message)
 	claims = require_user_type("client")
 	doc = frappe.get_doc("Proposal", proposal)
 	project = frappe.get_doc("Project", doc.project)
@@ -415,7 +461,7 @@ def respond_to_quote(proposal=None, decision=None):
 	if decision == "accept":
 		return doc.accept().as_dict()
 	elif decision == "refuse":
-		return doc.refuse().as_dict()
+		return doc.refuse(message=message).as_dict()
 	frappe.throw(_("Décision invalide : accept ou refuse attendu"))
 
 
@@ -597,6 +643,32 @@ def signal_ready(project=None):
 		{"project": project, "category": "Suspension amiable", "status": "Validated"},
 	)
 	if not ready:
+		# AJOUTÉ (demande explicite) : message différencié selon la vraie cause
+		# de la suspension plutôt qu'un message générique qui ne dit pas à
+		# l'agence quoi faire concrètement. "Non-paiement" est inséré
+		# directement en status="Validated" (règle automatique, cf.
+		# ProjectSuspension.suspend_for_unpaid_invoice) — le distinguer par
+		# catégorie AVANT de regarder le statut, sinon il serait confondu avec
+		# une « Suspension amiable » déjà validée.
+		latest_suspension = frappe.get_all(
+			"ProjectSuspension",
+			filters={"project": project},
+			fields=["category", "status"],
+			order_by="creation desc",
+			limit_page_length=1,
+		)
+		category = latest_suspension[0].category if latest_suspension else None
+		if category == "Non-paiement":
+			frappe.throw(
+				_("Ce projet est suspendu pour facture de commission impayée. "
+				  "Réglez la facture de commission (1% du projet, due à la plateforme) "
+				  "pour que le projet reprenne automatiquement.")
+			)
+		if category == "Litige":
+			frappe.throw(
+				_("Ce projet est suspendu suite à un litige : la reprise n'est possible qu'après "
+				  "la décision du modérateur.")
+			)
 		frappe.throw(
 			_("Ce projet n'est pas dans un état permettant de signaler que vous êtes prêt")
 		)

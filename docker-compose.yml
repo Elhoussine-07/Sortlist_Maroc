@@ -10,6 +10,15 @@ volumes:
   frappe-sites:
 
 services:
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"   # SMTP port
+      - "8025:8025"   # Web interface
+    restart: unless-stopped
+    networks: [ platform-net ]
   # ---------------------------------------------------------------------
   # Infrastructure
   # ---------------------------------------------------------------------
@@ -230,7 +239,15 @@ services:
       FRAPPE_URL_LOCAL: ${FRAPPE_URL_LOCAL:-http://host.docker.internal:8000}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      # Optionnel — laisser SMTP_HOST vide garde l'envoi d'email de
+      # prospection simulé (emailSender.js, provider:"stub"), même
+      # convention que notifications-service.
+      SMTP_HOST: smtp.sendgrid.net
+      SMTP_PORT: 587
+      SMTP_SECURE: "false"
+      SMTP_USER: apikey
+      SMTP_PASSWORD: "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"
+      SMTP_FROM: lahoussine.elhossni@edu.uiz.ac.ma
     ports:
       - "8084:8084"
     healthcheck:

@@ -68,6 +68,7 @@ function mergeLeadsByClientIdentity(rows) {
         existing.client_name = existing.client_name || row.client_name;
         existing.company_name = existing.company_name || row.company_name;
         existing.company_domain = existing.company_domain || row.company_domain;
+        existing.location = existing.location || row.location;
         existing.visitor_ip = existing.visitor_ip || row.visitor_ip;
         for (const action of row.actions || []) {
             if (!existing.actions.includes(action)) existing.actions.push(action);
@@ -89,6 +90,48 @@ function mergeLeadsByClientIdentity(rows) {
  * differs from the blanket "JWT requis, user_type=agency" row in
  * docs/INTEGRATION.md §5 for /api/prospection/**.
  */
+/**
+ * POST /api/prospection/visit
+ *
+ * AJOUTÉ (demande explicite) : compte une VRAIE visite du profil (un
+ * chargement de page), découplé du scoring. Avant ce correctif,
+ * `leads.visit_count` était incrémenté à CHAQUE appel `/track` — donc une
+ * fois par onglet cliqué, pas une fois par visite (2-3 clics sur une même
+ * visite gonflaient artificiellement le compteur à "×3 visites"). Cet
+ * endpoint ne touche à AUCUN score/action — juste `visit_count`,
+ * `first_seen_at`/`last_seen_at` et l'identité du visiteur si connu.
+ * Appelé une seule fois au chargement du profil public (cf.
+ * `agences_.$id.tsx`), jamais à chaque changement d'onglet.
+ */
+router.post(
+    "/visit",
+    asyncHandler(async (req, res) => {
+        const body = req.body || {};
+        const { agency, session_id: sessionId, client_email: clientEmail, client_name: clientName } = body;
+
+        if (!agency || typeof agency !== "string") {
+            return res.status(400).json({ error: "agency is required" });
+        }
+        if (!sessionId || typeof sessionId !== "string") {
+            return res.status(400).json({ error: "session_id is required" });
+        }
+
+        await db.query(
+            `insert into leads
+             (agency, session_id, client_email, client_name, visit_count, first_seen_at, last_seen_at)
+             values ($1,$2,$3,$4,1, now(), now())
+                 on conflict (agency, session_id) do update set
+                client_email = coalesce(excluded.client_email, leads.client_email),
+                                                         client_name = coalesce(excluded.client_name, leads.client_name),
+                                                         visit_count = leads.visit_count + 1,
+                                                         last_seen_at = now()`,
+            [agency, sessionId, clientEmail || null, clientName || null]
+        );
+
+        return res.json({ recorded: true });
+    })
+);
+
 router.post(
     "/track",
     asyncHandler(async (req, res) => {
@@ -128,8 +171,8 @@ router.post(
 
         const priorSumResult = await db.query(
             `select coalesce(sum(points), 0)::int as total
-       from visits
-       where agency = $1 and session_id = $2 and created_at >= now() - ($3 || ' days')::interval`,
+             from visits
+             where agency = $1 and session_id = $2 and created_at >= now() - ($3 || ' days')::interval`,
             [agency, sessionId, windowDays]
         );
         const priorSum = priorSumResult.rows[0]?.total || 0;
@@ -141,22 +184,31 @@ router.post(
         const rawScore = priorSum + totalPoints;
         const cumulativeScore = Math.min(rawScore, 100);
 
-        const classification = await scoreCalculator.classify(rawScore, canonicalAction);
+        const classification = await scoreCalculator.classify(rawScore);
 
         const companyName = body.company_name || resolution.company_name;
         const companyDomain = body.company_domain || resolution.company_domain;
+        // AJOUTÉ (demande explicite) : ipDetector.resolveCompany() calculait déjà
+        // ville/pays (resolution.raw) mais ne les persistait jamais — /leads ne
+        // sélectionnait donc aucun champ de localisation, d'où "Non spécifiée"
+        // systématique côté UI. `resolution.raw` est absent pour une IP privée/
+        // réservée ou un échec de résolution (cf. ipDetector.js::mockResolution).
+        const visitorLocation = resolution.raw
+            ? [resolution.raw.city, resolution.raw.country].filter(Boolean).join(", ") || null
+            : null;
 
         await db.query(
             `insert into visits
-        (agency, visitor_ip, company_name, company_domain, session_id, client_email, action,
-         base_points, bonus_points, points, duration_seconds, item_count,
-         cumulative_score, classification, ip_resolution_provider)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+             (agency, visitor_ip, company_name, company_domain, visitor_location, session_id, client_email, action,
+              base_points, bonus_points, points, duration_seconds, item_count,
+              cumulative_score, classification, ip_resolution_provider)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
             [
                 agency,
                 ip,
                 companyName,
                 companyDomain,
+                visitorLocation,
                 sessionId,
                 clientEmail || null,
                 canonicalAction,
@@ -173,29 +225,34 @@ router.post(
 
         await db.query(
             `insert into leads
-        (agency, session_id, visitor_ip, company_name, company_domain, client_email, client_name,
-         cumulative_score, classification, last_action, visit_count, first_seen_at, last_seen_at)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,1, now(), now())
-       on conflict (agency, session_id) do update set
-         visitor_ip = excluded.visitor_ip,
-         company_name = coalesce(excluded.company_name, leads.company_name),
-         company_domain = coalesce(excluded.company_domain, leads.company_domain),
-         -- Une fois un visiteur identifié (connecté), on garde son identité
-         -- même si une visite ultérieure du même navigateur redevient
-         -- anonyme (ex: déconnexion) — ne jamais "désidentifier" un lead.
-         client_email = coalesce(excluded.client_email, leads.client_email),
-         client_name = coalesce(excluded.client_name, leads.client_name),
-         cumulative_score = excluded.cumulative_score,
-         classification = excluded.classification,
-         last_action = excluded.last_action,
-         visit_count = leads.visit_count + 1,
-         last_seen_at = now()`,
+             (agency, session_id, visitor_ip, company_name, company_domain, visitor_location, client_email, client_name,
+              cumulative_score, classification, last_action, visit_count, first_seen_at, last_seen_at)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,1, now(), now())
+                 on conflict (agency, session_id) do update set
+                visitor_ip = excluded.visitor_ip,
+                                                         company_name = coalesce(excluded.company_name, leads.company_name),
+                                                         company_domain = coalesce(excluded.company_domain, leads.company_domain),
+                                                         visitor_location = coalesce(excluded.visitor_location, leads.visitor_location),
+                                                         -- Une fois un visiteur identifié (connecté), on garde son identité
+                                                         -- même si une visite ultérieure du même navigateur redevient
+                                                         -- anonyme (ex: déconnexion) — ne jamais "désidentifier" un lead.
+                                                         client_email = coalesce(excluded.client_email, leads.client_email),
+                                                         client_name = coalesce(excluded.client_name, leads.client_name),
+                                                         cumulative_score = excluded.cumulative_score,
+                                                         classification = excluded.classification,
+                                                         last_action = excluded.last_action,
+                                                         -- BUG CORRIGE (demande explicite) : visit_count n'est plus
+                                                         -- incremente ici -- chaque appel /track correspond a une action
+                                                         -- (un onglet clique), pas a une visite. Seul POST /visit (une
+                                                         -- fois par chargement de page) incremente ce compteur desormais.
+                                                         last_seen_at = now()`,
             [
                 agency,
                 sessionId,
                 ip,
                 companyName,
                 companyDomain,
+                visitorLocation,
                 clientEmail || null,
                 clientName || null,
                 cumulativeScore,
@@ -271,17 +328,35 @@ router.get(
         // restait donc toujours vide quel que soit le nombre réel de pages
         // consultées par le visiteur. Agrégation des actions distinctes
         // réellement enregistrées dans `visits` pour ce (agency, session_id).
+        //
+        // BUG CORRIGÉ (demande explicite) : cette agrégation remontait TOUT
+        // l'historique de `visits` depuis toujours, sans aucune limite de temps
+        // — incohérent avec `cumulative_score`, qui lui est calculé uniquement
+        // sur la fenêtre glissante `window_days` (cf. `/track` et
+        // scoreCalculator.getWindowDays()). Un visiteur ayant consulté 2 onglets
+        // aujourd'hui pouvait donc voir s'afficher des signaux vieux de
+        // plusieurs semaines/mois (tests précédents, anciens comportements),
+        // le score et les "signaux détectés" affichés étant construits sur deux
+        // périmètres temporels différents. Même fenêtre appliquée aux deux
+        // désormais : les actions plus vieilles que `window_days` sortent
+        // naturellement de l'affichage, sans purge manuelle de la base.
+        const windowDays = await scoreCalculator.getWindowDays();
+        params.push(windowDays);
+        const windowParamIndex = params.length;
+
         const result = await db.query(
             `select l.id, l.agency, l.session_id, l.visitor_ip, l.company_name, l.company_domain,
+                    l.visitor_location as location,
                     l.client_email, l.client_name,
                     l.cumulative_score, l.classification, l.last_action, l.visit_count,
                     l.first_seen_at, l.last_seen_at,
                     coalesce(
                             (select array_agg(distinct v.action order by v.action)
                              from visits v
-                             where v.agency = l.agency and v.session_id = l.session_id),
-                            array[]::text[]
-                    ) as actions
+                             where v.agency = l.agency and v.session_id = l.session_id
+                               and v.created_at >= now() - ($${windowParamIndex} || ' days')::interval),
+                array[]::text[]
+              ) as actions
              from leads l
              where ${clauses.join(" and ")}
              order by l.last_seen_at desc
@@ -321,10 +396,10 @@ router.get(
 
         const visitsResult = await db.query(
             `select action, duration_seconds, item_count, points, created_at
-       from visits
-       where agency = $1 and session_id = $2
-       order by created_at desc
-       limit 200`,
+             from visits
+             where agency = $1 and session_id = $2
+             order by created_at desc
+                 limit 200`,
             [lead.agency, lead.session_id]
         );
 
@@ -356,9 +431,9 @@ router.post(
 
         await db.query(
             `update leads set last_email_subject = $1, last_email_body = $2,
-         last_email_provider = $3, last_email_generated_at = now(),
-         last_email_status = 'Draft'
-       where id = $4`,
+                              last_email_provider = $3, last_email_generated_at = now(),
+                              last_email_status = 'Draft'
+             where id = $4`,
             [draft.subject, draft.body, draft.provider, lead.id]
         );
 
@@ -366,16 +441,45 @@ router.post(
     })
 );
 
+const EMAIL_SHAPE_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * AJOUTÉ (demande explicite, point 2) : seule `lead.client_email` (visiteur
+ * identifié — connecté en tant que client au moment du tracking) est une
+ * adresse email vérifiable. `company_domain`/`company_name` (deviné par
+ * détection IP, cf. ipDetector.js) ne sont PAS des adresses email — les
+ * utiliser comme destinataire (comportement précédent) produisait un envoi
+ * qui semblait réussir mais ne pouvait jamais atteindre personne.
+ *
+ * Point d'extension pour une future recherche d'email professionnel (ex.
+ * Hunter.io/Clearbit à partir de `company_domain`) pour les leads détectés
+ * uniquement par IP : brancher cette résolution ICI, en gardant le contrat
+ * `{ email: string|null, source: string }` pour que l'appelant sache d'où
+ * vient l'adresse trouvée.
+ */
+function resolveRecipientEmail(lead) {
+    if (lead.client_email && EMAIL_SHAPE_RE.test(lead.client_email)) {
+        return { email: lead.client_email, source: "client_email" };
+    }
+    return { email: null, source: null };
+}
+
 /**
  * POST /api/prospection/leads/:id/send-email
  *
  * Sends the outreach email to a lead. Accepts an explicit `{subject, body}`
  * in the request body; if omitted, reuses the last draft generated via
  * POST /leads/:id/generate-email (lead.last_email_subject/last_email_body).
- * Mirrors generate-email's response shape (an explicit `provider`) so
- * callers can tell a real send apart from a simulated one — see
- * services/emailSender.js for why this is always `"stub"` in this
- * iteration (no SMTP transport configured, docs/INTEGRATION.md §9).
+ *
+ * AJOUTÉ (demande explicite) :
+ * - 422 si aucune adresse email vérifiable n'est disponible pour ce lead
+ *   (cf. resolveRecipientEmail) — plutôt que d'envoyer silencieusement vers
+ *   un nom de domaine/société qui n'a jamais reçu quoi que ce soit.
+ * - `last_email_status` ne passe à 'Sent' QUE si le transport SMTP a
+ *   réellement confirmé l'envoi (`emailSender.sendEmail` -> `sent: true`,
+ *   cf. services/emailSender.js) ; sinon 'Failed', jamais 'Sent' pour un
+ *   envoi simulé ou en échec (point 4 — l'UI agence ne doit plus jamais
+ *   afficher "envoyé" pour quelque chose qui ne l'a pas été).
  */
 router.post(
     "/leads/:id/send-email",
@@ -406,43 +510,54 @@ router.post(
             });
         }
 
-        // Destinataire réel si le lead a été identifié (visiteur connecté en
-        // tant que client au moment du tracking, cf. leads.client_email) —
-        // repli sur le domaine/nom d'entreprise deviné par IP sinon (toujours
-        // "informationnel uniquement", cf. emailSender.js : aucun envoi SMTP
-        // réel n'est câblé dans cette itération quel que soit le destinataire).
-        const result = await emailSender.sendEmail({
-            to: lead.client_email || lead.company_domain || lead.company_name,
-            subject,
-            body,
-        });
+        const recipient = resolveRecipientEmail(lead);
+        if (!recipient.email) {
+            return res.status(422).json({
+                error:
+                    "Ce lead n'a pas d'adresse email vérifiée (visiteur non identifié — détection IP " +
+                    "uniquement) : impossible d'envoyer un email réel. Le brouillon reste disponible " +
+                    "(last_email_subject/last_email_body) pour un contact manuel.",
+                sent: false,
+                lead_id: lead.id,
+            });
+        }
+
+        let result;
+        let status = "Failed";
+        try {
+            result = await emailSender.sendEmail({ to: recipient.email, subject, body });
+            status = result.sent ? "Sent" : "Failed";
+        } catch (err) {
+            logger.warn("emailSender.sendEmail threw — marking send as Failed", {
+                error: err.message,
+                leadId: lead.id,
+            });
+            result = { provider: "smtp", sent: false, sent_on: new Date().toISOString(), note: err.message };
+        }
 
         await db.query(
             `update leads set last_email_subject = $1, last_email_body = $2,
-         last_email_status = 'Sent', last_email_sent_at = $3
-       where id = $4`,
-            [subject, body, result.sent_on, lead.id]
+                              last_email_status = $3, last_email_sent_at = case when $3 = 'Sent' then $4 else last_email_sent_at end
+             where id = $5`,
+            [subject, body, status, result.sent_on, lead.id],
         );
 
-        // Le "vrai" canal de contact n'est pas l'e-mail simulé ci-dessus (aucun
-        // SMTP configuré, cf. emailSender.js) mais une notification IN-APP
-        // Frappe pour le client identifié — c'est ce qui lui permet de savoir
-        // qu'une agence s'intéresse à lui, de voir son profil et de l'ajouter
-        // en favori. Best-effort : un lead non identifié (pas de client_email)
-        // ou un échec réseau ne doit jamais faire échouer l'envoi lui-même.
-        if (lead.client_email) {
-            frappeClient
-                .notifyClientInterest({ client_email: lead.client_email, agency: lead.agency })
-                .catch((err) => {
-                    logger.warn("notify_client_interest failed (non-fatal)", {
-                        error: err.message,
-                        leadId: lead.id,
-                    });
+        // Notification IN-APP + EMAIL réelle (frappe.sendmail, cf. notify.py) au
+        // client identifié — reprend désormais le contenu réel envoyé (subject/
+        // body) au lieu d'un texte générique déconnecté (point 3). Best-effort :
+        // un échec réseau ne doit jamais faire échouer la réponse de cet
+        // endpoint, dont le statut reflète déjà fidèlement l'envoi SMTP.
+        frappeClient
+            .notifyClientInterest({ client_email: recipient.email, agency: lead.agency, subject, body })
+            .catch((err) => {
+                logger.warn("notify_client_interest failed (non-fatal)", {
+                    error: err.message,
+                    leadId: lead.id,
                 });
-        }
+            });
 
         return res.json({
-            sent: true,
+            sent: result.sent,
             sent_on: result.sent_on,
             provider: result.provider,
             note: result.note,
@@ -482,7 +597,7 @@ router.get(
 
         const result = await db.query(
             `select id, agency, name, channels, target_lead_ids, status, created_at, updated_at
-       from campaigns where ${clauses.join(" and ")} order by created_at desc`,
+             from campaigns where ${clauses.join(" and ")} order by created_at desc`,
             params
         );
         return res.json({ campaigns: result.rows });
@@ -504,8 +619,8 @@ router.post(
 
         const result = await db.query(
             `insert into campaigns (agency, name, channels, target_lead_ids, status)
-       values ($1, $2, $3::jsonb, $4::jsonb, coalesce($5, 'Draft'))
-       returning id, agency, name, channels, target_lead_ids, status, created_at, updated_at`,
+             values ($1, $2, $3::jsonb, $4::jsonb, coalesce($5, 'Draft'))
+                 returning id, agency, name, channels, target_lead_ids, status, created_at, updated_at`,
             [agencyId, name, JSON.stringify(channels || []), JSON.stringify(targetLeadIds || []), status || null]
         );
 

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, ChevronDown, Search, Star, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -9,20 +9,21 @@ import { TableSkeleton } from "@/components/common/Skeletons";
 import { FilterSelect, ListPagination } from "@/components/common/ListControls";
 import { ActionModal } from "@/components/common/ActionModal";
 import { TextAreaField } from "@/components/common/Blocks";
-import type { Collaboration } from "@/lib/types";
+import type { Collaboration, CollaborationProjectReview } from "@/lib/types";
 import { getCollaborations, submitCollaborationReview } from "@/services/collaborations.service";
 import { ApiError } from "@/services/http";
 
+/** Écran Collaborations (espace Client) — agences avec projets terminés. */
 export const Route = createFileRoute("/_authenticated/client/collaborations")({
   head: () => ({
     meta: [
-      { title: "Collaborations — Sortlist" },
+      { title: "Collaborations — Sortlist Pro" },
       {
         name: "description",
         content:
           "Retrouvez les agences avec lesquelles vous avez des projets terminés, filtrez par période, note et budget.",
       },
-      { property: "og:title", content: "Collaborations — Sortlist" },
+      { property: "og:title", content: "Collaborations — Sortlist Pro" },
       {
         property: "og:description",
         content: "Agences avec lesquelles vous avez des projets terminés.",
@@ -40,9 +41,32 @@ const RATING_TABS = [
 
 const PAGE_SIZE = 20;
 
+/** AJOUTÉ (demande explicite) : filtres "Agence"/"Période"/"Note reçue" —
+ * jusqu'ici rendus volontairement inertes (cf. `FilterSelect`, "mieux vaut
+ * un contrôle honnêtement indisponible qu'un faux succès") faute de données
+ * exposées pour les alimenter. Les dates brutes par projet et la note
+ * agrégée existent désormais côté backend/mapping — filtrage 100% côté
+ * client, dans le même esprit que la recherche et les onglets ci-dessus. */
+const PERIOD_OPTIONS: Array<{ value: string; label: string; days: number }> = [
+  { value: "7d", label: "7 derniers jours", days: 7 },
+  { value: "30d", label: "30 derniers jours", days: 30 },
+  { value: "90d", label: "90 derniers jours", days: 90 },
+];
+
+const RATING_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "5", label: "5 étoiles" },
+  { value: "4", label: "4 étoiles et +" },
+  { value: "3", label: "3 étoiles et +" },
+  { value: "2", label: "2 étoiles et +" },
+  { value: "1", label: "1 étoile et +" },
+];
+
 function ClientCollaborationsPage() {
   const queryClient = useQueryClient();
 
+  // Le backend (`client.list_collaborations`) ne filtre/trie/pagine pas —
+  // on récupère la liste complète une fois, puis recherche/onglets/tri sont
+  // appliqués côté client (voir `collaborations.service.ts::getCollaborations`).
   const collaborationsQuery = useQuery({
     queryKey: ["client", "collaborations"],
     queryFn: () => getCollaborations(),
@@ -56,9 +80,27 @@ function ClientCollaborationsPage() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [page, setPage] = useState(1);
+  const [agencyFilter, setAgencyFilter] = useState("");
+  const [periodFilter, setPeriodFilter] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("");
+
+  // Une ligne = une agence déjà unique (cf. client.list_collaborations,
+  // groupé par agence) : pas besoin de dédupliquer.
+  const agencyOptions = useMemo(
+    () => allCollaborations.map((c) => ({ value: c.id, label: c.agencyName })),
+    [allCollaborations],
+  );
+
+  // BUG CORRIGÉ (demande explicite) : "reviewed"/"pending" se basaient sur
+  // UN SEUL avis par agence, alors qu'une agence peut avoir plusieurs
+  // projets Terminés nécessitant chacun leur propre avis — une collaboration
+  // ne compte désormais comme "avis publié" que si TOUS ses projets ont un
+  // avis (cf. `collaboration.projects[].reviewed`).
+  const isFullyReviewed = (collaboration: Collaboration) =>
+    collaboration.projects.length > 0 && collaboration.projects.every((p) => p.reviewed);
 
   const counts = useMemo<Record<string, number>>(() => {
-    const reviewed = allCollaborations.filter((c) => c.publicReview.length > 0).length;
+    const reviewed = allCollaborations.filter(isFullyReviewed).length;
     return {
       all: allCollaborations.length,
       reviewed,
@@ -68,17 +110,29 @@ function ClientCollaborationsPage() {
 
   const filteredCollaborations = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
+    const periodDays = PERIOD_OPTIONS.find((option) => option.value === periodFilter)?.days;
+    const periodCutoff = periodDays ? Date.now() - periodDays * 24 * 60 * 60 * 1000 : null;
+    const minRating = ratingFilter ? Number(ratingFilter) : null;
+
     return allCollaborations.filter((collaboration) => {
       const matchesTab =
         activeTab === "all" ||
-        (activeTab === "reviewed" && collaboration.publicReview.length > 0) ||
-        (activeTab === "pending" && collaboration.publicReview.length === 0);
+        (activeTab === "reviewed" && isFullyReviewed(collaboration)) ||
+        (activeTab === "pending" && !isFullyReviewed(collaboration));
       const matchesQuery =
         normalizedQuery.length === 0 ||
-        collaboration.agencyName.toLowerCase().includes(normalizedQuery);
-      return matchesTab && matchesQuery;
+        collaboration.agencyName.toLowerCase().includes(normalizedQuery) ||
+        collaboration.projects.some((p) => p.title.toLowerCase().includes(normalizedQuery));
+      const matchesAgency = !agencyFilter || collaboration.id === agencyFilter;
+      const matchesRating = minRating === null || collaboration.ratingReceived >= minRating;
+      const matchesPeriod =
+        periodCutoff === null ||
+        collaboration.projects.some(
+          (p) => p.endDate && new Date(p.endDate).getTime() >= periodCutoff,
+        );
+      return matchesTab && matchesQuery && matchesAgency && matchesRating && matchesPeriod;
     });
-  }, [allCollaborations, activeTab, query]);
+  }, [allCollaborations, activeTab, query, agencyFilter, periodFilter, ratingFilter]);
 
   const total = filteredCollaborations.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -88,7 +142,15 @@ function ClientCollaborationsPage() {
     currentPage * PAGE_SIZE,
   );
 
-  const [reviewTarget, setReviewTarget] = useState<Collaboration | null>(null);
+  // AJOUTÉ (demande explicite) : un avis par PROJET, pas par agence — quand
+  // une agence a plusieurs projets Terminés, l'action ouvre d'abord un choix
+  // de projet (`projectPickerTarget`) plutôt que de notifier directement le
+  // premier projet trouvé.
+  const [projectPickerTarget, setProjectPickerTarget] = useState<Collaboration | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{
+    collaboration: Collaboration;
+    project: CollaborationProjectReview;
+  } | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
 
@@ -108,10 +170,18 @@ function ClientCollaborationsPage() {
     },
   });
 
-  const openReviewModal = (collaboration: Collaboration) => {
-    setReviewTarget(collaboration);
-    setReviewRating(collaboration.yourRating || 5);
-    setReviewComment(collaboration.publicReview);
+  const openReviewModal = (collaboration: Collaboration, project: CollaborationProjectReview) => {
+    setProjectPickerTarget(null);
+    setReviewTarget({ collaboration, project });
+    setReviewRating(project.yourRating || 5);
+    setReviewComment(project.yourComment);
+  };
+
+  // AJOUTÉ (demande explicite) : toujours passer par la liste des projets
+  // (même s'il n'y en a qu'un seul) — c'est là qu'on peut accéder au détail
+  // du projet, pas seulement laisser un avis directement.
+  const openReviewFlow = (collaboration: Collaboration) => {
+    setProjectPickerTarget(collaboration);
   };
 
   return (
@@ -122,7 +192,7 @@ function ClientCollaborationsPage() {
           Agences avec lesquelles vous avez des projets terminés
         </p>
 
-        {}
+        {/* Recherche */}
         <div className="mt-7 flex items-center gap-3 rounded-md border border-border px-4 py-3">
           <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
           <input
@@ -134,7 +204,7 @@ function ClientCollaborationsPage() {
           />
         </div>
 
-        {}
+        {/* Onglets */}
         <div className="mt-6 flex flex-wrap items-center gap-2 border-b border-border pb-3">
           {RATING_TABS.map((tab) => (
             <button
@@ -159,17 +229,41 @@ function ClientCollaborationsPage() {
           ))}
         </div>
 
-        {}
+        {/* Filtres */}
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {}
-          <FilterSelect label="Agence" placeholder="Toutes les agences" />
-          {}
-          <FilterSelect label="Période" placeholder="Toutes les périodes" />
-          {}
-          <FilterSelect label="Note reçue" placeholder="Toutes les notes" />
+          <FilterSelect
+            label="Agence"
+            placeholder="Toutes les agences"
+            options={agencyOptions}
+            value={agencyFilter}
+            onChange={(value) => {
+              setAgencyFilter(value);
+              setPage(1);
+            }}
+          />
+          <FilterSelect
+            label="Période"
+            placeholder="Toutes les périodes"
+            options={PERIOD_OPTIONS}
+            value={periodFilter}
+            onChange={(value) => {
+              setPeriodFilter(value);
+              setPage(1);
+            }}
+          />
+          <FilterSelect
+            label="Note reçue"
+            placeholder="Toutes les notes"
+            options={RATING_OPTIONS}
+            value={ratingFilter}
+            onChange={(value) => {
+              setRatingFilter(value);
+              setPage(1);
+            }}
+          />
         </div>
 
-        {}
+        {/* Compteur + tri */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">{total} collaborations</p>
           <button
@@ -183,7 +277,7 @@ function ClientCollaborationsPage() {
           </button>
         </div>
 
-        {}
+        {/* Tableau */}
         <div className="mt-4 rounded-lg border border-border">
           <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-4 border-b border-border px-5 py-3 lg:grid">
             <p className="text-[13px] font-semibold">Agence</p>
@@ -208,7 +302,7 @@ function ClientCollaborationsPage() {
                 <li key={collaboration.id}>
                   <CollaborationRow
                     collaboration={collaboration}
-                    onReview={() => openReviewModal(collaboration)}
+                    onReview={() => openReviewFlow(collaboration)}
                   />
                 </li>
               ))}
@@ -219,18 +313,65 @@ function ClientCollaborationsPage() {
         <ListPagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
+      {/* Liste des projets Terminés de l'agence — un avis distinct est
+          possible pour chacun, et le titre du projet ouvre sa fiche détail
+          (demande explicite : accéder au projet, pas seulement le noter). */}
+      <ActionModal
+        open={projectPickerTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setProjectPickerTarget(null);
+        }}
+        title="Projets terminés"
+        description={projectPickerTarget ? `Agence : ${projectPickerTarget.agencyName}` : ""}
+        confirmLabel="Fermer"
+        singleAction
+        onConfirm={() => setProjectPickerTarget(null)}
+      >
+        <ul className="space-y-2">
+          {(projectPickerTarget?.projects ?? []).map((project) => (
+            <li
+              key={project.id}
+              className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5"
+            >
+              <Link
+                to="/client/mes-projets/$id"
+                params={{ id: project.id }}
+                onClick={() => setProjectPickerTarget(null)}
+                className="min-w-0 hover:underline"
+              >
+                <p className="truncate text-[13.5px] font-semibold">
+                  {project.title || project.id}
+                </p>
+                <p className="truncate text-[12.5px] text-muted-foreground">{project.period}</p>
+              </Link>
+              <button
+                type="button"
+                onClick={() => openReviewModal(projectPickerTarget!, project)}
+                className="shrink-0 rounded-md border border-border px-3 py-1.5 text-[12.5px] font-semibold transition-colors hover:bg-accent"
+              >
+                {project.reviewed ? "Voir l'avis" : "Laisser un avis"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </ActionModal>
+
       <ActionModal
         open={reviewTarget !== null}
         onOpenChange={(open) => {
           if (!open) setReviewTarget(null);
         }}
-        title={reviewTarget?.publicReview ? "Votre avis" : "Laisser un avis"}
-        description={reviewTarget ? `Agence : ${reviewTarget.agencyName}` : ""}
+        title={reviewTarget?.project.reviewed ? "Votre avis" : "Laisser un avis"}
+        description={
+          reviewTarget
+            ? `Agence : ${reviewTarget.collaboration.agencyName} — Projet : ${reviewTarget.project.title || reviewTarget.project.id}`
+            : ""
+        }
         confirmLabel={reviewMutation.isPending ? "Envoi…" : "Envoyer l'avis"}
         onConfirm={() => {
           if (!reviewTarget) return;
           reviewMutation.mutate({
-            id: reviewTarget.id,
+            id: reviewTarget.project.id,
             rating: reviewRating,
             publicReview: reviewComment,
           });
@@ -267,6 +408,17 @@ function ClientCollaborationsPage() {
       </ActionModal>
     </DashboardShell>
   );
+}
+
+function collaborationReviewLabel(collaboration: Collaboration): string {
+  const { projects } = collaboration;
+  if (projects.length <= 1) {
+    return projects[0]?.reviewed ? "Voir l'avis" : "Laisser un avis";
+  }
+  const reviewedCount = projects.filter((p) => p.reviewed).length;
+  if (reviewedCount === projects.length) return "Voir les avis";
+  if (reviewedCount === 0) return `Laisser un avis (${projects.length})`;
+  return `${reviewedCount}/${projects.length} avis laissés`;
 }
 
 function CollaborationRow({
@@ -313,7 +465,7 @@ function CollaborationRow({
           type="button"
           className="w-full rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent lg:w-auto"
         >
-          {collaboration.publicReview ? "Voir l'avis" : "Laisser un avis"}
+          {collaborationReviewLabel(collaboration)}
         </button>
       </div>
     </div>

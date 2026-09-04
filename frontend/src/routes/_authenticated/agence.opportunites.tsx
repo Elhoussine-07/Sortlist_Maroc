@@ -83,7 +83,7 @@ const BUDGET_OPTIONS: { value: string; label: string }[] = [
   { value: "100000-", label: "Plus de 100 000 €" },
 ];
 
-// ✅ STYLES MODERNISÉS POUR LES STATUTS D'OPPORTUNITÉ
+// STYLES MODERNISÉS POUR LES STATUTS D'OPPORTUNITÉ
 const STATUS_STYLES: Record<
   string,
   { bg: string; text: string; border: string; icon: LucideIcon; label: string }
@@ -146,7 +146,7 @@ const STATUS_STYLES: Record<
   },
 };
 
-// ✅ CORRECTION : Fonction avec fallback par défaut
+// CORRECTION : Fonction avec fallback par défaut
 function getStatusConfig(status: string): (typeof STATUS_STYLES)[keyof typeof STATUS_STYLES] {
   const config = STATUS_STYLES[status] ?? STATUS_STYLES["Reçue"];
   return config as (typeof STATUS_STYLES)[keyof typeof STATUS_STYLES];
@@ -181,6 +181,13 @@ function isAcceptedAwaitingQuote(opportunity: Opportunity): boolean {
 
 function isPendingAgencyDecision(opportunity: Opportunity): boolean {
   return opportunity.rawStatus === "Reçue";
+}
+
+// Fonction de troncature pour les titres longs
+function truncateTitle(title: string, maxLength: number = 25): string {
+  if (!title) return "";
+  if (title.length <= maxLength) return title;
+  return title.substring(0, maxLength) + "...";
 }
 
 function AgencyOpportunitiesPage() {
@@ -299,7 +306,7 @@ function AgencyOpportunitiesPage() {
     mutationFn: expressInterest,
     onSuccess: () => {
       toast("Intérêt manifesté", {
-        description: "Ce projet apparaît désormais dans vos offres — envoyez votre devis.",
+        description: "Ce projet apparaît désormais dans vos offres ? envoyez votre devis.",
       });
       invalidateOpportunities();
     },
@@ -351,6 +358,7 @@ function AgencyOpportunitiesPage() {
       render: (opportunity) => {
         const statusVisual = getOpportunityStatusVisual(opportunity, activeTab);
         const StatusIcon = statusVisual.icon;
+        const truncatedTitle = truncateTitle(opportunity.projectTitle, 30);
 
         return (
           <div className="flex min-w-0 items-start gap-3">
@@ -370,14 +378,18 @@ function AgencyOpportunitiesPage() {
                   }
                   disabled={loadingDetailsId === (opportunity.project ?? opportunity.id)}
                   className="font-display truncate text-left text-[14px] font-bold leading-tight tracking-tight text-foreground underline-offset-2 hover:text-primary hover:underline disabled:opacity-60"
+                  title={opportunity.projectTitle}
                 >
                   {loadingDetailsId === (opportunity.project ?? opportunity.id)
                     ? "Chargement..."
-                    : opportunity.projectTitle}
+                    : truncatedTitle}
                 </button>
               ) : (
-                <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight">
-                  {opportunity.projectTitle}
+                <p
+                  className="font-display truncate text-[14px] font-bold leading-tight tracking-tight"
+                  title={opportunity.projectTitle}
+                >
+                  {truncatedTitle}
                 </p>
               )}
               <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground/70">
@@ -405,7 +417,7 @@ function AgencyOpportunitiesPage() {
         <p className="truncate text-[13px] font-medium">
           {opportunity.budgetMin === null || opportunity.budgetMax === null
             ? "Non défini"
-            : `${opportunity.budgetMin.toLocaleString()} € — ${opportunity.budgetMax.toLocaleString()} €`}
+            : `${opportunity.budgetMin.toLocaleString()} € - ${opportunity.budgetMax.toLocaleString()} €`}
         </p>
       ),
     },
@@ -497,7 +509,7 @@ function AgencyOpportunitiesPage() {
           {activeTab === "paused" && (
             <button
               type="button"
-              onClick={() => signalReadyMutation.mutate(opportunity.id)}
+              onClick={() => signalReadyMutation.mutate(opportunity.project ?? opportunity.id)}
               disabled={signalReadyMutation.isPending}
               className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md disabled:opacity-60"
             >
@@ -527,7 +539,7 @@ function AgencyOpportunitiesPage() {
       <style>{`.font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }`}</style>
 
       <div className="mx-auto max-w-[1080px]">
-        {/* ✅ EN-TÊTE MODERNISÉ */}
+        {/* EN-TÊTE MODERNISÉ */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -548,7 +560,7 @@ function AgencyOpportunitiesPage() {
           </div>
         </div>
 
-        {/* ✅ RECHERCHE MODERNISÉE */}
+        {/* RECHERCHE MODERNISÉE */}
         <div className="mt-7">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -562,12 +574,12 @@ function AgencyOpportunitiesPage() {
           </div>
         </div>
 
-        {/* ✅ TABS MODERNISÉS */}
+        {/* TABS MODERNISÉS */}
         <div className="mt-6">
           <StatusTabs tabs={TABS} value={activeTab} onChange={setActiveTab} counts={counts} />
         </div>
 
-        {/* ✅ FILTRES MODERNISÉS */}
+        {/* FILTRES MODERNISÉS */}
         <div className="mt-6 grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -626,7 +638,7 @@ function AgencyOpportunitiesPage() {
           </div>
         </div>
 
-        {/* ✅ COMPTEUR + TRI */}
+        {/* COMPTEUR + TRI */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">
             {total ?? 0} opportunité{total !== 1 ? "s" : ""}
@@ -641,7 +653,7 @@ function AgencyOpportunitiesPage() {
           </button>
         </div>
 
-        {/* ✅ TABLEAU MODERNISÉ */}
+        {/* TABLEAU MODERNISÉ */}
         <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <DataTable columns={columns} rows={filteredOpportunities} isLoading={isLoading} />
         </div>
@@ -649,7 +661,7 @@ function AgencyOpportunitiesPage() {
         <ListPagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      {/* ✅ MODAL DE DEVIS MODERNISÉE */}
+      {/* MODAL DE DEVIS MODERNISÉE */}
       <ActionModal
         open={quoteTarget !== null}
         onOpenChange={(open) => {
@@ -661,7 +673,7 @@ function AgencyOpportunitiesPage() {
         title="Envoyer un devis"
         {...(quoteTarget
           ? {
-              description: `Proposez un montant pour "${quoteTarget.projectTitle}" — ${quoteTarget.companyName}.`,
+              description: `Proposez un montant pour "${truncateTitle(quoteTarget.projectTitle, 40)}" - ${quoteTarget.companyName}.`,
             }
           : {})}
         confirmLabel={sendQuoteMutation.isPending ? "Envoi..." : "Envoyer le devis"}
@@ -694,20 +706,22 @@ function AgencyOpportunitiesPage() {
           </div>
           {quoteTarget && (
             <div className="grid grid-cols-2 gap-2 text-[13px] text-muted-foreground">
-              <span>Projet : {quoteTarget.projectTitle}</span>
+              <span>Projet : {truncateTitle(quoteTarget.projectTitle, 25)}</span>
               <span className="text-right">Client : {quoteTarget.companyName}</span>
             </div>
           )}
         </div>
       </ActionModal>
 
-      {/* ✅ MODAL DE DÉTAILS MODERNISÉE */}
+      {/* MODAL DE DÉTAILS MODERNISÉE */}
       <ActionModal
         open={detailsProject !== null}
         onOpenChange={(open) => {
           if (!open) setDetailsProject(null);
         }}
-        title={detailsProject?.title ?? "Détails du projet"}
+        title={
+          detailsProject?.title ? truncateTitle(detailsProject.title, 35) : "Détails du projet"
+        }
         confirmLabel={expressInterestMutation.isPending ? "Envoi..." : "Postuler"}
         cancelLabel="Fermer"
         onConfirm={() => {
@@ -732,14 +746,14 @@ function AgencyOpportunitiesPage() {
                   Sous-catégorie
                 </p>
                 <p className="mt-1 text-[13px] font-semibold">
-                  {detailsProject.subCategory || "—"}
+                  {detailsProject.subCategory || "?"}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Budget</p>
                 <p className="mt-1 text-[13px] font-semibold">
                   {detailsProject.budgetMin !== null && detailsProject.budgetMax !== null
-                    ? `${detailsProject.budgetMin.toLocaleString()} € — ${detailsProject.budgetMax.toLocaleString()} €`
+                    ? `${detailsProject.budgetMin.toLocaleString()} € - ${detailsProject.budgetMax.toLocaleString()} €`
                     : "Non défini"}
                 </p>
               </div>
@@ -765,7 +779,7 @@ function AgencyOpportunitiesPage() {
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Statut</p>
                 <p className="mt-1 text-[13px] font-semibold">
-                  {detailsProject.statusLabel || "—"}
+                  {detailsProject.statusLabel || "?"}
                 </p>
               </div>
             </div>

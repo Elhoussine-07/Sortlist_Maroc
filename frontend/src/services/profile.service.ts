@@ -9,7 +9,13 @@ import type {
   Project,
 } from "@/lib/types";
 import { useAuthStore } from "@/store/auth.store";
-import { camelizeKeys, frappeCall, GATEWAY_URL, resolveFileUrl } from "@/services/http";
+import {
+  camelizeKeys,
+  frappeCall,
+  GATEWAY_URL,
+  parseCommaList,
+  resolveFileUrl,
+} from "@/services/http";
 import { mapCollaboration } from "@/services/collaborations.service";
 import { mapProject } from "@/services/projects.service";
 
@@ -67,13 +73,13 @@ function mapAgencyProfile(raw: unknown): AgencyProfile {
     foundedYear: String(data["yearFounded"] ?? data["foundedYear"] ?? ""),
     teamSize: String(data["teamSize"] ?? ""),
     website: String(data["website"] ?? ""),
-    languages: Array.isArray(data["languages"]) ? (data["languages"] as string[]) : [],
+    languages: parseCommaList(data["languages"]),
     remoteWork: Boolean(data["remoteWork"] ?? false),
     location: String(data["location"] ?? ""),
     legalIdValue: String(data["legalId"] ?? data["legalIdValue"] ?? ""),
     legalIdValid: Boolean(data["legalIdVerified"] ?? data["legalIdValid"] ?? false),
-    techStack: Array.isArray(data["techStack"]) ? (data["techStack"] as string[]) : [],
-    skills: Array.isArray(data["skills"]) ? (data["skills"] as string[]) : [],
+    techStack: parseCommaList(data["techStack"]),
+    skills: parseCommaList(data["skills"]),
     phoneCountryCode: String(data["phoneCountryCode"] ?? ""),
     phone: String(data["phone"] ?? ""),
     email: String(data["email"] ?? ""),
@@ -82,7 +88,7 @@ function mapAgencyProfile(raw: unknown): AgencyProfile {
     logo: resolveFileUrl(data["logo"] as string | null | undefined),
     slogan: (data["slogan"] as string | undefined) ?? undefined,
     coverImage: resolveFileUrl(data["coverImage"] as string | null | undefined),
-    coverage: Array.isArray(data["coverage"]) ? (data["coverage"] as string[]) : undefined,
+    coverage: parseCommaList(data["coverage"]),
     annualRevenue: data["annualRevenue"] !== undefined ? Number(data["annualRevenue"]) : undefined,
     country: (data["country"] as string | undefined) ?? undefined,
     emailVerified: (data["emailVerified"] as boolean | undefined) ?? undefined,
@@ -172,6 +178,8 @@ const AGENCY_TOP_LEVEL_FIELD_MAP: Record<string, string> = {
   teamSize: "team_size",
   website: "website",
   languages: "languages",
+  skills: "skills",
+  techStack: "tech_stack",
   remoteWork: "remote_work",
   location: "location",
   legalIdValue: "legal_id",
@@ -190,13 +198,31 @@ const AGENCY_TOP_LEVEL_FIELD_MAP: Record<string, string> = {
   billingAddress: "billing_address",
 };
 
+// `languages`/`skills`/`techStack`/`coverage` sont typés `string[]` côté
+// frontend mais stockés comme une simple chaîne "a, b, c" côté backend
+// (`Small Text`/`Data`) — ce sont les SEULS champs qu'il faut joindre en
+// chaîne avant l'envoi.
+const STRING_LIST_FIELDS = new Set(["languages", "skills", "techStack", "coverage"]);
+
 export async function updateAgencyProfile(
   payload: Partial<AgencyProfile> | Record<string, unknown>,
 ): Promise<AgencyProfile> {
   const body: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(payload)) {
     if (value === undefined) continue;
-    body[AGENCY_TOP_LEVEL_FIELD_MAP[key] ?? key] = value;
+    // BUG CORRIGÉ : `Array.isArray(value) ? value.join(", ") : value`
+    // s'appliquait auparavant à N'IMPORTE QUEL tableau, y compris
+    // `services`/`portfolio`/`team`/`certifications` — des tableaux
+    // d'OBJETS (lignes de table enfant Frappe), pas de chaînes. Sur ceux-là,
+    // `.join(", ")` produisait littéralement la chaîne
+    // "[object Object], [object Object]" au lieu des lignes réelles :
+    // "Enregistrer les services/le portfolio/l'équipe/les certificats"
+    // envoyait alors une valeur inexploitable, et rien ne s'affichait après
+    // sauvegarde. On ne joint désormais que les champs réellement typés
+    // `string[]` (cf. STRING_LIST_FIELDS) ; les tableaux d'objets partent
+    // tels quels en JSON.
+    body[AGENCY_TOP_LEVEL_FIELD_MAP[key] ?? key] =
+      Array.isArray(value) && STRING_LIST_FIELDS.has(key) ? value.join(", ") : value;
   }
   const raw = await frappeCall<unknown>("agency.update_profile", body);
   return mapAgencyProfile(raw);
@@ -262,7 +288,14 @@ export async function submitCollaborationReview(
 export interface ClientDashboard {
   trustScore: { value: number; label: string };
   publishedProjects: { value: number; delta: string };
-  responseRate: { value: number; delta: string };
+  /**
+   * `value` reste `null` tant que `client.get_dashboard` renvoie
+   * `response_rate: null` (échantillon d'Opportunity trop faible sur la
+   * fenêtre glissante, cf. `client.py::_agency_acceptance_rate`) — un
+   * pourcentage calculé sur 1-2 données n'est pas représentatif.
+   * `client.tableau-de-bord.tsx` affiche alors "—" plutôt qu'un chiffre.
+   */
+  responseRate: { value: number | null; delta: string };
   activeCollaborations: { value: number };
   recentProjects: Project[];
 }
@@ -274,11 +307,16 @@ export async function getClientDashboard(): Promise<ClientDashboard> {
   const recentProjectsList = Array.isArray(data["recentProjects"])
     ? (data["recentProjects"] as unknown[])
     : [];
+  const responseRateRaw = data["responseRate"];
 
   return {
     trustScore: { value: trustScore, label: trustScoreLabelFor(trustScore) },
     publishedProjects: { value: Number(data["projectsPublishedCount"] ?? 0), delta: "0%" },
-    responseRate: { value: Number(data["responseRate"] ?? 0), delta: "0%" },
+    responseRate: {
+      value:
+        responseRateRaw === null || responseRateRaw === undefined ? null : Number(responseRateRaw),
+      delta: "0%",
+    },
     activeCollaborations: {
       value: Number(data["collaborationsCount"] ?? data["activeProjectsCount"] ?? 0),
     },
@@ -373,13 +411,18 @@ export async function updateSettings(payload: Partial<Settings>): Promise<Settin
 
 /**
  * // API CALL : frappeCall("client.request_phone_otp", { phone })
- * Pas de passerelle SMS configurée côté backend — le code de vérification
- * part par email (cf. client.py::request_phone_otp), valable 5 minutes.
+ * Envoie un vrai SMS via Twilio si configuré côté backend (site_config.json,
+ * cf. client.py::_send_sms) ; repli honnête par e-mail sinon.
  */
-export async function requestPhoneOtp(phone: string): Promise<{ sent: boolean }> {
+export async function requestPhoneOtp(
+  phone: string,
+): Promise<{ sent: boolean; channel: "sms" | "email" }> {
   const raw = await frappeCall<unknown>("client.request_phone_otp", { phone });
   const data = camelizeKeys(raw) as Record<string, unknown>;
-  return { sent: Boolean(data["sent"] ?? true) };
+  return {
+    sent: Boolean(data["sent"] ?? true),
+    channel: data["channel"] === "sms" ? "sms" : "email",
+  };
 }
 
 /**

@@ -5,52 +5,18 @@
 import frappe
 from frappe import _
 
-from platform_core.platform_core.auth import (
-	require_active_agency,
-	require_body_arg,
-	require_internal_token,
-	require_user_type,
-)
+from platform_core.platform_core.auth import require_active_agency, require_internal_token, require_user_type
 
 
-# BUG CORRIGÉ : cette fonction renvoyait `action_code` tel quel ("profile_view",
-# "portfolio_view", ...) sous la clé "action". Mais `scoreCalculator.js`
-# (prospection-service) ne matche les règles reçues QUE sur le libellé FR
-# canonique ("Consultation du profil", ...) — c'est ce que `FALLBACK_RULES`
-# utilise, et ce vers quoi `normalizeAction()` convertit toute action reçue
-# via /track. Résultat : dès que prospection-service arrivait à joindre
-# Frappe (le cas normal), `findRule()` ne trouvait jamais la règle
-# correspondante et calculait 0 point pour CHAQUE action trackée — seul
-# "Ajout aux favoris" produisait un score (classification forcée à "Chaud",
-# indépendante des points). Toute la mécanique chaud/tiède/froid basée sur
-# le score cumulé était donc silencieusement inopérante.
-ACTION_CODE_TO_LABEL = {
-	"profile_view": "Consultation du profil",
-	"portfolio_view": "Consultation portfolio",
-	"reviews_view": "Consultation avis",
-	"team_view": "Consultation équipe",
-	"certificates_view": "Consultation certifications",
-	"services_view": "Consultation prestations",
-	"add_favorite": "Ajout aux favoris",
-}
-
-
-def _scoring_rules_payload():
+@frappe.whitelist(allow_guest=True)
+def get_scoring_rules():
+	require_internal_token()
 	settings = frappe.get_single("PlatformSettings")
-	raw_rules = frappe.get_all(
+	rules = frappe.get_all(
 		"LeadScoringRule",
 		filters={"is_active": 1},
-		fields=["action_code", "base_points", "bonus_condition", "bonus_points"],
+		fields=["action_code as action", "base_points", "bonus_condition", "bonus_points"],
 	)
-	rules = [
-		{
-			"action": ACTION_CODE_TO_LABEL.get(r.action_code, r.action_code),
-			"base_points": r.base_points,
-			"bonus_condition": r.bonus_condition,
-			"bonus_points": r.bonus_points,
-		}
-		for r in raw_rules
-	]
 	return {
 		"rules": rules,
 		"thresholds": {
@@ -62,29 +28,38 @@ def _scoring_rules_payload():
 	}
 
 
-@frappe.whitelist(allow_guest=True)
-def get_scoring_rules():
-	"""🔒 Interne — consommé par prospection-service via X-Internal-Token."""
-	require_internal_token()
-	return _scoring_rules_payload()
-
-
 @frappe.whitelist()
 def get_scoring_rules_for_agency():
-	"""Lecture seule, côté dashboard Agence (CDC §2.6.1) : le barème reste
-	consultable par l'agence mais n'est modifiable que depuis l'espace Admin
-	(cf. update_scoring_rules, réservé Modérateur/Admin) — contrairement à
-	get_scoring_rules() ci-dessus, celle-ci accepte un JWT utilisateur normal
-	plutôt qu'un jeton de service interne."""
+	"""Variante de `get_scoring_rules()` accessible à une agence connectée
+	(cf. agence.prospection.tsx > « Paramètres de scoring », lecture seule —
+	le texte précise déjà que la modification reste réservée à l'espace
+	Modération/Admin via `update_scoring_rules`). `get_scoring_rules()`
+	exige `require_internal_token()` (réservé au microservice
+	prospection-service, cf. son en-tête « 🔒 Interne ») — un compte agence
+	authentifié normalement ne peut jamais fournir ce token interne, d'où
+	l'AttributeError : le frontend appelait déjà cette fonction, qui
+	n'avait tout simplement jamais été implémentée côté backend. Ne renvoie
+	que les seuils (pas le barème détaillé par action, hors périmètre de cet
+	écran)."""
 	require_active_agency()
-	return _scoring_rules_payload()
+	settings = frappe.get_single("PlatformSettings")
+	return {
+		"scoring": {
+			"hot_min": settings.lead_hot_threshold,
+			"warm_min": settings.lead_warm_min,
+		},
+	}
 
 
 @frappe.whitelist(allow_guest=True)
 def get_agency_directory():
 	require_internal_token()
+	# DÉSACTIVÉ (demande explicite, phase de test) : filters={"offers_suspended": 0}
+	# excluait de l'annuaire toute agence flaguée un jour par
+	# tasks.py::process_invoice_reminders — même correctif que search.py/
+	# matching.py (flag jamais remis à 0 automatiquement, même régularisée).
 	return frappe.get_all(
-		"AgencyProfile", filters={"offers_suspended": 0}, fields=["name", "agency_name", "website"]
+		"AgencyProfile", fields=["name", "agency_name", "website"]
 	)
 
 
@@ -112,51 +87,11 @@ def log_visitor():
 	return {"logged": True, "name": log.name}
 
 
-@frappe.whitelist(allow_guest=True)
-def notify_client_interest(client_email=None, agency=None):
-	"""Notifie le CLIENT identifié qu'une agence s'intéresse à son profil
-	(§2.6, demande explicite) — déclenché par prospection-service quand
-	l'agence envoie un e-mail de prospection à un lead identifié
-	(`leads.client_email` non nul). Ne révèle jamais l'inverse (l'agence ne
-	voit jamais l'e-mail du client, cf. `client.get_client_profile_for_agency`)
-	: c'est un e-mail + une notification in-app envoyés par la PLATEFORME au
-	client, jamais un email direct agence -> client. Le client peut ensuite
-	consulter le profil de l'agence et l'ajouter à ses favoris
-	(`client.toggle_favorite`) pour la recontacter plus tard."""
-	require_internal_token()
-	client_email = require_body_arg(client_email, "client_email", _("Client manquant"))
-	agency = require_body_arg(agency, "agency", _("Agence manquante"))
-
-	if not frappe.db.exists("User", client_email):
-		frappe.throw(_("Client introuvable"))
-
-	agency_name = frappe.db.get_value("AgencyProfile", agency, "agency_name") or agency
-
-	from platform_core.platform_core.notify import notify
-
-	notify(
-		recipient=client_email,
-		category="Prospection",
-		title=f"{agency_name} s'intéresse à votre profil",
-		body=(
-			f"L'agence {agency_name} a consulté votre profil et souhaite savoir si vous êtes "
-			"intéressé(e). Consultez son profil et ajoutez-la à vos favoris si vous l'êtes, "
-			"pour la recontacter lors d'un futur projet."
-		),
-		link=f"/agences/{agency}",
-		reference_doctype="AgencyProfile",
-		reference_name=agency,
-		channel="Both",
-	)
-	return {"notified": True}
-
-
 @frappe.whitelist()
-def update_scoring_rules(rules=None):
+def update_scoring_rules(rules):
 	"""cf. §2.6.1 : le barème de scoring doit rester configurable depuis
 	l'espace Admin — met à jour les `LeadScoringRule` déjà amorcées par
 	setup.py (par `action_code`), n'en crée jamais de nouvelles."""
-	rules = require_body_arg(rules, "rules", _("Barème manquant"))
 	claims = require_user_type("moderator", "admin")
 
 	if isinstance(rules, str):

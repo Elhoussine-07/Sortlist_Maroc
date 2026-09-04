@@ -421,17 +421,34 @@ class ProjectSuspension(Document):
         if opportunity_name:
             frappe.db.set_value("Opportunity", opportunity_name, "status", "En pause")
 
-        # Notifier le client
-        self._notify_client(
-            title="Projet suspendu",
-            message=f"Votre projet a été suspendu suite à votre demande."
-        )
+        # BUG CORRIGÉ : les messages ci-dessous étaient toujours ceux d'une
+        # suspension amiable classique ("suite à votre demande" / "par le
+        # client"), y compris pour la catégorie "Non-paiement" où c'est le
+        # système qui suspend automatiquement faute de règlement — faux dans
+        # ce cas, ni demandé par le client ni décidé par lui.
+        if self.category == "Non-paiement":
+            self._notify_client(
+                title="Projet suspendu — facture de commission impayée",
+                message="Votre projet a été suspendu automatiquement : l'agence n'a pas réglé sa "
+                "commission plateforme dans le délai imparti.",
+            )
+            self._notify_agency(
+                title="Projet suspendu — facture impayée",
+                message="Le projet a été suspendu automatiquement faute de règlement de la facture "
+                "de commission dans le délai imparti. Réglez-la pour reprendre le projet.",
+            )
+        else:
+            # Notifier le client
+            self._notify_client(
+                title="Projet suspendu",
+                message=f"Votre projet a été suspendu suite à votre demande."
+            )
 
-        # Notifier l'agence
-        self._notify_agency(
-            title="Projet suspendu",
-            message=f"Le projet a été suspendu par le client."
-        )
+            # Notifier l'agence
+            self._notify_agency(
+                title="Projet suspendu",
+                message=f"Le projet a été suspendu par le client."
+            )
 
     def _resume_project(self):
         """Au clic sur « Reprendre » : calcule le nombre de jours de suspension
@@ -449,6 +466,27 @@ class ProjectSuspension(Document):
 
         # Mettre à jour le projet
         project = frappe.get_doc("Project", self.project)
+
+        # AJOUTÉ (demande explicite) : si la suspension "Non-paiement" a été
+        # créée par Project.complete() parce que l'échéance était déjà
+        # dépassée au moment de la validation (le projet essayait de passer
+        # Terminé, bloqué uniquement par la facture de commission impayée —
+        # cf. Project.complete()), le règlement de la facture doit faire
+        # passer le projet directement Terminé, pas le refaire repartir En
+        # cours (il n'y a plus rien à y faire). Distingué du cas où
+        # "Non-paiement" a suspendu un projet réellement encore en cours
+        # (échéance pas encore atteinte à la validation, cf.
+        # tasks.suspend_projects_for_unpaid_commission) : celui-là reprend
+        # normalement ci-dessous. project.complete() relance lui-même la
+        # vérification de facture impayée — elle vient d'être réglée, donc
+        # il complète directement cette fois, sans re-suspendre.
+        if (
+            self.category == "Non-paiement"
+            and project.expected_end_date
+            and get_datetime(project.expected_end_date) <= get_datetime(self.validation_date)
+        ):
+            project.complete()
+            return
 
         # Définir initial_end_date si vide
         # BUG CORRIGÉ : `frappe.db.set_value` n'actualise pas l'objet `project`
@@ -494,10 +532,17 @@ class ProjectSuspension(Document):
             message=f"Votre projet a été repris. Nouvelle date de fin prévue : {new_expected_end_date or 'non définie'}"
         )
 
-        # Notifier l'agence
+        # BUG CORRIGÉ (symétrique de _validate_suspension ci-dessus) :
+        # "repris par le client" est faux pour la catégorie "Non-paiement" —
+        # c'est le règlement de la facture par l'AGENCE elle-même qui lève la
+        # suspension, pas une action du client.
         self._notify_agency(
             title="Projet repris",
-            message=f"Le projet a été repris par le client."
+            message=(
+                "Le projet a repris suite au règlement de votre facture de commission."
+                if self.category == "Non-paiement"
+                else "Le projet a été repris par le client."
+            ),
         )
 
     def _refuse_suspension(self):

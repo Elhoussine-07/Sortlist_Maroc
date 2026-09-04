@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
@@ -7,8 +7,18 @@ import {
   Clock,
   MapPin,
   Search,
+  Send,
   Tag,
+  Users,
   Wallet,
+  Eye,
+  Building2,
+  ChevronRight,
+  Calendar,
+  Euro,
+  Globe,
+  Briefcase,
+  Sparkles,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -28,13 +38,13 @@ import { ApiError } from "@/services/http";
 export const Route = createFileRoute("/projets")({
   head: () => ({
     meta: [
-      { title: "Trouvez le projet idéal — Sortlist" },
+      { title: "Trouvez le projet idéal — Sortlist Pro" },
       {
         name: "description",
         content:
           "Parcourez les projets publiés par les entreprises et filtrez par catégorie, sous-catégorie et budget.",
       },
-      { property: "og:title", content: "Trouvez le projet idéal — Sortlist" },
+      { property: "og:title", content: "Trouvez le projet idéal — Sortlist Pro" },
       {
         property: "og:description",
         content: "Parcourez les projets publiés par les entreprises.",
@@ -79,7 +89,8 @@ function SearchProjectsPage() {
       });
   }, []);
 
-  function handleToggleFavorite(projectId: string) {
+  function handleToggleFavorite(projectId: string, event: React.MouseEvent) {
+    event.stopPropagation();
     setPendingFavoriteId(projectId);
     toggleProjectFavorite(projectId)
       .then(({ favorited }) => {
@@ -141,7 +152,7 @@ function SearchProjectsPage() {
       <MarketingHeader variant="search" active="projects" applyDisabled />
 
       <main className="mx-auto max-w-[1080px] px-4 pb-16 sm:px-6 lg:px-8">
-        <div className="mt-8 flex items-center gap-3 rounded-md border border-border px-4 py-3.5">
+        <div className="mt-8 flex items-center gap-3 rounded-xl border border-border bg-background/50 px-4 py-3.5 transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
           <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
           <input
             type="search"
@@ -177,7 +188,8 @@ function SearchProjectsPage() {
         </div>
 
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-          <p className="truncate text-[14px] font-semibold">
+          <p className="truncate text-[14px] font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
             {availableCount ?? 0} projets disponibles
           </p>
           <span className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground">
@@ -192,57 +204,159 @@ function SearchProjectsPage() {
           ) : projects.length === 0 ? (
             <EmptyState message="Aucun projet à afficher." />
           ) : (
-            <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-              {projects.map((project) => (
-                <article key={project.id} className="flex flex-col">
-                  <Tag className="h-[22px] w-[22px]" strokeWidth={1.6} />
-                  <h2 className="mt-4 text-[14px] font-bold leading-snug">{project.title}</h2>
-                  <p className="mt-2 flex items-center gap-1.5 text-[13px]">
-                    <Wallet className="h-3 w-3 shrink-0" strokeWidth={1.8} />
-                    {project.budgetMin} € - {project.budgetMax} €
-                  </p>
-                  <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                    <MapPin className="h-3 w-3 shrink-0" strokeWidth={1.8} />
-                    {project.location}
-                  </p>
-                  <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                    <Tag className="h-3 w-3 shrink-0" strokeWidth={1.8} />
-                    {project.subCategory}
-                  </p>
-                  <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                    <Clock className="h-3 w-3 shrink-0" strokeWidth={1.8} />
-                    Publié {project.lastActivity}
-                  </p>
-                  <div className="mt-4 flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled
-                      title="Consultation détaillée indisponible pour le moment — utilisez le contact direct (favoris) en attendant une page de détail dédiée."
-                      className="flex-1 rounded-md bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground opacity-60"
-                    >
-                      Voir le projet
-                    </button>
-                    <button
-                      onClick={() => handleToggleFavorite(project.id)}
-                      type="button"
-                      disabled={pendingFavoriteId === project.id}
-                      aria-label={
-                        favoriteIds.has(project.id)
-                          ? "Retirer des favoris"
-                          : "Enregistrer le projet"
-                      }
-                      aria-pressed={favoriteIds.has(project.id)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Bookmark
-                        className="h-3.5 w-3.5"
-                        strokeWidth={1.8}
-                        fill={favoriteIds.has(project.id) ? "currentColor" : "none"}
-                      />
-                    </button>
-                  </div>
-                </article>
-              ))}
+            <div className="flex flex-col gap-5">
+              {projects.map((project) => {
+                const publishedDate = new Date(project.lastActivity);
+                // Utiliser l'ID du projet pour la redirection
+                const projectId = project.id;
+
+                return (
+                  <Link
+                    key={project.id}
+                    to={`/projets/$id`}
+                    params={{ id: projectId }}
+                    className="group relative block rounded-2xl border border-border bg-background p-5 transition-all hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5"
+                  >
+                    {/* Indicateur de clic */}
+                    <div className="absolute right-4 top-4 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
+                        <Eye className="h-3.5 w-3.5" />
+                        Voir le projet
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 sm:flex-row">
+                      <div className="h-[110px] w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-pink-400 to-fuchsia-600 sm:h-auto sm:w-[140px]">
+                        {project.category === "Conseil & stratégie" ? (
+                          <img
+                            src="/categories/conseil-strategie.png"
+                            alt={project.category}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-white">
+                            <Tag className="h-8 w-8" strokeWidth={1.6} />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        <span className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+                          <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-600" />
+                          {project.statusLabel}
+                        </span>
+                        <h2 className="mt-1.5 text-[15px] font-bold leading-snug group-hover:text-primary transition-colors">
+                          {project.title}
+                        </h2>
+                        {project.objective ? (
+                          <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.5] text-muted-foreground">
+                            {project.objective}
+                          </p>
+                        ) : null}
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            {project.location}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            Publié le{" "}
+                            {publishedDate.toLocaleDateString("fr-FR", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </span>
+                          {project.urgency ? (
+                            <span className="flex items-center gap-1.5">
+                              <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
+                              {project.urgency}
+                            </span>
+                          ) : null}
+                        </div>
+                        {project.interestedAgenciesCount ? (
+                          <p className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+                            <Users className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            {project.interestedAgenciesCount} agences ont déjà montré leur intérêt
+                          </p>
+                        ) : null}
+                        {project.features && project.features.length > 0 ? (
+                          <div className="mt-2.5">
+                            <p className="text-[11.5px] font-semibold text-foreground">
+                              Compétences recherchées
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              {project.features.slice(0, 5).map((skill) => (
+                                <span
+                                  key={skill}
+                                  className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-foreground/80"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="flex shrink-0 flex-col items-start gap-2 sm:w-[180px] sm:items-end sm:text-right">
+                        <div className="flex w-full items-center justify-between gap-2 sm:flex-col sm:items-end">
+                          <p className="text-[11px] text-muted-foreground">Budget estimé</p>
+                          <button
+                            onClick={(e) => handleToggleFavorite(project.id, e)}
+                            type="button"
+                            disabled={pendingFavoriteId === project.id}
+                            aria-label={
+                              favoriteIds.has(project.id)
+                                ? "Retirer des favoris"
+                                : "Enregistrer le projet"
+                            }
+                            aria-pressed={favoriteIds.has(project.id)}
+                            className="text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60 sm:order-first"
+                          >
+                            <Bookmark
+                              className="h-[18px] w-[18px]"
+                              strokeWidth={1.8}
+                              fill={favoriteIds.has(project.id) ? "currentColor" : "none"}
+                            />
+                          </button>
+                        </div>
+                        <p className="text-[15px] font-bold">
+                          {project.budgetMin || project.budgetMax
+                            ? `${project.budgetMin} € - ${project.budgetMax} €`
+                            : "Budget à définir"}
+                        </p>
+                        {project.budgetFlexible ? (
+                          <span className="rounded-full bg-fuchsia-50 px-2.5 py-1 text-[11px] font-medium text-fuchsia-700">
+                            Budget flexible
+                          </span>
+                        ) : null}
+                        {project.needType || project.estimatedDuration ? (
+                          <div className="mt-1 w-full text-[12px] text-muted-foreground sm:text-right">
+                            {project.needType ? (
+                              <p>
+                                <span className="font-semibold text-foreground">
+                                  Type de projet
+                                </span>
+                                <br />
+                                {project.needType}
+                              </p>
+                            ) : null}
+                            {project.estimatedDuration ? (
+                              <p className="mt-1">
+                                <span className="font-semibold text-foreground">Durée estimée</span>
+                                <br />
+                                {project.estimatedDuration}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>

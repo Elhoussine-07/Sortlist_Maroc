@@ -148,6 +148,22 @@ function ClientProjectDetailPage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
 
+  // AJOUTÉ (demande explicite) : toute mutation de cette page qui change
+  // l'état du projet (accepter/refuser un devis ou une candidature,
+  // suspension, relance, reprise, paiement) doit aussi invalider la liste
+  // "Mes projets" (`["client","projects"]`) — une clé de query DIFFÉRENTE de
+  // celle de cette page détail (`["client","project",id]`, singulier).
+  // React Query ne fait que du préfixe sur les clés ("project" != "projects"
+  // au premier niveau déjà différent), donc invalider l'une n'invalide
+  // jamais l'autre. BUG CORRIGÉ : sans ce second appel, retourner sur "Mes
+  // projets" après une action ici affichait encore l'ancien statut en cache
+  // (ex. "En attente" après acceptation d'un devis), donnant l'impression
+  // que l'action n'avait aucun effet alors que le backend était à jour.
+  function invalidateProjectQueries() {
+    void queryClient.invalidateQueries({ queryKey: ["client", "project", id] });
+    void queryClient.invalidateQueries({ queryKey: ["client", "projects"] });
+  }
+
   const projectQuery = useQuery({
     queryKey: ["client", "project", id],
     queryFn: () => getProject(id),
@@ -209,17 +225,34 @@ function ClientProjectDetailPage() {
   }
 
   const [respondingProposalId, setRespondingProposalId] = useState<string | null>(null);
+  // AJOUTÉ (demande explicite, négociation) : un refus n'est plus définitif
+  // — le client peut joindre un motif/contre-proposition, transmis à
+  // l'agence, qui peut alors renvoyer un devis ajusté sans repartir de zéro
+  // (cf. Proposal.refuse()/_handle_refusal()).
+  const [refusingProposal, setRefusingProposal] = useState<PendingProposal | null>(null);
+  const [refusalMessage, setRefusalMessage] = useState("");
   const respondMutation = useMutation({
-    mutationFn: ({ proposalId, decision }: { proposalId: string; decision: "accept" | "refuse" }) =>
-      respondToQuote(proposalId, decision),
+    mutationFn: ({
+      proposalId,
+      decision,
+      message,
+    }: {
+      proposalId: string;
+      decision: "accept" | "refuse";
+      message?: string;
+    }) => respondToQuote(proposalId, decision, message),
     onMutate: ({ proposalId }) => setRespondingProposalId(proposalId),
     onSuccess: (_data, variables) => {
       toast(
         variables.decision === "accept"
           ? "Devis accepté — le projet passe En cours."
-          : "Devis refusé.",
+          : "Devis refusé — l'agence peut vous envoyer une offre ajustée.",
       );
-      void queryClient.invalidateQueries({ queryKey: ["client", "project", id] });
+      if (variables.decision === "refuse") {
+        setRefusingProposal(null);
+        setRefusalMessage("");
+      }
+      invalidateProjectQueries();
     },
     onError: (error) => {
       toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer votre décision.");
@@ -255,7 +288,7 @@ function ClientProjectDetailPage() {
           ? "Candidature acceptée — l'agence peut désormais envoyer un devis."
           : "Candidature refusée.",
       );
-      void queryClient.invalidateQueries({ queryKey: ["client", "project", id] });
+      invalidateProjectQueries();
     },
     onError: (error) => {
       toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer votre décision.");
@@ -308,7 +341,7 @@ function ClientProjectDetailPage() {
       toast("Demande de suspension envoyée.");
       setIsSuspensionModalOpen(false);
       setSuspensionReason("");
-      void queryClient.invalidateQueries({ queryKey: ["client", "project", id] });
+      invalidateProjectQueries();
     },
     onError: (error) => {
       toast(error instanceof ApiError ? error.message : "Envoi impossible.");
@@ -319,7 +352,7 @@ function ClientProjectDetailPage() {
     mutationFn: () => relaunchAgencySearch(id),
     onSuccess: () => {
       toast("Recherche d'agence relancée.");
-      void queryClient.invalidateQueries({ queryKey: ["client", "project", id] });
+      invalidateProjectQueries();
     },
     onError: (error) => {
       toast(error instanceof ApiError ? error.message : "Impossible de relancer la recherche.");
@@ -333,7 +366,7 @@ function ClientProjectDetailPage() {
     mutationFn: () => resumeProject(id),
     onSuccess: () => {
       toast("Projet repris — la nouvelle date de fin prévue a été recalculée.");
-      void queryClient.invalidateQueries({ queryKey: ["client", "project", id] });
+      invalidateProjectQueries();
     },
     onError: (error) => {
       toast(error instanceof ApiError ? error.message : "Impossible de reprendre le projet.");
@@ -353,7 +386,7 @@ function ClientProjectDetailPage() {
       toast("Paiement envoyé à l'agence.");
       setIsPaymentModalOpen(false);
       setProviderToken("");
-      void queryClient.invalidateQueries({ queryKey: ["client", "project", id] });
+      invalidateProjectQueries();
     },
     onError: (error) => {
       toast(error instanceof ApiError ? error.message : "Paiement impossible.");
@@ -648,12 +681,7 @@ function ClientProjectDetailPage() {
                           <button
                             type="button"
                             disabled={isResponding || deadline.expired}
-                            onClick={() =>
-                              respondMutation.mutate({
-                                proposalId: proposal.id,
-                                decision: "refuse",
-                              })
-                            }
+                            onClick={() => setRefusingProposal(proposal)}
                             className="flex items-center gap-1.5 rounded-md border border-border px-3.5 py-2 text-[13px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <XCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -887,6 +915,43 @@ function ClientProjectDetailPage() {
             onChange={(event) => setProviderToken(event.target.value)}
           />
         </div>
+      </ActionModal>
+
+      {/* AJOUTÉ (demande explicite, négociation) : refuser un devis n'est
+          plus définitif — l'agence peut renvoyer une offre ajustée, ce
+          message (optionnel) l'aide à comprendre ce qui ne convenait pas. */}
+      <ActionModal
+        open={refusingProposal !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRefusingProposal(null);
+            setRefusalMessage("");
+          }
+        }}
+        title="Refuser ce devis"
+        description="L'agence sera notifiée et pourra vous envoyer une nouvelle offre ajustée — indiquez ce qui ne convient pas (budget, délai...) pour l'aider à mieux répondre."
+        confirmLabel={
+          respondMutation.isPending && respondMutation.variables?.decision === "refuse"
+            ? "Envoi..."
+            : "Refuser le devis"
+        }
+        onConfirm={() => {
+          if (!refusingProposal) return;
+          const trimmedMessage = refusalMessage.trim();
+          respondMutation.mutate({
+            proposalId: refusingProposal.id,
+            decision: "refuse",
+            ...(trimmedMessage ? { message: trimmedMessage } : {}),
+          });
+        }}
+      >
+        <TextAreaField
+          label="Motif ou contre-proposition (optionnel)"
+          rows={4}
+          value={refusalMessage}
+          onChange={(event) => setRefusalMessage(event.target.value)}
+          placeholder="Ex. Budget trop élevé, nous visions plutôt 3000€..."
+        />
       </ActionModal>
     </DashboardShell>
   );

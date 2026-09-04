@@ -304,7 +304,18 @@ def recompute_project_status(project):
     litige : ces cas sont gérés par leurs propres points d'entrée, cf.
     api.project). "Gagnée" n'est volontairement pas géré ici : le passage à
     "En cours" reste la responsabilité de `_handle_won`, appelé au moment
-    exact de la victoire (avec verrouillage du CDC, date de début, etc.)."""
+    exact de la victoire (avec verrouillage du CDC, date de début, etc.).
+
+    DÉCISION PRODUIT (demande explicite) : un projet ne repasse plus jamais
+    "Rejeté" simplement parce que toutes les agences CONTACTÉES ont refusé —
+    il reste "Postulé", donc toujours visible dans "Disponibles" pour
+    n'importe quelle autre agence non encore sollicitée. Avant ce changement,
+    un refus (même d'une seule agence en Unicast) pouvait faire disparaître
+    définitivement le projet de la recherche, alors qu'une autre agence
+    pouvait encore être intéressée — le client devait alors explicitement
+    "Repostuler" pour le relancer. Le rejet automatique sur épuisement des
+    relations est retiré ; le client garde la main pour supprimer/republier
+    le projet lui-même s'il le souhaite (delete_project/repost)."""
     current_status = frappe.db.get_value("Project", project, "status")
     if current_status not in ("Posted", "Awaiting"):
         return
@@ -323,27 +334,8 @@ def recompute_project_status(project):
             frappe.db.set_value("Project", project, "status", "Awaiting")
         return
 
-    # BUG CORRIGÉ : une candidature spontanée refusée (source "Disponibles",
-    # cf. api.opportunity.express_interest + api.project.respond_to_agency_
-    # application) comptait comme "une relation de plus qui s'épuise" au même
-    # titre qu'un Unicast/Multicast à destinataires fixes choisis par le
-    # client — un projet avec UNE SEULE candidature spontanée refusée
-    # basculait donc Rejeté, disparaissant de "Disponibles" pour TOUTES les
-    # autres agences, alors que le vivier d'agences pouvant postuler
-    # spontanément n'est jamais clos (contrairement à une liste de
-    # destinataires choisie par le client). Ces refus n'entrent plus dans le
-    # calcul d'épuisement.
-    relevant_rows = [
-        row for row in rows if not (row.source == "Disponibles" and row.status == "Archivée")
-    ]
-    still_active = [row.status for row in relevant_rows if row.status != "Archivée"]
-    if not still_active:
-        if relevant_rows:
-            # Toutes les relations pertinentes sont closes et aucune n'a
-            # abouti à un devis accepté : le projet passe Rejeté (Refusé),
-            # cf. CDC §1.5.6/§1.5.7.
-            frappe.get_doc("Project", project).reject("Refusé")
-        return
-
+    # Plus aucun devis en attente (toutes les relations contactées sont
+    # Archivée, ou aucune n'a encore été créée) : le projet reste "Postulé",
+    # toujours disponible pour de nouvelles agences.
     if current_status != "Posted":
         frappe.db.set_value("Project", project, "status", "Posted")

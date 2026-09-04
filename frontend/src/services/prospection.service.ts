@@ -3,23 +3,56 @@ import { camelizeKeys, frappeCall, restCall } from "@/services/http";
 /** Service Prospection IA — microservice `prospection-service` via le Gateway. */
 
 const VISITOR_SESSION_KEY = "sortlist_visitor_session_id";
+const VISITOR_SESSION_OWNER_KEY = "sortlist_visitor_session_owner";
 
 /**
  * Identifiant de session visiteur, stable pour tout le passage sur le site
  * (localStorage) — requis par `POST /api/prospection/track` (cf.
  * `prospection-service/src/routes/prospection.js`) pour cumuler le score
  * d'un même visiteur sur sa fenêtre glissante (`window_days`, §2.6.1).
+ *
+ * BUG CORRIGÉ (demande explicite) : cet identifiant était lié au
+ * NAVIGATEUR, jamais réinitialisé au changement de compte connecté — un
+ * même navigateur testé successivement avec plusieurs comptes clients
+ * différents envoyait le MÊME `session_id` à chaque fois. Côté backend,
+ * `visits`/`leads` sont indexés par `(agency, session_id)`, pas par
+ * `client_email` : un compte "jamais utilisé" héritait donc de tout
+ * l'historique (avis, favoris, certificats...) accumulé par les comptes
+ * précédents sur ce même navigateur, avant même d'avoir cliqué quoi que ce
+ * soit.
+ *
+ * On mémorise désormais aussi le dernier `client_email` associé à la
+ * session stockée (`VISITOR_SESSION_OWNER_KEY`). Dès qu'un visiteur
+ * identifié se connecte avec un email DIFFÉRENT de celui déjà associé, un
+ * nouveau `session_id` est généré — reparti d'un historique vide pour
+ * cette nouvelle identité. Un visiteur anonyme (jamais connecté) ou qui
+ * revient avec le MÊME compte garde sa session existante, comme avant.
  */
-function visitorSessionId(): string {
+function visitorSessionId(clientEmail?: string | undefined): string {
   if (typeof window === "undefined") return "server";
   try {
     const existing = window.localStorage.getItem(VISITOR_SESSION_KEY);
-    if (existing) return existing;
+    const existingOwner = window.localStorage.getItem(VISITOR_SESSION_OWNER_KEY);
+    const identityChanged =
+      Boolean(clientEmail) && Boolean(existingOwner) && existingOwner !== clientEmail;
+
+    if (existing && !identityChanged) {
+      if (clientEmail && !existingOwner) {
+        window.localStorage.setItem(VISITOR_SESSION_OWNER_KEY, clientEmail);
+      }
+      return existing;
+    }
+
     const generated =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
         : `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     window.localStorage.setItem(VISITOR_SESSION_KEY, generated);
+    if (clientEmail) {
+      window.localStorage.setItem(VISITOR_SESSION_OWNER_KEY, clientEmail);
+    } else {
+      window.localStorage.removeItem(VISITOR_SESSION_OWNER_KEY);
+    }
     return generated;
   } catch {
     return `visitor-${Date.now()}`;
@@ -54,7 +87,7 @@ export async function trackProspectionSignal(
     method: "POST",
     body: {
       agency,
-      session_id: visitorSessionId(),
+      session_id: visitorSessionId(context?.clientEmail),
       action,
       duration_seconds: context?.durationSeconds,
       count: context?.count,
@@ -62,6 +95,32 @@ export async function trackProspectionSignal(
       // /track dans prospection-service, colonnes `leads.client_email`/
       // `client_name`) — permet à l'agence de voir QUI a été détecté
       // (nom affiché) sans jamais exposer de coordonnées de contact.
+      client_email: context?.clientEmail,
+      client_name: context?.clientName,
+    },
+  });
+}
+
+/**
+ * // API CALL : restCall('prospection', '/visit', { method: 'POST', body: { agency, session_id, client_email, client_name } })
+ * AJOUTÉ (demande explicite) : compte une VRAIE visite du profil (un
+ * chargement de page), à appeler UNE SEULE FOIS au montage de
+ * `agences_.$id.tsx` — jamais à chaque changement d'onglet. Découplé de
+ * `trackProspectionSignal`/`/track` : aucun impact sur le score, juste sur
+ * `leads.visit_count` (cf. routes/prospection.js). Avant ce correctif,
+ * `visit_count` était incrémenté à chaque action trackée (chaque onglet
+ * cliqué), donnant "×3 visites" pour une seule visite avec 3 clics.
+ */
+export async function recordProfileVisit(
+  agency: string,
+  context?: { clientEmail?: string | undefined; clientName?: string | undefined },
+): Promise<void> {
+  if (!agency) return;
+  await restCall<unknown>("prospection", "/visit", {
+    method: "POST",
+    body: {
+      agency,
+      session_id: visitorSessionId(context?.clientEmail),
       client_email: context?.clientEmail,
       client_name: context?.clientName,
     },
@@ -90,8 +149,18 @@ export interface Lead {
    * revenant plusieurs fois (navigation privée, navigateur différent...)
    * n'apparaît plus comme plusieurs prospects séparés. Toujours 1 pour un
    * visiteur non identifié (pas d'identité fiable pour fusionner).
+   *
+   * BUG CORRIGÉ (demande explicite) : ce compteur n'augmente QUE quand un
+   * `session_id` distinct est fusionné (nouveau navigateur/navigation
+   * privée) — il reste inchangé quand le MÊME visiteur revient plusieurs
+   * fois avec le même navigateur. `visitCount` ci-dessous est le bon
+   * indicateur pour "combien de fois il est revenu".
    */
   sessionCount: number;
+  /** Nombre total de visites/actions trackées (`leads.visit_count`, sommé
+   * sur toutes les sessions fusionnées) — augmente à chaque retour du
+   * visiteur, contrairement à `sessionCount`. */
+  visitCount: number;
 }
 
 const TEMPERATURE_LABELS: Record<LeadTemperature, string> = {
@@ -141,6 +210,7 @@ function mapLead(raw: unknown): Lead {
     clientEmail: (data["clientEmail"] as string | null | undefined) || null,
     clientName: (data["clientName"] as string | null | undefined) || null,
     sessionCount: Number(data["sessionCount"] ?? 1),
+    visitCount: Number(data["visitCount"] ?? 1),
   };
 }
 
@@ -229,19 +299,28 @@ export async function generateProspectionEmail(
 /**
  * // API CALL : restCall('prospection', `/leads/${leadId}/send-email`, { method: 'POST', body: { subject, body } })
  * Envoie l'e-mail de prospection généré (ou édité) par l'agence à un lead.
- * Endpoint microservice ajouté par un autre agent en parallèle sur
- * `prospection-service` (non vérifiable depuis ce workspace) — voir consigne.
+ *
+ * AJOUTÉ (demande explicite, point 4) : `provider`/`note` sont désormais
+ * remontés — `sent: true` ne veut dire "vraiment délivré" que si
+ * `provider === "smtp"` (SMTP réel configuré côté prospection-service,
+ * cf. services/emailSender.js) ; `provider: "stub"` = envoi simulé, jamais
+ * présenté comme un succès. `agence.prospection.tsx` doit distinguer les
+ * deux cas dans son toast plutôt que d'afficher systématiquement "envoyé".
  */
 export async function sendProspectionEmail(
   leadId: string,
   payload: { subject: string; body: string },
-): Promise<{ sent: boolean }> {
+): Promise<{ sent: boolean; provider: string; note: string }> {
   const raw = await restCall<unknown>("prospection", `/leads/${leadId}/send-email`, {
     method: "POST",
     body: payload,
   });
   const data = camelizeKeys(raw) as Record<string, unknown>;
-  return { sent: Boolean(data["sent"] ?? true) };
+  return {
+    sent: Boolean(data["sent"] ?? false),
+    provider: String(data["provider"] ?? "stub"),
+    note: String(data["note"] ?? ""),
+  };
 }
 
 export interface ProspectionSettings {

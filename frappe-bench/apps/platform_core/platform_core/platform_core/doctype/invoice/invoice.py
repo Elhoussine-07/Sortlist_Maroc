@@ -9,9 +9,15 @@ class Invoice(Document):
     """
 
     def validate(self):
-        # Calcul des montants
-        self.total = (self.amount or 0) + (self.tax or 0)
+        # BUG CORRIGÉ : `total`/`amount_due` étaient calculés à partir de
+        # `amount` (le montant HT du PROJET, cf. Proposal._create_invoice —
+        # `self.amount` y vaut `Proposal.amount`) au lieu de la commission
+        # réellement due à la plateforme. L'agence se voyait donc demander de
+        # régler la totalité du montant du projet plutôt que le pourcentage
+        # de commission (`commission_rate`) — `commission_amount` était bien
+        # calculé mais jamais utilisé comme base de `total`/`amount_due`.
         self.commission_amount = (self.amount or 0) * ((self.commission_rate or 0) / 100)
+        self.total = self.commission_amount + (self.tax or 0)
         self.amount_due = self.total - (self.credit_applied or 0)
 
         # Vérifications

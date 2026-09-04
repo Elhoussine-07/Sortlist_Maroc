@@ -50,6 +50,7 @@ import {
   type CategoryOption,
 } from "@/services/agencies.service";
 import {
+  recordProfileVisit,
   trackProspectionSignal,
   type ProspectionTrackAction,
 } from "@/services/prospection.service";
@@ -81,7 +82,8 @@ interface PortfolioItem {
   id: string;
   title: string;
   status: string;
-  image?: string;
+  image?: string | undefined;
+  resultUrl?: string | undefined;
 }
 
 type TabKey =
@@ -125,12 +127,20 @@ function useTabbedProspectionTracking(
 ) {
   const [activeTab, setActiveTab] = useState<TabKey>("apercu");
   const activeTabRef = useRef<TabKey>("apercu");
-  const enteredAtRef = useRef<number>(Date.now());
-  const initializedRef = useRef(false);
+  // BUG CORRIGÉ (demande explicite) : `enteredAtRef` démarrait dès que la
+  // page était prête (`ready`), donc l'onglet "Aperçu" par défaut se
+  // retrouvait tracké (comme une "Consultation du profil" avec une vraie
+  // durée) sans que le visiteur n'ait jamais cliqué sur rien — un simple
+  // chargement de page suffisait à faire grimper le score, ce qui pouvait
+  // l'amener à 100% sans qu'aucune section n'ait été réellement consultée.
+  // `null` tant qu'aucun clic réel sur un onglet n'a eu lieu ; `flush`
+  // n'envoie donc plus rien pour une vue par défaut jamais cliquée.
+  const enteredAtRef = useRef<number | null>(null);
   const latestRef = useRef({ countFor, clientEmail, clientName });
   latestRef.current = { countFor, clientEmail, clientName };
 
   function flush(tab: TabKey) {
+    if (enteredAtRef.current === null) return;
     const elapsed = Math.round((Date.now() - enteredAtRef.current) / 1000);
     if (elapsed >= 1) {
       trackProspectionSignal(agencyId, TAB_ACTIONS[tab], {
@@ -151,15 +161,8 @@ function useTabbedProspectionTracking(
   // sa durée réelle — `flush` ignore déjà les visites de moins d'1 seconde
   // (clic accidentel), ce qui est le comportement voulu.
   useEffect(() => {
-    if (!ready || !agencyId || initializedRef.current) return;
-    initializedRef.current = true;
-    enteredAtRef.current = Date.now();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, agencyId]);
-
-  useEffect(() => {
     return () => {
-      if (initializedRef.current) flush(activeTabRef.current);
+      flush(activeTabRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -168,7 +171,11 @@ function useTabbedProspectionTracking(
     if (tab === activeTabRef.current) return;
     flush(activeTabRef.current);
     activeTabRef.current = tab;
-    enteredAtRef.current = Date.now();
+    // Ne démarre le suivi que si les données de l'agence sont chargées
+    // (cf. `ready`, inchangé par ailleurs) — sinon pas de tracking du tout
+    // pour ce clic, plutôt que de fausser la durée avec un timestamp
+    // prématuré.
+    enteredAtRef.current = ready && agencyId ? Date.now() : null;
     setActiveTab(tab);
   }
 
@@ -275,6 +282,15 @@ function PublicAgencyProfilePage() {
       .finally(() => setIsReviewsLoading(false));
   }, [id]);
 
+  // AJOUTÉ (demande explicite) : compte une vraie visite du profil, UNE
+  // SEULE FOIS au chargement de la page — découplé du tracking par onglet
+  // (`useTabbedProspectionTracking`), qui lui reste déclenché par clic et
+  // n'influence que le score, jamais `visit_count`.
+  useEffect(() => {
+    recordProfileVisit(id, { clientEmail, clientName }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   useEffect(() => {
     searchAgencies({ page: 1, pageSize: 4 })
       .then((result) => setSimilarAgencies(result.items.filter((item) => item.id !== id)))
@@ -298,6 +314,15 @@ function PublicAgencyProfilePage() {
       const result = await toggleFavoriteAgency(id);
       setIsFavorite(result.favorited);
       toast(result.favorited ? "Agence ajoutée à vos favoris" : "Agence retirée de vos favoris");
+      // BUG CORRIGÉ (demande explicite) : le vrai bouton "Ajouter aux
+      // favoris" n'envoyait jamais de signal de prospection — seul
+      // trackStrongIntentClick() (câblé sur "Contacter"/"Publier un
+      // projet") envoyait l'action "favorite", donc cliquer sur l'étoile
+      // elle-même n'avait aucun effet sur le score. Envoyé uniquement à
+      // l'ajout (pas au retrait), qui reste le signal fort réel.
+      if (result.favorited) {
+        trackProspectionSignal(id, "favorite", { clientEmail, clientName }).catch(() => {});
+      }
     } catch (error) {
       toast(error instanceof ApiError ? error.message : "Action impossible.");
     } finally {
@@ -310,6 +335,7 @@ function PublicAgencyProfilePage() {
     title: item.title,
     status: item.status,
     image: item.image,
+    resultUrl: item.resultUrl || undefined,
   }));
 
   const team = agency?.team ?? [];
@@ -801,12 +827,22 @@ function PublicAgencyProfilePage() {
                           onClick={() => setSelectedPortfolioItem(item)}
                           className="cursor-pointer overflow-hidden rounded-lg border border-border transition-colors hover:bg-accent/30"
                         >
-                          <div className="flex aspect-[4/3] items-center justify-center bg-muted">
-                            <ImageIcon
-                              className="h-6 w-6 text-muted-foreground"
-                              strokeWidth={1.5}
-                            />
-                          </div>
+                          {item.image ? (
+                            <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+                              <img
+                                src={item.image}
+                                alt={item.title}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex aspect-[4/3] items-center justify-center bg-muted">
+                              <ImageIcon
+                                className="h-6 w-6 text-muted-foreground"
+                                strokeWidth={1.5}
+                              />
+                            </div>
+                          )}
                           <div className="p-2.5">
                             <p className="truncate text-[12.5px] font-semibold">{item.title}</p>
                             <p className="truncate text-[11.5px] text-muted-foreground">
@@ -979,14 +1015,22 @@ function PublicAgencyProfilePage() {
                           key={index}
                           className="flex items-start gap-3 rounded-lg border border-border p-4 transition-all hover:border-primary/30 hover:shadow-sm"
                         >
-                          <div
-                            style={{ backgroundImage: seedGradient(member.member || "?") }}
-                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[14px] font-bold text-white shadow-sm"
-                          >
-                            {initialsOf(member.member || "?")}
-                          </div>
+                          {member.photo ? (
+                            <img
+                              src={member.photo}
+                              alt=""
+                              className="h-12 w-12 shrink-0 rounded-full border border-border object-cover shadow-sm"
+                            />
+                          ) : (
+                            <div
+                              style={{ backgroundImage: seedGradient(member.memberName || "?") }}
+                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[14px] font-bold text-white shadow-sm"
+                            >
+                              {initialsOf(member.memberName || "?")}
+                            </div>
+                          )}
                           <div className="min-w-0">
-                            <p className="text-[14px] font-bold">{member.member || "Membre"}</p>
+                            <p className="text-[14px] font-bold">{member.memberName || "Membre"}</p>
                             {member.role && (
                               <p className="text-[13px] text-muted-foreground">{member.role}</p>
                             )}
@@ -1323,6 +1367,17 @@ function PublicAgencyProfilePage() {
               <p className="mt-1.5 text-[13px] text-muted-foreground">
                 {selectedPortfolioItem.status}
               </p>
+              {selectedPortfolioItem.resultUrl && (
+                <a
+                  href={selectedPortfolioItem.resultUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-[13px] font-semibold transition-colors hover:bg-accent"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  Voir le résultat
+                </a>
+              )}
             </div>
           </div>
         </div>

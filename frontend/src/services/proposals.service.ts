@@ -53,8 +53,16 @@ export async function getPendingProposals(projectId: string): Promise<PendingPro
 export async function respondToQuote(
   proposalId: string,
   decision: "accept" | "refuse",
+  message?: string,
 ): Promise<void> {
-  await frappeCall<unknown>("project.respond_to_quote", { proposal: proposalId, decision });
+  await frappeCall<unknown>("project.respond_to_quote", {
+    proposal: proposalId,
+    decision,
+    // AJOUTÉ (demande explicite, négociation) : motif/contre-proposition
+    // optionnel joint à un refus — le devis n'est plus définitivement clos,
+    // l'agence peut renvoyer une offre ajustée (cf. Proposal.refuse()).
+    message: message || undefined,
+  });
 }
 
 /**

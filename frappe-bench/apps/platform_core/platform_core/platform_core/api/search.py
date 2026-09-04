@@ -9,8 +9,6 @@ Filtrage SQL simple, pas de compréhension sémantique du langage naturel.
 
 import frappe
 
-from platform_core.platform_core.auth import get_body_arg
-
 
 @frappe.whitelist(allow_guest=True)
 def search_agencies(query=None, category=None, location=None, page=1, page_size=20):
@@ -32,11 +30,19 @@ def search_agencies(query=None, category=None, location=None, page=1, page_size=
 		values["category"] = f"%{category}%"
 
 	where_clause = " and ".join(conditions)
+	# DÉSACTIVÉ (demande explicite, phase de test) : "where offers_suspended = 0"
+	# rendait invisible dans la recherche publique toute agence ayant un jour
+	# été flaguée par tasks.py::process_invoice_reminders (cf. proposal.py,
+	# même correctif) — flag jamais remis à 0 automatiquement, y compris après
+	# régularisation de la facture. Des agences avec un compte valide
+	# disparaissaient donc silencieusement de "/agences", sans aucun message
+	# d'erreur. À réactiver avec le filtre une fois un vrai mécanisme de levée
+	# automatique en place.
 	rows = frappe.db.sql(
 		f"""
 		select name, agency_name, logo, slogan, location, rating, pqi_score, reviews_count
 		from `tabAgencyProfile`
-		where offers_suspended = 0 and ({where_clause})
+		where ({where_clause})
 		order by pqi_score desc, rating desc
 		limit %(limit)s offset %(offset)s
 		""",
@@ -56,9 +62,7 @@ def search_agencies(query=None, category=None, location=None, page=1, page_size=
 
 
 @frappe.whitelist(allow_guest=True)
-def search_natural_language(query=None):
+def search_natural_language(query):
 	"""cf. 3.1 : sans search-service, on retombe sur une recherche mot-clé simple
 	plutôt qu'une vraie compréhension d'intention — limitation assumée."""
-	if not query:
-		query = get_body_arg("query")
 	return search_agencies(query=query)

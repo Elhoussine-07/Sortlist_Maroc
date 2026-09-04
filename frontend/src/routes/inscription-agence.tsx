@@ -22,14 +22,22 @@ import {
   AlertCircle,
   AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { TextAreaField, TextField } from "@/components/common/Blocks";
 import { CountrySelect, type SelectedCountry } from "@/components/common/CountrySelect";
-import { registerAgency, verifyEmailCode, requestEmailCode } from "@/services/auth.service";
+import { TagSelect } from "@/components/common/TagSelect";
+import { LocationPicker } from "@/components/common/LocationPicker";
+import { SKILL_OPTIONS, TECH_STACK_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/agencyOptions";
+import {
+  registerAgency,
+  verifyEmailCode,
+  requestEmailCode,
+  checkAgencyNameAvailability,
+} from "@/services/auth.service";
 import { updateAgencyProfile } from "@/services/profile.service";
 import { ApiError } from "@/services/http";
 import { useAuthStore } from "@/store/auth.store";
@@ -71,11 +79,23 @@ const registrationSchema = z
     description: z.string().trim().min(1, "Champ requis").max(2000),
     foundedYear: z.string().trim().min(4, "Année invalide").max(4),
     teamSize: z.string().trim().min(1, "Champ requis").max(40),
-    website: z.string().trim().url("URL invalide").max(255).optional(),
+    // BUG CORRIGÉ : `.url()` exigeait un préfixe http(s):// et `.optional()`
+    // n'acceptait pas la chaîne vide "" envoyée par défaut par le formulaire
+    // -> impossible de laisser le champ vide ou de saisir juste "sortlist.com".
+    website: z
+      .string()
+      .trim()
+      .max(255)
+      .optional()
+      .or(z.literal(""))
+      .refine(
+        (value) => !value || /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(:\d+)?(\/\S*)?$/i.test(value),
+        "Format de site web invalide (ex. sortlist.com)",
+      ),
     skills: z.string().trim().min(1, "Champ requis").max(500),
     techStack: z.string().trim().min(1, "Champ requis").max(500),
     languages: z.string().trim().min(1, "Champ requis").max(200),
-    location: z.string().trim().min(1, "Champ requis").max(120),
+    location: z.string().trim().min(1, "Champ requis").max(255),
     country: z.string().trim().min(1, "Champ requis").max(120),
     address: z.string().trim().min(1, "Champ requis").max(255),
     phoneCountryCode: z.string().trim().min(1, "Sélectionnez d'abord un pays").max(6),
@@ -116,12 +136,25 @@ const FIELDS_BEFORE_ACCOUNT_CREATION: (keyof RegistrationForm)[] = [
   ...STEP_FIELDS[3]!,
 ];
 
+// Délai avant de vérifier la disponibilité du nom d'agence pendant la saisie,
+// pour ne pas envoyer une requête à chaque caractère tapé.
+const NAME_CHECK_DEBOUNCE_MS = 500;
+
 function AgencyRegistrationPage() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // AJOUT : détection en direct d'un nom d'agence déjà pris (étape 1), pour
+  // avertir tôt plutôt qu'à la toute fin des 4 étapes. Purement informatif :
+  // n'envoie aucune demande de rattachement automatiquement (ça reste une
+  // action volontaire, à faire depuis le compte une fois connecté).
+  const [nameCheckStatus, setNameCheckStatus] = useState<
+    "idle" | "checking" | "available" | "taken"
+  >("idle");
+  const nameCheckIdRef = useRef(0);
 
   const navigate = useNavigate();
   const setToken = useAuthStore((state) => state.setToken);
@@ -156,10 +189,66 @@ function AgencyRegistrationPage() {
   const email = form.watch("email");
   const nameValue = form.watch("name");
 
+  // AJOUT : vérifie la disponibilité du nom d'agence pendant la saisie
+  // (debounce + protection contre les réponses obsolètes si l'utilisateur
+  // continue de taper pendant qu'une requête précédente est encore en vol).
+  useEffect(() => {
+    const trimmed = (nameValue ?? "").trim();
+    if (trimmed.length < 2) {
+      setNameCheckStatus("idle");
+      return;
+    }
+    const requestId = (nameCheckIdRef.current += 1);
+    setNameCheckStatus("checking");
+    const timeoutId = setTimeout(() => {
+      checkAgencyNameAvailability(trimmed)
+        .then((result) => {
+          if (nameCheckIdRef.current === requestId) {
+            setNameCheckStatus(result.available ? "available" : "taken");
+          }
+        })
+        .catch(() => {
+          if (nameCheckIdRef.current === requestId) {
+            setNameCheckStatus("idle");
+          }
+        });
+    }, NAME_CHECK_DEBOUNCE_MS);
+    return () => clearTimeout(timeoutId);
+  }, [nameValue]);
+
+  // AJOUT : nettoie l'erreur "nom déjà pris" posée par goToNextStep /
+  // handleCreateAccount dès que l'utilisateur corrige le nom vers une valeur
+  // disponible (sinon le message resterait affiché jusqu'au prochain clic).
+  useEffect(() => {
+    if (nameCheckStatus === "available") {
+      form.clearErrors("name");
+    }
+  }, [nameCheckStatus, form]);
+
   async function goToNextStep() {
     const fieldsToValidate = STEP_FIELDS[step];
     const isStepValid = fieldsToValidate ? await form.trigger(fieldsToValidate) : true;
     if (!isStepValid) return;
+
+    // AJOUT : bloque le passage à l'étape suivante tant que le nom d'agence
+    // saisi correspond à une agence existante (ou que la vérification est
+    // encore en cours, pour éviter une course où on avancerait juste avant
+    // que la réponse "taken" n'arrive).
+    if (step === 1 && (nameCheckStatus === "taken" || nameCheckStatus === "checking")) {
+      form.setError("name", {
+        message:
+          nameCheckStatus === "taken"
+            ? "Ce nom d'agence est déjà utilisé"
+            : "Vérification du nom en cours...",
+      });
+      toast.error(
+        nameCheckStatus === "taken"
+          ? "Veuillez choisir un autre nom d'agence pour continuer."
+          : "Veuillez patienter, vérification du nom en cours.",
+      );
+      return;
+    }
+
     setStep((current) => Math.min(4, current + 1));
   }
 
@@ -184,6 +273,26 @@ function AgencyRegistrationPage() {
       form.setError("name", { message: "Le nom de l'agence est requis (minimum 2 caractères)" });
       setStep(1);
       toast.error("Veuillez saisir le nom de l'agence");
+      return;
+    }
+
+    // AJOUT : même garde-fou qu'à l'étape 1, au cas où l'utilisateur serait
+    // revenu en arrière et aurait remodifié le nom sans repasser par
+    // goToNextStep (ex. retour à l'étape 1 depuis l'étape 4 puis clic direct
+    // sur "Créer mon compte agence" sans revalider chaque étape).
+    if (nameCheckStatus === "taken" || nameCheckStatus === "checking") {
+      form.setError("name", {
+        message:
+          nameCheckStatus === "taken"
+            ? "Ce nom d'agence est déjà utilisé"
+            : "Vérification du nom en cours...",
+      });
+      setStep(1);
+      toast.error(
+        nameCheckStatus === "taken"
+          ? "Veuillez choisir un autre nom d'agence pour continuer."
+          : "Veuillez patienter, vérification du nom en cours.",
+      );
       return;
     }
 
@@ -255,6 +364,19 @@ function AgencyRegistrationPage() {
           foundedYear: values.foundedYear,
           teamSize: values.teamSize,
           languages: values.languages
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+          // BUG CORRIGÉ : `skills`/`techStack` sont saisis à l'étape 2
+          // (TagSelect) mais n'étaient jamais envoyés au backend — le
+          // profil public affichait donc toujours "Non renseigné" pour
+          // "Compétences"/"Technologies", même après une inscription
+          // complète.
+          skills: values.skills
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+          techStack: values.techStack
             .split(",")
             .map((item) => item.trim())
             .filter(Boolean),
@@ -411,10 +533,30 @@ function AgencyRegistrationPage() {
                       minLength: { value: 2, message: "Minimum 2 caractères" },
                     })}
                   />
-                  {nameValue && nameValue.length > 0 && (
-                    <p className="mt-1 text-[11px] text-emerald-600">
-                      ✓ {nameValue.length} caractères
-                    </p>
+                  {/* AJOUT : message "agence déjà existante" — gros titre +
+                      petit texte explicatif, purement informatif (aucune
+                      demande envoyée depuis cet écran). */}
+                  {nameCheckStatus === "taken" ? (
+                    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30">
+                      <p className="flex items-center gap-1.5 text-[14px] font-bold text-amber-800 dark:text-amber-300">
+                        <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
+                        Cette agence existe déjà
+                      </p>
+                      <p className="mt-1 text-[11.5px] leading-[1.5] text-amber-700/80 dark:text-amber-400/80">
+                        Si vous faites partie de cette agence, vous pourrez envoyer une demande de
+                        rattachement depuis votre compte (menu « Rejoindre une agence ») une fois
+                        connecté, plutôt que de créer un nouveau profil.
+                      </p>
+                    </div>
+                  ) : nameCheckStatus === "checking" ? (
+                    <p className="mt-1 text-[11px] text-muted-foreground">Vérification...</p>
+                  ) : (
+                    nameValue &&
+                    nameValue.length > 0 && (
+                      <p className="mt-1 text-[11px] text-emerald-600">
+                        ✓ {nameValue.length} caractères
+                      </p>
+                    )
                   )}
                 </div>
                 <TextField
@@ -431,7 +573,7 @@ function AgencyRegistrationPage() {
                 />
                 <TextField
                   label="Site web (optionnel)"
-                  placeholder="https://www.agence.com"
+                  placeholder="Ex. sortlist.com"
                   error={form.formState.errors.website?.message}
                   {...form.register("website")}
                 />
@@ -454,25 +596,36 @@ function AgencyRegistrationPage() {
                   projets.
                 </p>
               </div>
-              <TextAreaField
-                label="Compétences (séparées par des virgules)"
-                rows={3}
-                placeholder="Ex. SEO, Marketing digital, Stratégie de contenu"
+              {/* AJOUT : remplace les 3 zones de texte libre par des
+                  TagSelect (recherche + sélection multiple + ajout libre si
+                  la valeur n'est pas dans la liste). Le format de données
+                  reste une chaîne "a, b, c", donc le schéma Zod et le code
+                  de soumission (ex. languages.split(",") dans
+                  handleVerifyCode) n'ont pas besoin de changer. */}
+              <TagSelect
+                label="Compétences"
+                value={form.watch("skills")}
+                onChange={(next) => form.setValue("skills", next, { shouldValidate: true })}
+                options={SKILL_OPTIONS}
+                placeholder="Rechercher ou ajouter une compétence..."
                 error={form.formState.errors.skills?.message}
-                {...form.register("skills")}
               />
-              <TextAreaField
-                label="Technologies (séparées par des virgules)"
-                rows={3}
-                placeholder="Ex. React, Node.js, Python, AWS"
+              <TagSelect
+                label="Technologies"
+                value={form.watch("techStack")}
+                onChange={(next) => form.setValue("techStack", next, { shouldValidate: true })}
+                options={TECH_STACK_OPTIONS}
+                placeholder="Rechercher ou ajouter une technologie..."
                 error={form.formState.errors.techStack?.message}
-                {...form.register("techStack")}
               />
-              <TextField
+              <TagSelect
                 label="Langues de travail"
-                placeholder="Ex. Français, Anglais, Espagnol"
+                value={form.watch("languages")}
+                onChange={(next) => form.setValue("languages", next, { shouldValidate: true })}
+                options={LANGUAGE_OPTIONS}
+                placeholder="Rechercher une langue..."
                 error={form.formState.errors.languages?.message}
-                {...form.register("languages")}
+                allowCustom={false}
               />
             </div>
           )}
@@ -485,11 +638,12 @@ function AgencyRegistrationPage() {
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <TextField
+                <LocationPicker
                   label="Localisation"
-                  placeholder="Ex. Paris"
+                  value={form.watch("location")}
+                  onChange={(next) => form.setValue("location", next, { shouldValidate: true })}
                   error={form.formState.errors.location?.message}
-                  {...form.register("location")}
+                  placeholder="Ex. Paris"
                 />
                 <CountrySelect
                   label="Pays"
@@ -620,7 +774,10 @@ function AgencyRegistrationPage() {
                 <button
                   type="button"
                   onClick={goToNextStep}
-                  className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md"
+                  disabled={
+                    step === 1 && (nameCheckStatus === "taken" || nameCheckStatus === "checking")
+                  }
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:opacity-40 disabled:hover:shadow-sm"
                 >
                   Suivant
                   <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />

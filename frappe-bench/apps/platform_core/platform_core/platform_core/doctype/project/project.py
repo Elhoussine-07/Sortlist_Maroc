@@ -20,10 +20,6 @@ class Project(Document):
         # Note : Project n'a pas de champ "deadline" dans le DocType final ; le seul délai
         # porté par ce document est delivery_delay_days, utilisé pour expected_end_date.
 
-    def on_submit(self):
-        self.status = "Posted"
-        self._increment_client_projects_published_count()
-
     def _increment_client_projects_published_count(self):
         if not self.client:
             return
@@ -40,6 +36,17 @@ class Project(Document):
         # d'avant modification.
         before = self.get_doc_before_save()
         old_status = before.status if before else None
+
+        if self.status == "Posted" and old_status != "Posted":
+            # BUG CORRIGÉ : ce compteur était câblé sur `on_submit`, un hook
+            # qui ne se déclenche que pour un doctype "submittable"
+            # (`doc.submit()`, workflow docstatus 0->1) — `Project` n'a
+            # jamais été marqué `is_submittable`, et la publication réelle
+            # (`project.post_project`/`ia.create_project_from_briefing`)
+            # appelle `doc.save()`, jamais `doc.submit()`. Le compteur restait
+            # donc bloqué à 0 pour tous les clients, quel que soit le nombre
+            # réel de projets publiés.
+            self._increment_client_projects_published_count()
 
         if self.status == "Completed" and old_status != "Completed":
             self._notify_client(
@@ -137,7 +144,37 @@ class Project(Document):
 
     def complete(self):
         """Passage définitif à Terminé, après confirmation client + validation
-        modérateur (CDC §1.5.1)."""
+        modérateur (CDC §1.5.1).
+
+        AJOUTÉ (demande explicite, rectification) : le projet ne doit PAS
+        passer Terminé tant que la facture de commission plateforme (cf.
+        Proposal._create_invoice, échéance = durée du projet) n'est pas
+        réglée — dans ce cas il est suspendu (catégorie "Non-paiement") à la
+        place. Couvre les trois chemins qui appellent complete() :
+        tasks.complete_overdue_projects (échéance projet atteinte),
+        api.moderation.validate_completion (clôture anticipée validée) et
+        tout futur appelant direct. Réutilise
+        ProjectSuspension.suspend_for_unpaid_invoice (même mécanisme que
+        tasks.suspend_projects_for_unpaid_commission), idempotent : si le
+        projet est déjà suspendu pour non-paiement, ne recrée rien."""
+        unpaid_invoice = frappe.get_all(
+            "Invoice",
+            filters={"project": self.name, "status": ["in", ["Pending", "Overdue"]]},
+            limit=1,
+            pluck="name",
+        )
+        if unpaid_invoice:
+            from platform_core.platform_core.doctype.projectsuspension.projectsuspension import (
+                suspend_for_unpaid_invoice,
+            )
+
+            invoice_doc = frappe.get_doc("Invoice", unpaid_invoice[0])
+            if invoice_doc.status != "Overdue":
+                invoice_doc.status = "Overdue"
+                invoice_doc.save(ignore_permissions=True)
+            suspend_for_unpaid_invoice(invoice_doc)
+            return self
+
         self.status = "Completed"
         self.save(ignore_permissions=True)
         return self
@@ -161,6 +198,25 @@ class Project(Document):
         )
         for member in agency_members:
             self._create_notification(member.user, "Project", title, message)
+
+    def get_cdc_context(self):
+        """AJOUTÉ (demande explicite) : contexte de rendu du PDF CDC, utilisé
+        par le Print Format "CDC" (cf. cdc.py::generate_cdc, qui appelle
+        désormais frappe.get_print(print_format="CDC") au lieu de construire
+        le HTML à la main)."""
+        client = frappe.get_doc("ClientProfile", self.client)
+        client_email = frappe.db.get_value("User", client.user, "email") if client.user else None
+
+        return {
+            "project": self,
+            "client": client,
+            "client_email": client_email,
+            "generated_at": frappe.utils.now_datetime().strftime("%d/%m/%Y à %H:%M"),
+            "description_text": frappe.utils.strip_html(self.description or ""),
+            "deliverables_text": self.deliverables or "",
+            "exclusions_text": self.exclusions or "",
+            "deadlines_text": self.deadlines or "",
+        }
 
     def _create_notification(self, user, ntype, title, message):
         # Notification = simple enregistrement de données côté Frappe (cœur métier).

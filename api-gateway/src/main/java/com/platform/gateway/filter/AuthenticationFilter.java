@@ -48,9 +48,18 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     private static final List<String> PUBLIC_PREFIXES = List.of(
             // §5: whole auth.** namespace is public (login/otp/register).
             "/api/method/platform_core.platform_core.api.auth.",
-            "/files/WhatsAppVideoDemo0.mp4",
             // Health checks must stay open (§10).
-            "/actuator"
+            "/actuator",
+            // BUG CORRIGÉ : `/files/**` est bien routé vers Frappe (cf.
+            // GatewayConfig), mais restait bloqué en 401 par ce filtre faute
+            // d'un JWT — qu'un simple `<img src>` n'envoie jamais. Ces
+            // fichiers sont explicitement publics (uploadés avec
+            // `is_private=0`, cf. profile.service.ts::uploadFile) : logo/
+            // couverture d'agence, photos d'équipe, images de portfolio...
+            // ne s'affichaient donc jamais. `/private/files/**` reste
+            // protégé (téléchargé via des endpoints dédiés avec Bearer,
+            // jamais via un <img src> direct).
+            "/files/"
     );
 
     /**
@@ -74,13 +83,16 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/api/method/platform_core.platform_core.api.search.search_agencies",
             "/api/method/platform_core.platform_core.api.search.search_natural_language",
             "/api/method/platform_core.platform_core.api.review.list_agency_reviews",
+            // Page publique /projets (visiteur anonyme) — cf. platform_core
+            // api/opportunity.py::list_public_projects, allow_guest=True.
+            "/api/method/platform_core.platform_core.api.opportunity.list_public_projects",
             "/api/method/platform_core.platform_core.api.utils.ping",
             "/api/method/platform_core.platform_core.api.utils.get_categories",
+            "/api/method/platform_core.platform_core.api.utils.get_countries",
             "/api/method/platform_core.platform_core.api.utils.get_legal_id_rule",
             "/api/method/platform_core.platform_core.api.utils.validate_legal_id",
 
-            //countries
-            "/api/method/platform_core.platform_core.api.utils.get_countries",
+
 
             // §5: sole public exception under /api/ia/**.
             "/api/ia/chatbot/public",

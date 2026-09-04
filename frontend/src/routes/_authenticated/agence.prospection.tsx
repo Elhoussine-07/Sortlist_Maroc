@@ -120,6 +120,8 @@ function buildColumns(
   onGenerateEmail: (lead: Lead) => void,
   generatingId: string | null,
   onViewClientProfile: (lead: Lead) => void,
+  expandedActionIds: Set<string>,
+  onToggleActions: (leadId: string) => void,
 ): Column<Lead>[] {
   return [
     {
@@ -136,14 +138,16 @@ function buildColumns(
               <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
                 {lead.companyName}
               </p>
-              {/* AJOUTÉ : un même client identifié qui revient plusieurs
-                  fois (navigation privée, autre navigateur...) est
-                  désormais fusionné en un seul prospect côté backend
-                  (cf. prospection.js::mergeLeadsByClientIdentity) — ce
-                  badge indique combien de sessions ont été regroupées. */}
-              {lead.sessionCount > 1 && (
+              {/* BUG CORRIGÉ (demande explicite) : affichait `sessionCount`
+                  (nombre de session_id distincts fusionnés), qui reste figé
+                  tant que le visiteur revient avec le MÊME navigateur — un
+                  même client revenant 5 fois via le même navigateur
+                  affichait toujours "×1" ou "×2" au lieu du vrai nombre de
+                  visites. `visitCount` (leads.visit_count, incrémenté à
+                  chaque /track) reflète les vraies visites répétées. */}
+              {lead.visitCount > 1 && (
                 <span className="shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  ×{lead.sessionCount} sessions
+                  ×{lead.visitCount} visites
                 </span>
               )}
             </div>
@@ -174,23 +178,34 @@ function buildColumns(
       key: "actions",
       header: "Signaux détectés",
       width: "minmax(0,1.6fr)",
-      render: (lead) => (
-        <div className="flex flex-wrap gap-1.5">
-          {lead.actions.slice(0, 3).map((action, index) => (
-            <span
-              key={index}
-              className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
-            >
-              {action}
-            </span>
-          ))}
-          {lead.actions.length > 3 && (
-            <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-              +{lead.actions.length - 3}
-            </span>
-          )}
-        </div>
-      ),
+      render: (lead) => {
+        // AJOUTÉ (demande explicite) : le badge "+N" ouvre/replie la liste
+        // complète des signaux au lieu de rester purement décoratif.
+        const isExpanded = expandedActionIds.has(lead.id);
+        const visibleActions = isExpanded ? lead.actions : lead.actions.slice(0, 3);
+        const hiddenCount = lead.actions.length - 3;
+        return (
+          <div className="flex flex-wrap gap-1.5">
+            {visibleActions.map((action, index) => (
+              <span
+                key={index}
+                className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+              >
+                {action}
+              </span>
+            ))}
+            {hiddenCount > 0 && (
+              <button
+                type="button"
+                onClick={() => onToggleActions(lead.id)}
+                className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10"
+              >
+                {isExpanded ? "Réduire" : `+${hiddenCount}`}
+              </button>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "temperature",
@@ -269,6 +284,22 @@ function AgencyProspectionPage() {
   // acceptait déjà (`from`/`to` sur `/leads`).
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  // AJOUTÉ (demande explicite) : suit quels prospects ont leur liste de
+  // signaux détectés dépliée (badge "+N" cliquable dans la colonne
+  // "Signaux détectés").
+  const [expandedActionIds, setExpandedActionIds] = useState<Set<string>>(new Set());
+
+  function toggleActionsExpanded(leadId: string) {
+    setExpandedActionIds((current) => {
+      const next = new Set(current);
+      if (next.has(leadId)) {
+        next.delete(leadId);
+      } else {
+        next.add(leadId);
+      }
+      return next;
+    });
+  }
 
   const clientProfileQuery = useQuery({
     queryKey: ["agency", "prospection", "client-profile", clientProfileTarget?.clientEmail],
@@ -332,10 +363,24 @@ function AgencyProspectionPage() {
       if (!emailTarget) throw new Error("Aucun prospect sélectionné.");
       return sendProspectionEmail(emailTarget.id, { subject: emailSubject, body: emailBody });
     },
-    onSuccess: () => {
-      toast("E-mail envoyé avec succès", { description: emailTarget?.companyName });
-      setIsEmailOpen(false);
-      setEmailTarget(null);
+    // AJOUTÉ (demande explicite, point 4) : `sent`/`provider` reflètent
+    // désormais un envoi SMTP réellement confirmé (cf.
+    // prospection.service.ts) — on ne peut plus afficher "envoyé avec
+    // succès" pour un envoi simulé (`provider: "stub"`, aucun SMTP
+    // configuré côté prospection-service). Le brouillon reste affiché dans
+    // ce cas pour laisser l'agence le copier/envoyer manuellement.
+    onSuccess: (result) => {
+      if (result.sent) {
+        toast("E-mail envoyé avec succès", { description: emailTarget?.companyName });
+        setIsEmailOpen(false);
+        setEmailTarget(null);
+      } else {
+        toast.warning("E-mail non délivré", {
+          description:
+            result.note ||
+            "Le transport d'envoi n'est pas configuré — le brouillon reste disponible ci-dessus.",
+        });
+      }
     },
     onError: (error) => {
       toast(error instanceof ApiError ? error.message : "Envoi de l'e-mail impossible.");
@@ -520,6 +565,8 @@ function AgencyProspectionPage() {
                 setClientProfileTarget(lead);
                 setIsClientProfileOpen(true);
               },
+              expandedActionIds,
+              toggleActionsExpanded,
             )}
             rows={leads}
             isLoading={isLoading}

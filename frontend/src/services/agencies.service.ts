@@ -8,7 +8,13 @@ import type {
   PaginatedResponse,
   Project,
 } from "@/lib/types";
-import { camelizeKeys, frappeCall, resolveFileUrl, restCall } from "@/services/http";
+import {
+  camelizeKeys,
+  frappeCall,
+  parseCommaList,
+  resolveFileUrl,
+  restCall,
+} from "@/services/http";
 import { mapProject } from "@/services/projects.service";
 
 /** Service agences. */
@@ -51,6 +57,30 @@ function mapAgency(raw: unknown): Agency {
       data["matchingScore"] !== undefined && data["matchingScore"] !== null
         ? Number(data["matchingScore"])
         : null,
+    // BUG CORRIGÉ : renommé en `teamSizeCount` — `AgencyProfile.teamSize`
+    // (string, ex. "11-50") existait déjà, et réutiliser le même nom ici
+    // (number) provoquait `Agency & Partial<AgencyProfile>` (cf.
+    // getAgencyProfile() ci-dessous) à résoudre le type de la clé en
+    // `never` (intersection number & string).
+    teamSizeCount:
+      data["teamSize"] !== undefined && data["teamSize"] !== null ? Number(data["teamSize"]) : null,
+    avgResponseHours:
+      data["avgResponseHours"] !== undefined && data["avgResponseHours"] !== null
+        ? Number(data["avgResponseHours"])
+        : null,
+    badge: data["badge"] !== undefined && data["badge"] !== null ? String(data["badge"]) : null,
+    onTimeDeliveryRate:
+      data["onTimeDeliveryRate"] !== undefined && data["onTimeDeliveryRate"] !== null
+        ? Number(data["onTimeDeliveryRate"])
+        : null,
+    tags: Array.isArray(data["tags"]) ? (data["tags"] as string[]) : undefined,
+    startingPrice:
+      data["startingPrice"] !== undefined && data["startingPrice"] !== null
+        ? String(data["startingPrice"])
+        : null,
+    portfolioCount:
+      data["portfolioCount"] !== undefined ? Number(data["portfolioCount"]) : undefined,
+    logo: resolveFileUrl(data["logo"] as string | null | undefined),
   };
 }
 
@@ -232,12 +262,12 @@ export async function getAgencyProfile(id: string): Promise<Agency & Partial<Age
     foundedYear: String(data["yearFounded"] ?? ""),
     teamSize: String(data["teamSize"] ?? ""),
     website: String(data["website"] ?? ""),
-    languages: Array.isArray(data["languages"]) ? (data["languages"] as string[]) : [],
+    languages: parseCommaList(data["languages"]),
     remoteWork: Boolean(data["remoteWork"] ?? false),
     legalIdValue: String(data["legalId"] ?? ""),
     legalIdValid: Boolean(data["legalIdVerified"] ?? false),
-    techStack: Array.isArray(data["techStack"]) ? (data["techStack"] as string[]) : [],
-    skills: Array.isArray(data["skills"]) ? (data["skills"] as string[]) : [],
+    techStack: parseCommaList(data["techStack"]),
+    skills: parseCommaList(data["skills"]),
     phoneCountryCode: String(data["phoneCountryCode"] ?? ""),
     phone: String(data["phone"] ?? ""),
     email: String(data["email"] ?? ""),
@@ -276,16 +306,17 @@ export interface AgencyReview {
   rating: number;
   comment: string;
   publishedAt: string;
-  /** Titre du projet noté (cf. review.py::list_agency_reviews) — un avis doit toujours être accompagné du projet concerné. */
-  projectTitle: string | null;
+  /** Titre du projet concerné — `review.list_agency_reviews` renvoie déjà `project_title`. */
+  projectTitle?: string | null | undefined;
 }
 
 /**
  * // API CALL : frappeCall("review.list_agency_reviews", { agency: id, page, page_size }) — allow_guest
- * BUG CORRIGÉ : `review.list_agency_reviews` renvoie désormais `client_name`
- * (résolu côté backend via `ClientProfile`, cf. `review.py`) — auparavant
- * absent, `authorName` retombait toujours sur le texte générique codé en dur
- * "Client vérifié" quel que soit le client réel.
+ * // TODO backend: `AgencyReview` (cf. `platform_core/platform_core/api/review.py`)
+ * // n'expose ni auteur ni initiales (avis internalisés/anonymisés côté
+ * // plateforme, cf. CDC "anti-faux-avis") — `authorName`/`authorInitials`
+ * // n'ont donc pas de source réelle : affichés en "Client vérifié" plutôt que
+ * // fabriqués.
  */
 export async function listAgencyReviews(
   id: string,
@@ -300,22 +331,14 @@ export async function listAgencyReviews(
   const list = (Array.isArray(raw) ? raw : []) as unknown[];
   return list.map((item, index) => {
     const data = camelizeKeys(item) as Record<string, unknown>;
-    const authorName = String(data["clientName"] ?? "Client vérifié");
-    const initials = authorName
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("");
     return {
       id: String(data["name"] ?? index),
-      authorInitials: initials || "CV",
-      authorName,
+      authorInitials: "CV",
+      authorName: "Client vérifié",
       rating: Number(data["rating"] ?? 0),
       comment: String(data["comment"] ?? ""),
       publishedAt: String(data["creation"] ?? ""),
-      projectTitle: (data["projectTitle"] as string | undefined) ?? null,
+      projectTitle: (data["projectTitle"] as string | null | undefined) ?? null,
     };
   });
 }

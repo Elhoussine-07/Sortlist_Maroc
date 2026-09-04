@@ -38,11 +38,27 @@ export const GATEWAY_URL: string =
  * Gateway seul ne suffisait pas. `encodeURI` échappe l'espace (`%20`) etc.
  * sans re-encoder un chemin déjà encodé (idempotent, préserve `/`, `:`...).
  */
+/**
+ * BUG CORRIGÉ : certaines URLs de fichiers renvoyées par Frappe sont déjà
+ * percent-encodées (ex. espace -> `%20`) — appliquer `encodeURI` par-dessus
+ * réencodait le `%` déjà présent en `%25`, doublant l'encodage
+ * (`%20` -> `%2520`) et cassant le chargement de l'image (404/500). On
+ * décode d'abord (annule tout encodage existant) puis on réencode une seule
+ * fois — `decodeURI` échoue sur une séquence `%` malformée, d'où le repli.
+ */
+function encodeURIOnce(url: string): string {
+  try {
+    return encodeURI(decodeURI(url));
+  } catch {
+    return encodeURI(url);
+  }
+}
+
 export function resolveFileUrl(url: string | null | undefined): string | undefined {
   if (!url) return undefined;
   if (url.startsWith("data:")) return url;
-  if (/^(https?:)?\/\//.test(url)) return encodeURI(url);
-  return encodeURI(`${GATEWAY_URL}${url.startsWith("/") ? "" : "/"}${url}`);
+  if (/^(https?:)?\/\//.test(url)) return encodeURIOnce(url);
+  return encodeURIOnce(`${GATEWAY_URL}${url.startsWith("/") ? "" : "/"}${url}`);
 }
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -336,6 +352,23 @@ export async function fetchBlob(
  * précise est ensuite reconstruite "à la main" (et typée) dans chaque service.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+/**
+ * BUG CORRIGÉ : `AgencyProfile.languages/skills/tech_stack` sont stockés
+ * côté backend comme une chaîne unique "a, b, c" (champ `Small Text`), pas
+ * comme une liste — le frontend attendait `Array.isArray(...)` et retombait
+ * donc systématiquement sur `[]` (rien affiché), même après enregistrement.
+ * On tolère malgré tout un tableau déjà prêt (ex. si le backend change un
+ * jour de représentation) pour ne pas casser cet appelant-là.
+ */
+export function parseCommaList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === "string");
+  if (typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export function camelizeKeys(input: unknown): any {
   if (Array.isArray(input)) {
     return input.map((item) => camelizeKeys(item));
@@ -350,5 +383,3 @@ export function camelizeKeys(input: unknown): any {
   }
   return input;
 }
-
-

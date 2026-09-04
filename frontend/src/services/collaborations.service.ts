@@ -1,4 +1,4 @@
-import type { Collaboration, PaginatedResponse } from "@/lib/types";
+import type { Collaboration, CollaborationProjectReview, PaginatedResponse } from "@/lib/types";
 import { camelizeKeys, frappeCall } from "@/services/http";
 
 export interface CollaborationSearchParams {
@@ -22,45 +22,60 @@ export function mapCollaboration(raw: unknown): Collaboration {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
 
-  // BUG CORRIGÉ : `client.list_collaborations` groupe les lignes PAR AGENCE
-  // (`{agency, agency_name, projects: [...]}`) — aucune des clés `id`/`name`/
-  // `project` n'existe au niveau racine, seulement imbriquée dans `projects`.
-  // `id` retombait donc toujours sur "" (chaîne vide), envoyée telle quelle
-  // comme `project` à `review.submit_agency_review` → 417 "Projet manquant"
-  // à chaque tentative d'avis. On retombe sur le premier projet de la
-  // collaboration (le seul identifiant de Project réellement disponible ici).
-  const projects = Array.isArray(data["projects"])
+  // BUG CORRIGÉ (demande explicite) : `client.list_collaborations` ne
+  // renvoyait qu'UN SEUL avis (le plus récent) pour toute l'agence, alors
+  // qu'`AgencyReview` est déjà scopé par projet côté backend — impossible de
+  // laisser un avis distinct par projet Terminé avec la même agence. Chaque
+  // entrée de `projects[]` porte désormais SON PROPRE avis (donné et reçu).
+  const rawProjects = Array.isArray(data["projects"])
     ? (data["projects"] as Record<string, unknown>[])
     : [];
-  const firstProjectId = projects[0]?.["project"];
+  const projects: CollaborationProjectReview[] = rawProjects.map((row) => {
+    const projectReview = (row["review"] ?? null) as Record<string, unknown> | null;
+    const ratingReceivedRaw = row["ratingReceived"];
+    return {
+      id: String(row["project"] ?? ""),
+      title: String(row["title"] ?? ""),
+      period: String(row["period"] ?? ""),
+      startDate: (row["startDate"] as string | null | undefined) ?? null,
+      endDate: (row["expectedEndDate"] as string | null | undefined) ?? null,
+      budgetMin:
+        row["budgetMin"] !== undefined && row["budgetMin"] !== null
+          ? Number(row["budgetMin"])
+          : null,
+      budgetMax:
+        row["budgetMax"] !== undefined && row["budgetMax"] !== null
+          ? Number(row["budgetMax"])
+          : null,
+      reviewed: projectReview !== null,
+      yourRating: Number(projectReview?.["rating"] ?? 0),
+      yourComment: String(projectReview?.["comment"] ?? ""),
+      ratingReceived:
+        ratingReceivedRaw !== undefined && ratingReceivedRaw !== null
+          ? Number(ratingReceivedRaw)
+          : null,
+    };
+  });
 
-  // BUG CORRIGÉ : `client.list_collaborations` n'interrogeait jamais
-  // `AgencyReview` — `publicReview` retombait donc toujours sur "" côté
-  // frontend, quel que soit l'avis réellement envoyé, et les onglets "Avis
-  // publiés"/"Avis à publier" (cf. client.collaborations.tsx, filtrés sur
-  // `publicReview.length`) ne reflétaient jamais l'état réel. Le backend
-  // renvoie désormais un objet `review` (dernier avis du client pour cette
-  // agence, s'il existe) — utilisé en priorité ici.
+  // Avis DONNÉ le plus récent, pour le résumé de ligne — le détail par
+  // projet (utilisé pour l'action "Laisser un avis") vient de `projects[]`.
   const review = (data["review"] ?? null) as Record<string, unknown> | null;
   const reviewComment = review ? String(review["comment"] ?? "") : "";
+  const budgetRaw = data["budget"];
 
   return {
-    id: String(
-      data["id"] ?? data["name"] ?? data["project"] ?? review?.["project"] ?? firstProjectId ?? "",
-    ),
+    id: String(data["agency"] ?? data["id"] ?? data["name"] ?? ""),
     agencyInitials: String(data["agencyInitials"] ?? initials),
     agencyName,
     agencyTagline: String(data["agencyTagline"] ?? data["slogan"] ?? ""),
-    ratingReceived: Number(data["ratingReceived"] ?? data["rating"] ?? 0),
-    finishedProjects: String(data["finishedProjects"] ?? data["finishedProjectsCount"] ?? ""),
+    ratingReceived: Number(data["ratingReceived"] ?? 0),
+    finishedProjects: String(data["finishedProjectsCount"] ?? projects.length),
     period: String(data["period"] ?? ""),
-    budget: String(data["budget"] ?? ""),
-    publicReview: reviewComment || String(data["publicReview"] ?? data["comment"] ?? ""),
-    reviewLength: Number(
-      data["reviewLength"] ??
-        (reviewComment || String(data["publicReview"] ?? data["comment"] ?? "")).length,
-    ),
-    yourRating: Number(review?.["rating"] ?? data["yourRating"] ?? data["rating"] ?? 0),
+    budget: budgetRaw !== undefined && budgetRaw !== null ? `${Number(budgetRaw)} €` : "",
+    publicReview: reviewComment,
+    reviewLength: reviewComment.length,
+    yourRating: Number(review?.["rating"] ?? 0),
+    projects,
   };
 }
 
@@ -106,6 +121,7 @@ export async function getCollaboration(id: string): Promise<Collaboration> {
     publicReview: detail.review?.comment ?? "",
     reviewLength: detail.review?.comment.length ?? 0,
     yourRating: detail.review?.rating ?? 0,
+    projects: [],
   };
 }
 

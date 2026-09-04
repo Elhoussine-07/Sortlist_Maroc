@@ -16,6 +16,7 @@ from platform_core.platform_core.doctype.agencymember.agencymember import list_a
 OTP_TTL_SECONDS = 5 * 60
 PWRESET_TTL_SECONDS = 5 * 60
 PENDING_AGENCY_REGISTRATION_TTL_SECONDS = OTP_TTL_SECONDS
+LOGIN_2FA_TTL_SECONDS = 5 * 60
 
 def _user_type(email):
 	roles = set(frappe.get_roles(email))
@@ -109,6 +110,12 @@ def verify_otp(email=None, code=None):
 
 @frappe.whitelist(allow_guest=True)
 def login(email=None, password=None):
+	"""cf. Paramètres > Double authentification (`settings.toggle_two_factor`) :
+	quand `User.two_factor_enabled` est actif, le mot de passe seul ne suffit
+	plus à obtenir un token — un code à usage unique est envoyé par email et
+	doit être validé via `verify_login_otp` avant `_build_token`. Ce flag
+	était jusqu'ici enregistré sans jamais être lu nulle part côté connexion,
+	rendant le bouton "2FA" entièrement sans effet."""
 	email = require_body_arg(email, "email", _("Email manquant"))
 	password = require_body_arg(password, "password", _("Mot de passe manquant"))
 	email = email.strip().lower()
@@ -116,6 +123,31 @@ def login(email=None, password=None):
 		frappe.local.login_manager.authenticate(user=email, pwd=password)
 	except frappe.exceptions.AuthenticationError:
 		frappe.throw(_("Identifiants invalides"), frappe.AuthenticationError)
+
+	if frappe.db.get_value("User", email, "two_factor_enabled"):
+		code = f"{random.randint(0, 999999):06d}"
+		frappe.cache().set_value(f"login2fa:{email}", code, expires_in_sec=LOGIN_2FA_TTL_SECONDS)
+		frappe.sendmail(
+			recipients=[email],
+			subject="Votre code de double authentification",
+			message=f"Votre code de connexion est : <b>{code}</b> (valable 5 minutes).",
+			now=True,
+		)
+		return {"requires_2fa": True, "email": email}
+
+	return _build_token(email)
+
+
+@frappe.whitelist(allow_guest=True)
+def verify_login_otp(email=None, code=None):
+	"""Seconde étape de `login` quand la 2FA est activée (cf. ci-dessus)."""
+	email = require_body_arg(email, "email", _("Email manquant"))
+	code = require_body_arg(code, "code", _("Code manquant"))
+	email = email.strip().lower()
+	cached = frappe.cache().get_value(f"login2fa:{email}")
+	if not cached or str(cached) != str(code).strip():
+		frappe.throw(_("Code invalide ou expiré"))
+	frappe.cache().delete_value(f"login2fa:{email}")
 	return _build_token(email)
 
 

@@ -11,6 +11,8 @@ import {
   forgotPassword,
   login,
   requestEmailCode,
+  verifyLoginOtp,
+  type LoginResponse,
 } from "@/services/auth.service";
 import { ApiError } from "@/services/http";
 import { useAuthStore } from "@/store/auth.store";
@@ -19,7 +21,7 @@ import { useBriefingStore } from "@/store/briefing.store";
 export const Route = createFileRoute("/connexion")({
   head: () => ({
     meta: [
-      { title: "Connexion | Sortlist Pro" },
+      { title: "Connexion | Sortlist " },
       {
         name: "description",
         content:
@@ -51,77 +53,100 @@ function LoginPage() {
   // Brouillon en cours repris depuis le backend (bandeau haut de page)
   const [pendingDraft] = useState<{ id: string; title: string } | null>(null);
 
+  // AJOUTÉ : 2FA à la connexion (cf. Paramètres > Double authentification,
+  // `settings.toggle_two_factor`) — ce toggle enregistrait un flag jamais lu
+  // par `auth.login`, la connexion se faisait donc toujours en un seul temps
+  // quel que soit son état. `auth.login` peut désormais répondre
+  // `requires2fa: true` (code envoyé par email) au lieu d'un token direct.
+  const [is2faModalOpen, setIs2faModalOpen] = useState(false);
+  const [twoFaCode, setTwoFaCode] = useState("");
+  const [isVerifying2fa, setIsVerifying2fa] = useState(false);
+  const [pending2faEmail, setPending2faEmail] = useState("");
+
+  function completeLogin({ token, user, detectedRole, roleKnown }: LoginResponse) {
+    // ------------------------------------------------------------------
+    // Vérification du rôle sélectionné vs rôle réel détecté.
+    //
+    // IMPORTANT : on ne bloque QUE si le backend a explicitement renvoyé
+    // un champ de rôle reconnu (`roleKnown`). Auparavant, quand la réponse
+    // ne contenait aucun champ de rôle reconnaissable, `detectedRole`
+    // retombait silencieusement sur "client" — ce qui bloquait à tort la
+    // connexion des comptes agence de façon intermittente (selon la forme
+    // exacte de la réponse renvoyée par l'endpoint appelé). On fait donc
+    // confiance au choix de l'utilisateur quand le backend ne tranche pas.
+    //
+    // Et surtout : on n'écrit RIEN dans le store tant que cette
+    // vérification n'est pas passée, pour éviter de persister en
+    // localStorage un token/rôle correspondant à une connexion refusée
+    // (c'était la cause des soucis de navigation après un échec).
+    // ------------------------------------------------------------------
+    // Un compte Moderator/Administrator (détecté via auth.py::_user_type,
+    // normalisé en "admin" par normalizeRole) n'a pas de bouton dédié sur
+    // cet écran (seuls Client/Agence sont des parcours d'inscription grand
+    // public) — on fait donc confiance au backend sans jamais bloquer sur
+    // l'incohérence bouton cliqué / rôle détecté dans ce cas précis.
+    if (roleKnown && detectedRole !== "admin" && role !== detectedRole) {
+      const errorMessage = `Le compte "${email}" est un compte ${
+        detectedRole === "agency" ? "Agence" : "Client"
+      }. Veuillez sélectionner le bon bouton en haut de l'écran.`;
+      setError(errorMessage);
+      toast(errorMessage);
+      return; // Rien n'a été écrit dans le store : aucun état résiduel.
+    }
+
+    const finalRole = roleKnown ? detectedRole : role;
+    setSession({ token, user, role: finalRole });
+
+    // ------------------------------------------------------------------
+    // Redirection
+    // ------------------------------------------------------------------
+    const redirectTarget = new URLSearchParams(window.location.search).get("redirect");
+    const briefingStore = useBriefingStore.getState();
+
+    // Si c'est un client qui a un brouillon et demande à postuler
+    if (
+      redirectTarget === "postuler-un-projet" &&
+      finalRole === "client" &&
+      briefingStore.hasDraft()
+    ) {
+      briefingStore.setAutoPublishRequested(true);
+      navigate({ to: "/client/postuler-un-projet" });
+      return;
+    }
+
+    // Redirection vers le bon tableau de bord
+    if (finalRole === "admin") {
+      navigate({ to: "/admin/tableau-de-bord" });
+    } else if (finalRole === "agency") {
+      navigate({ to: "/agence/tableau-de-bord" });
+    } else {
+      navigate({ to: "/client/tableau-de-bord" });
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const { token, user, detectedRole, roleKnown } = await login({
+      const response = await login({
         email,
         password,
         role, // On envoie quand même le choix de l'UI au backend
         rememberMe,
       });
 
-      // ------------------------------------------------------------------
-      // Vérification du rôle sélectionné vs rôle réel détecté.
-      //
-      // IMPORTANT : on ne bloque QUE si le backend a explicitement renvoyé
-      // un champ de rôle reconnu (`roleKnown`). Auparavant, quand la réponse
-      // ne contenait aucun champ de rôle reconnaissable, `detectedRole`
-      // retombait silencieusement sur "client" — ce qui bloquait à tort la
-      // connexion des comptes agence de façon intermittente (selon la forme
-      // exacte de la réponse renvoyée par l'endpoint appelé). On fait donc
-      // confiance au choix de l'utilisateur quand le backend ne tranche pas.
-      //
-      // Et surtout : on n'écrit RIEN dans le store tant que cette
-      // vérification n'est pas passée, pour éviter de persister en
-      // localStorage un token/rôle correspondant à une connexion refusée
-      // (c'était la cause des soucis de navigation après un échec).
-      // ------------------------------------------------------------------
-      // Un compte Moderator/Administrator (détecté via auth.py::_user_type,
-      // normalisé en "admin" par normalizeRole) n'a pas de bouton dédié sur
-      // cet écran (seuls Client/Agence sont des parcours d'inscription grand
-      // public) — on fait donc confiance au backend sans jamais bloquer sur
-      // l'incohérence bouton cliqué / rôle détecté dans ce cas précis.
-      if (roleKnown && detectedRole !== "admin" && role !== detectedRole) {
-        const errorMessage = `Le compte "${email}" est un compte ${
-          detectedRole === "agency" ? "Agence" : "Client"
-        }. Veuillez sélectionner le bon bouton en haut de l'écran.`;
-        setError(errorMessage);
-        toast(errorMessage);
-        setLoading(false);
-        return; // Rien n'a été écrit dans le store : aucun état résiduel.
-      }
-
-      const finalRole = roleKnown ? detectedRole : role;
-      setSession({ token, user, role: finalRole });
-
-      // ------------------------------------------------------------------
-      // Redirection
-      // ------------------------------------------------------------------
-      const redirectTarget = new URLSearchParams(window.location.search).get("redirect");
-      const briefingStore = useBriefingStore.getState();
-
-      // Si c'est un client qui a un brouillon et demande à postuler
-      if (
-        redirectTarget === "postuler-un-projet" &&
-        finalRole === "client" &&
-        briefingStore.hasDraft()
-      ) {
-        briefingStore.setAutoPublishRequested(true);
-        navigate({ to: "/client/postuler-un-projet" });
+      if (response.requires2fa) {
+        setPending2faEmail(email);
+        setTwoFaCode("");
+        setIs2faModalOpen(true);
+        toast("Code de connexion envoyé par email.", {
+          description: "Vérifiez votre boîte de réception pour finaliser la connexion.",
+        });
         return;
       }
 
-      // Redirection vers le bon tableau de bord
-      if (finalRole === "admin") {
-        navigate({ to: "/admin/tableau-de-bord" });
-      } else if (finalRole === "agency") {
-        navigate({ to: "/agence/tableau-de-bord" });
-      } else {
-        navigate({ to: "/client/tableau-de-bord" });
-      }
+      completeLogin(response);
     } catch (error) {
       // AJOUTÉ : le message affiché est désormais contrôlé par le frontend
       // pour le cas identifiants invalides (401), plutôt que de transmettre
@@ -138,6 +163,24 @@ function LoginPage() {
       toast(message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleConfirm2fa() {
+    if (!twoFaCode.trim()) {
+      toast("Renseignez le code reçu par email.");
+      return;
+    }
+    setIsVerifying2fa(true);
+    try {
+      const response = await verifyLoginOtp(pending2faEmail, twoFaCode.trim(), role);
+      setIs2faModalOpen(false);
+      completeLogin(response);
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Code invalide ou expiré.";
+      toast(message);
+    } finally {
+      setIsVerifying2fa(false);
     }
   }
 
@@ -208,7 +251,7 @@ function LoginPage() {
     <div className="min-h-screen bg-background">
       <header className="px-6 pt-8 sm:px-10">
         <Link to="/" className="text-[26px] font-bold tracking-tight">
-          Sortlist Pro
+          Sortlist
         </Link>
       </header>
 
@@ -381,6 +424,22 @@ function LoginPage() {
             onChange={(event) => setResetNewPassword(event.target.value)}
           />
         </div>
+      </ActionModal>
+      <ActionModal
+        open={is2faModalOpen}
+        onOpenChange={setIs2faModalOpen}
+        title="Double authentification"
+        description="Saisissez le code de connexion reçu par email pour finaliser la connexion."
+        confirmLabel={isVerifying2fa ? "Vérification..." : "Valider"}
+        onConfirm={handleConfirm2fa}
+      >
+        <TextField
+          label="Code reçu par email"
+          type="text"
+          value={twoFaCode}
+          onChange={(event) => setTwoFaCode(event.target.value)}
+          placeholder="Code à 6 chiffres"
+        />
       </ActionModal>
     </div>
   );

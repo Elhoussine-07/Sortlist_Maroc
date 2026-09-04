@@ -10,6 +10,8 @@
   "project",
   "agency",
   "amount",
+  "quote_items",
+  "vat_rate",
   "description",
   "status",
   "submitted_date",
@@ -51,6 +53,17 @@
    "in_list_view": 1,
    "label": "Montant",
    "reqd": 1
+  },
+  {
+   "fieldname": "quote_items",
+   "fieldtype": "Table",
+   "label": "Lignes du devis",
+   "options": "ProposalItem"
+  },
+  {
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "label": "Taux de TVA (%)"
   },
   {
    "fieldname": "description",

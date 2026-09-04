@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "member",
+  "member_name",
   "photo",
   "role",
   "description",
@@ -21,6 +22,13 @@
    "fieldtype": "Link",
    "label": "Membre rattach\u00e9",
    "options": "AgencyMember"
+  },
+  {
+   "fieldname": "member_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nom affich\u00e9",
+   "reqd": 1
   },
   {
    "fieldname": "photo",

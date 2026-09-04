@@ -78,7 +78,7 @@ frontend en production.
   authentifié.
 - **Le Gateway valide la signature/expiration du JWT** (`AuthenticationFilter`
   + `JwtUtil`) sur toutes les routes sauf celles listées en §5 "Routes
-  publiques". En cas d'échec : `401`.
+    publiques". En cas d'échec : `401`.
 - Le Gateway ajoute ensuite ces en-têtes pour les services en aval (qui n'ont
   donc pas à re-décoder le JWT, ils font confiance au réseau interne Docker
   où seuls le Gateway et le Frontend sont exposés à l'hôte) :
@@ -110,7 +110,8 @@ les microservices correspondants pour lire/écrire des données métier (ex :
 | `/api/method/platform_core.platform_core.api.auth.**` | Frappe :8000 | publique (login/otp/register) |
 | `/api/method/platform_core.platform_core.api.**` | Frappe :8000 | JWT requis |
 | `/api/resource/**` | Frappe :8000 | JWT requis |
-| `/files/**`, `/private/files/**` | Frappe :8000 | JWT requis |
+| `/files/**` | Frappe :8000 | publique (fichiers `is_private=0` : logo/couverture agence, photos d'équipe, portfolio...) |
+| `/private/files/**` | Frappe :8000 | JWT requis |
 | `/api/matching/**` | matching-service :8081 | JWT requis |
 | `/api/ia/**` | ia-service :8083 | JWT requis (sauf `/api/ia/chatbot/public`) |
 | `/api/prospection/**` | prospection-service :8084 | JWT requis, `user_type=agency` — **sauf** `/api/prospection/track` (public, cf. note ci-dessous) |
@@ -132,6 +133,7 @@ l'inscription cassent) :
 - `platform_core.platform_core.api.agency.get_profile`, `.list_agencies`, `.track_website_click`, `.check_name_availability`
 - `platform_core.platform_core.api.search.search_agencies`, `.search_natural_language`
 - `platform_core.platform_core.api.review.list_agency_reviews`
+- `platform_core.platform_core.api.opportunity.list_public_projects` (page /projets, visiteur anonyme)
 - `platform_core.platform_core.api.utils.ping`, `.get_categories`, `.get_legal_id_rule`, `.validate_legal_id`
 
 Toutes les autres méthodes sous `platform_core.platform_core.api.**` exigent un JWT valide.

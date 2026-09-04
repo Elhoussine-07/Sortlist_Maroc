@@ -14,6 +14,8 @@
   "team_size",
   "website",
   "languages",
+  "skills",
+  "tech_stack",
   "remote_work",
   "cover_image",
   "coverage",
@@ -23,9 +25,7 @@
   "legal_id_label",
   "legal_id",
   "legal_id_verified",
-  "phone_country_code",
   "phone",
-  "address",
   "email",
   "email_verified",
   "billing_email",
@@ -50,13 +50,13 @@
    "fieldname": "agency_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Nom de l’agence",
+   "label": "Nom de l\u2019agence",
    "reqd": 1,
    "unique": 1
   },
   {
    "fieldname": "logo",
-   "fieldtype": "Code",
+   "fieldtype": "Attach Image",
    "label": "Logo"
   },
   {
@@ -72,12 +72,12 @@
   {
    "fieldname": "year_founded",
    "fieldtype": "Int",
-   "label": "Année de création"
+   "label": "Ann\u00e9e de cr\u00e9ation"
   },
   {
    "fieldname": "team_size",
    "fieldtype": "Int",
-   "label": "Taille de l’équipe"
+   "label": "Taille de l\u2019\u00e9quipe"
   },
   {
    "fieldname": "website",
@@ -86,14 +86,24 @@
   },
   {
    "fieldname": "languages",
-   "fieldtype": "Data",
-   "label": "Langues parlées"
+   "fieldtype": "Small Text",
+   "label": "Langues parl\u00e9es"
+  },
+  {
+   "fieldname": "skills",
+   "fieldtype": "Small Text",
+   "label": "Comp\u00e9tences"
+  },
+  {
+   "fieldname": "tech_stack",
+   "fieldtype": "Small Text",
+   "label": "Technologies"
   },
   {
    "default": "0",
    "fieldname": "remote_work",
    "fieldtype": "Check",
-   "label": "Travail à distance"
+   "label": "Travail \u00e0 distance"
   },
   {
    "fieldname": "cover_image",
@@ -103,7 +113,7 @@
   {
    "fieldname": "coverage",
    "fieldtype": "Data",
-   "label": "Couverture géographique"
+   "label": "Couverture g\u00e9ographique"
   },
   {
    "fieldname": "location",
@@ -113,7 +123,7 @@
   {
    "fieldname": "annual_revenue",
    "fieldtype": "Currency",
-   "label": "Chiffre d’affaires"
+   "label": "Chiffre d\u2019affaires"
   },
   {
    "fieldname": "country",
@@ -126,19 +136,19 @@
   {
    "fieldname": "legal_id_label",
    "fieldtype": "Read Only",
-   "label": "Type d’identifiant",
+   "label": "Type d\u2019identifiant",
    "read_only": 1
   },
   {
    "fieldname": "legal_id",
    "fieldtype": "Data",
-   "label": "Numéro d’identification"
+   "label": "Num\u00e9ro d\u2019identification"
   },
   {
    "default": "0",
    "fieldname": "legal_id_verified",
    "fieldtype": "Check",
-   "label": "Identifiant vérifié",
+   "label": "Identifiant v\u00e9rifi\u00e9",
    "permlevel": 1
   },
   {
@@ -149,7 +159,7 @@
   {
    "fieldname": "phone",
    "fieldtype": "Phone",
-   "label": "Téléphone"
+   "label": "T\u00e9l\u00e9phone"
   },
   {
    "fieldname": "address",
@@ -182,13 +192,13 @@
    "default": "0",
    "fieldname": "email_verified",
    "fieldtype": "Check",
-   "label": "Email vérifié (OTP)",
+   "label": "Email v\u00e9rifi\u00e9 (OTP)",
    "permlevel": 1
   },
   {
    "fieldname": "social_links",
    "fieldtype": "Table",
-   "label": "Réseaux sociaux",
+   "label": "R\u00e9seaux sociaux",
    "options": "AgencySocialLink"
   },
   {
@@ -210,21 +220,21 @@
    "default": "0",
    "fieldname": "profile_completion",
    "fieldtype": "Percent",
-   "label": "Complétion du profil",
+   "label": "Compl\u00e9tion du profil",
    "read_only": 1
   },
   {
    "default": "0",
    "fieldname": "reviews_count",
    "fieldtype": "Int",
-   "label": "Nombre d’avis",
+   "label": "Nombre d\u2019avis",
    "read_only": 1
   },
   {
    "default": "0",
    "fieldname": "offers_suspended",
    "fieldtype": "Check",
-   "label": "Offres suspendues(impayé)",
+   "label": "Offres suspendues(impay\u00e9)",
    "permlevel": 1
   },
   {
@@ -242,7 +252,7 @@
   {
    "fieldname": "team",
    "fieldtype": "Table",
-   "label": "Équipe",
+   "label": "\u00c9quipe",
    "options": "AgencyTeam"
   },
   {
@@ -278,7 +288,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-08-14 14:57:44.975456",
+ "modified": "2026-07-20 15:29:09.925568",
  "modified_by": "Administrator",
  "module": "platform_core",
  "name": "AgencyProfile",

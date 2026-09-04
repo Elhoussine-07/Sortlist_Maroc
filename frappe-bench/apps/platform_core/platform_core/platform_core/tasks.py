@@ -149,7 +149,13 @@ def process_invoice_reminders():
 	)
 	for row in very_late:
 		frappe.db.set_value("Invoice", row.name, "status", "Overdue")
-		frappe.db.set_value("AgencyProfile", row.agency, "offers_suspended", 1)
+		# DÉSACTIVÉ (demande explicite, phase de test) : plus aucune facture en
+		# retard ne bloque l'envoi de devis de l'agence. Rien n'a jamais remis
+		# `offers_suspended` à 0 nulle part dans le code (même après paiement de
+		# la facture), donc ce blocage était de toute façon permanent une fois
+		# déclenché — à réactiver avec un vrai mécanisme de levée automatique
+		# avant la mise en production.
+		# frappe.db.set_value("AgencyProfile", row.agency, "offers_suspended", 1)
 
 
 def recompute_pqi_alerts():
@@ -157,32 +163,4 @@ def recompute_pqi_alerts():
 	de baisse de visibilité via scoring.update_agency_pqi)."""
 	for agency in frappe.get_all("AgencyProfile", pluck="name"):
 		frappe.get_doc("AgencyProfile", agency).refresh_pqi()
-	frappe.db.commit()
-	
-	
-def complete_overdue_projects():
-	"""Le délai convenu en début de projet (expected_end_date, déjà recalculé
-	pour intégrer les jours de suspension cumulés — cf.
-	ProjectSuspension._resume_project) doit être respecté : un projet encore
-	"In Progress" une fois ce délai dépassé passe automatiquement Terminé,
-	sans attendre la confirmation manuelle du client
-	(project.confirm_completion) ni la validation du modérateur
-	(moderation.validate_completion) — ces deux mécanismes restent
-	disponibles pour une clôture ANTICIPÉE avant l'échéance, mais ne
-	conditionnent plus la clôture à l'échéance elle-même."""
-	today = frappe.utils.today()
-	overdue = frappe.get_all(
-		"Project",
-		filters={"status": "In Progress", "expected_end_date": ["<=", today]},
-		fields=["name"],
-	)
-	for row in overdue:
-		project = frappe.get_doc("Project", row.name)
-		project.complete()
-
-		opportunity_name = frappe.db.get_value(
-			"Opportunity", {"project": row.name, "status": "Gagnée"}, "name"
-		)
-		if opportunity_name:
-			frappe.get_doc("Opportunity", opportunity_name).mark_completed()
 	frappe.db.commit()
