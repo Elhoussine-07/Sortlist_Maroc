@@ -39,95 +39,23 @@ class AgencyProfile(Document):
         return updated
 
     def _calculate_pqi_score(self):
-        """PQI = Transparence(20) + Talent(20) + Équipe(20) + Portfolio(20) + Confiance(20)
-        (CDC 2.4.1). Règle déterministe sur champs existants — pas d'appel IA ici.
+        """Score rapide recalculé à chaque sauvegarde — BUG CORRIGÉ (demande
+        explicite) : utilisait auparavant sa propre grille à 5 critères
+        (Transparence/Talent/Équipe/Portfolio/Confiance), complètement
+        différente de celle de `scoring.py::compute_pqi` (Netteté des
+        visuels/Structuration du nom/Cohérence des informations/Complétude
+        qualifiée/Sécurité du compte — celle affichée par `api.agency.
+        analytics` dans `pqi_details`). Comme `refresh_pqi()` appelle
+        `doc.save()` après avoir posé le score détaillé, ce `validate()`
+        l'écrasait IMMÉDIATEMENT avec l'ancien calcul : le nombre affiché
+        dans l'anneau PQI ne correspondait jamais à la somme des barres par
+        critère affichées juste à côté (ex. barres = 80, anneau = 46). Les
+        deux utilisent désormais exactement la même grille, pour ne plus
+        jamais diverger.
         """
-        transparency = self._score_transparency()
-        talent = self._score_talent()
-        team = self._score_team()
-        portfolio = self._score_portfolio()
-        trust = self._score_trust()
+        from platform_core.platform_core.scoring import compute_pqi
 
-        self.pqi_score = transparency + talent + team + portfolio + trust
-
-    def _score_transparency(self):
-        """Score de transparence (max 20)"""
-        score = 0
-        if self.description:
-            score += 5
-        if self.website:
-            score += 5
-        if self.social_links:
-            score += 5
-        if self.coverage and self.location:
-            score += 5
-        return score
-
-    def _score_talent(self):
-        """Score de talent basé sur les services et certifications (max 20)"""
-        score = 0
-
-        # Services (max 10)
-        if self.services:
-            count = len(self.services)
-            if count >= 3:
-                score += 10
-            elif count >= 1:
-                score += 5
-
-        # Certifications (max 10)
-        if self.certifications:
-            count = len(self.certifications)
-            if count >= 3:
-                score += 10
-            elif count >= 1:
-                score += 5
-
-        return min(score, 20)
-
-    def _score_team(self):
-        """Score de l'équipe basé sur le nombre de membres (max 20)"""
-        if not self.team_size:
-            return 0
-        # BUG CORRIGÉ : `self.team_size` peut arriver en `str` pendant
-        # validate() — `api.agency.update_profile` fait `doc.set(field,
-        # fields[field])` avec la valeur brute reçue du frontend (JSON), sans
-        # cast ; seule l'écriture DB normalise ensuite via `fieldtype` (Int),
-        # mais validate() s'exécute AVANT cette normalisation. La comparaison
-        # brute plantait alors ("'>=' not supported between instances of
-        # 'str' and 'int'"), empêchant toute sauvegarde de profil agence dès
-        # que `team_size` était renseigné.
-        team_size = int(self.team_size)
-        if team_size >= 10:
-            return 20
-        if team_size >= 5:
-            return 12
-        return 6
-
-    def _score_portfolio(self):
-        """Score du portfolio basé sur le nombre de réalisations (max 20)"""
-        if not self.portfolio:
-            return 0
-
-        count = len(self.portfolio)
-        if count >= 5:
-            return 20
-        if count >= 3:
-            return 15
-        if count >= 1:
-            return 10
-        return 0
-
-    def _score_trust(self):
-        """Score de confiance (max 20)"""
-        score = 0
-        if self.legal_id_verified:
-            score += 10
-        if self.email_verified:
-            score += 5
-        if (self.rating or 0) >= 4:
-            score += 5
-        return score
+        self.pqi_score, _ = compute_pqi(self)
 
     def _calculate_profile_completion(self):
         """Calcule le taux de complétion du profil (0-100)"""

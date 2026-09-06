@@ -692,7 +692,6 @@ function AgencyProfilePage() {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-4 w-4" />
                       Enregistrer les modifications
                     </>
                   )}

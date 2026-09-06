@@ -1,16 +1,16 @@
 [
-    "tabDocType",
-    "tabTag",
-    "tabInstalled",
-    "tabNotification",
-    "tabTag Link",
-    "tabPrint",
-    "tabDocType Link",
-    "tabSingles",
-    "tabInstalled Application",
-    "tabDocPerm",
     "tabDocType Action",
-    "tabPrint Format",
+    "tabDocType",
+    "tabSingles",
+    "tabTag Link",
     "tabDocType State",
-    "tabDocField"
+    "tabNotification",
+    "tabTag",
+    "tabPrint",
+    "tabDocField",
+    "tabDocPerm",
+    "tabInstalled",
+    "tabPrint Format",
+    "tabInstalled Application",
+    "tabDocType Link"
 ]

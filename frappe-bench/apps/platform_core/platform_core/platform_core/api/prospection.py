@@ -7,6 +7,28 @@ from frappe import _
 
 from platform_core.platform_core.auth import require_active_agency, require_internal_token, require_user_type
 
+# BUG CORRIGÉ : `LeadScoringRule.action_code` (Select) n'accepte que des
+# codes anglais ("add_favorite", "certificates_view", ... cf.
+# setup.py::_ensure_lead_scoring_rules), mais `prospection-service`
+# (scoreCalculator.js::findRule) compare les règles reçues au libellé
+# FRANÇAIS canonique de l'action ("Ajout aux favoris", "Consultation
+# certifications", ... produit par normalizeAction()). Sans traduction,
+# `action_code as action` renvoyait tel quel le code anglais : aucune règle
+# ne matchait jamais côté Node dès que le cache utilisait les règles LIVE de
+# Frappe (base_points silencieusement à 0 pour TOUTES les actions) — seul le
+# repli `FALLBACK_RULES` de secours (déjà en français) fonctionnait par
+# coïncidence, d'où un score qui variait selon l'état du cache plutôt que
+# selon l'activité réelle du visiteur.
+ACTION_CODE_TO_LABEL = {
+	"profile_view": "Consultation du profil",
+	"portfolio_view": "Consultation portfolio",
+	"reviews_view": "Consultation avis",
+	"team_view": "Consultation équipe",
+	"certificates_view": "Consultation certifications",
+	"services_view": "Consultation prestations",
+	"add_favorite": "Ajout aux favoris",
+}
+
 
 @frappe.whitelist(allow_guest=True)
 def get_scoring_rules():
@@ -15,8 +37,10 @@ def get_scoring_rules():
 	rules = frappe.get_all(
 		"LeadScoringRule",
 		filters={"is_active": 1},
-		fields=["action_code as action", "base_points", "bonus_condition", "bonus_points"],
+		fields=["action_code", "base_points", "bonus_condition", "bonus_points"],
 	)
+	for rule in rules:
+		rule["action"] = ACTION_CODE_TO_LABEL.get(rule["action_code"], rule["action_code"])
 	return {
 		"rules": rules,
 		"thresholds": {
