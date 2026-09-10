@@ -10,7 +10,7 @@ sur **Frappe**, et quatre microservices spécialisés.
 ```mermaid
 flowchart TB
     browser["Navigateur"] --> front["Front-end SPA<br/>React 19 / TanStack"]
-    front -->|HTTP(S) / WebSocket| gw["API Gateway<br/>Spring Cloud Gateway"]
+    front -->|"HTTPS / WebSocket"| gw["API Gateway<br/>Spring Cloud Gateway"]
 
     gw --> prospection["prospection-service<br/>Node.js"]
     gw --> matching["matching-service<br/>Spring Boot"]
@@ -18,11 +18,11 @@ flowchart TB
     gw --> ia["ia-service<br/>FastAPI"]
     gw --> notif["notifications-service<br/>Socket.IO"]
 
-    matching -.lecture.-> core
-    ia -.lecture.-> core
+    matching -. lecture .-> core
+    ia -. lecture .-> core
 
-    prospection --> pg1[("PostgreSQL<br/>(prospection)")]
-    matching --> pg2[("PostgreSQL<br/>(matching)")]
+    prospection --> pg1[("PostgreSQL - prospection")]
+    matching --> pg2[("PostgreSQL - matching")]
     core --> mariadb[("MariaDB")]
     ia -.-> llm[["LLM externe<br/>OpenAI / Ollama"]]
     notif --> redis[("Redis")]
