@@ -1,6 +1,3 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Module Entreprise (Client) — Mon Profil, Collaborations (cf. §1.1, 1.4)."""
 
 import random
 
@@ -23,7 +20,6 @@ RECENT_PROJECT_FIELDS = [
 	"budget_min", "budget_max", "expected_end_date", "creation",
 ]
 
-
 @frappe.whitelist()
 def get_profile():
 	claims = require_user_type("client")
@@ -32,13 +28,8 @@ def get_profile():
 		frappe.throw(_("Profil introuvable"))
 	return frappe.get_doc("ClientProfile", name).as_dict()
 
-
 @frappe.whitelist()
 def update_profile(**fields):
-	# BUG CORRIGÉ : cf. agency.update_profile — `frappe.form_dict` arrive vide
-	# sur cette installation, `**fields` reçoit alors silencieusement {}.
-	# BUG CORRIGÉ (v2) : repli désormais systématique (pas seulement à
-	# `fields` totalement vide) — le bug peut n'être que partiel.
 	fields = {**get_body_dict(), **fields}
 	claims = require_user_type("client")
 	name = frappe.db.exists("ClientProfile", {"user": claims["sub"]})
@@ -46,9 +37,6 @@ def update_profile(**fields):
 		frappe.throw(_("Profil introuvable"))
 
 	doc = frappe.get_doc("ClientProfile", name)
-	# BUG CORRIGÉ : `legal_id_label` ("Type d'identifiant légal" côté
-	# formulaire `client.mon-profil.tsx`) manquait de cette liste — ce champ
-	# ne pouvait jamais être enregistré, quel que soit le frontend appelant.
 	editable = [
 		"first_name", "last_name", "company_name", "sector", "phone", "logo",
 		"country", "legal_id", "legal_id_label",
@@ -59,16 +47,8 @@ def update_profile(**fields):
 	doc.save(ignore_permissions=True)
 	return doc.as_dict()
 
-
 @frappe.whitelist()
 def verify_identity():
-	"""CDC §1.2 (MUST) : "Contrôle croisé du numéro d'enregistrement auprès de
-	registres publics disponibles (anti-faux profils)". Aucun registre public
-	n'étant réellement branché dans ce périmètre (cf. CountryLegalIDRule.
-	registry_check_enabled, jamais activé), la vérification se limite
-	honnêtement à la conformité du format attendu pour le pays déclaré — mais
-	reste un contrôle réel (jamais un succès simulé) : un identifiant mal
-	formé n'est jamais marqué vérifié."""
 	claims = require_user_type("client")
 	name = frappe.db.exists("ClientProfile", {"user": claims["sub"]})
 	if not name:
@@ -97,10 +77,8 @@ def verify_identity():
 		"trust_score": updated.trust_score if updated else doc.trust_score,
 	}
 
-
 @frappe.whitelist()
 def list_collaborations():
-	"""cf. 1.4 : agences avec lesquelles le client a un/des projet(s) Terminé(s)."""
 	claims = require_user_type("client")
 	client_name = get_client_profile_name(claims["sub"])
 	if not client_name:
@@ -122,11 +100,6 @@ def list_collaborations():
 
 	project_names = [row.project for row in rows]
 
-	# BUG CORRIGÉ (demande explicite) : un seul avis ("le plus récent") était
-	# rattaché à l'AGENCE entière, alors qu'`AgencyReview` est déjà scopé par
-	# projet (cf. `review.submit_agency_review`) — impossible de laisser un
-	# avis distinct par projet Terminé avec la même agence. Indexé par projet
-	# ci-dessous pour que chaque entrée de `projects[]` porte SON PROPRE avis.
 	given_reviews = frappe.get_all(
 		"AgencyReview",
 		filters={"client": claims["sub"], "project": ["in", project_names]},
@@ -134,16 +107,6 @@ def list_collaborations():
 	)
 	given_review_by_project = {r.project: r for r in given_reviews}
 
-	# AJOUTÉ : avis REÇUS de l'agence sur le client (`ClientReview`, cf.
-	# `opportunity.review_client`) — jamais interrogé ici jusqu'ici, "Note
-	# reçue" restait donc toujours à 0 côté frontend quel que soit l'avis
-	# réellement laissé par l'agence.
-	# BUG CORRIGÉ : `ClientReview.client` stocke le NOM du ClientProfile
-	# (`project.client`, cf. `opportunity.review_client`), pas l'email de
-	# session — contrairement à `AgencyReview.client` qui stocke bien
-	# `claims["sub"]`. Filtrer sur `claims["sub"]` ici ne matchait donc
-	# jamais aucun ClientReview réel, quel que soit l'avis laissé par
-	# l'agence : "Note reçue" restait à 0 même avec des avis existants.
 	received_reviews = frappe.get_all(
 		"ClientReview",
 		filters={"client": client_name, "project": ["in", project_names]},
@@ -171,10 +134,6 @@ def list_collaborations():
 			"rating_received": received.rating if received else None,
 		})
 
-	# BUG CORRIGÉ : "Projets terminés"/"Période"/"Budget" (résumé par agence,
-	# cf. client.collaborations.tsx) n'étaient jamais renvoyés au niveau
-	# agence — seulement imbriqués par projet — ces colonnes restaient donc
-	# toujours vides côté UI quel que soit le nombre réel de projets.
 	for entry in by_agency.values():
 		projects = entry["projects"]
 		entry["finished_projects_count"] = len(projects)
@@ -195,13 +154,10 @@ def list_collaborations():
 			round(sum(received_ratings) / len(received_ratings), 1) if received_ratings else None
 		)
 
-		# Avis DONNÉ le plus récent, pour le résumé de ligne (rétro-compat) —
-		# le détail par projet reste dans `projects[].review`.
 		given = [p["review"] for p in projects if p["review"]]
 		entry["review"] = given[0] if given else None
 
 	return list(by_agency.values())
-
 
 @frappe.whitelist()
 def list_favorites():
@@ -214,7 +170,6 @@ def list_favorites():
 		fav["agency_name"] = frappe.db.get_value("AgencyProfile", fav.agency, "agency_name")
 	return favorites
 
-
 @frappe.whitelist()
 def toggle_favorite(agency=None):
 	agency = require_body_arg(agency, "agency", _("Agence manquante"))
@@ -224,11 +179,8 @@ def toggle_favorite(agency=None):
 
 	return toggle(client_name, agency)
 
-
 @frappe.whitelist()
 def get_collaboration(collaboration_id=None):
-	"""Détail d'une collaboration Terminée avec UNE agence donnée (cf. 1.4) —
-	`collaboration_id` est le nom de l'AgencyProfile, cf. `list_collaborations`."""
 	collaboration_id = require_body_arg(collaboration_id, "collaboration_id", _("Collaboration manquante"))
 	claims = require_user_type("client")
 	client_name = get_client_profile_name(claims["sub"])
@@ -277,10 +229,8 @@ def get_collaboration(collaboration_id=None):
 		"review": review[0] if review else None,
 	}
 
-
 @frappe.whitelist()
 def get_dashboard():
-	"""cf. client.tableau-de-bord : agrégat en un seul appel."""
 	claims = require_user_type("client")
 	client_name = get_client_profile_name(claims["sub"])
 	if not client_name:
@@ -302,31 +252,10 @@ def get_dashboard():
 		"recent_projects": recent_projects,
 	}
 
-
-# Fenêtre glissante + échantillon minimal (demande explicite) : sur un
-# faible nombre d'Opportunity, un pourcentage saute mécaniquement à 0%/100%
-# (une seule donnée ne peut pas produire de valeur intermédiaire) — pas un
-# bug, mais trompeur tant que l'échantillon est trop petit pour être
-# représentatif. En dessous du seuil, `None` (affiché "—" côté frontend,
-# cf. `client.tableau-de-bord.tsx`) plutôt qu'un chiffre non significatif.
 RESPONSE_RATE_WINDOW_DAYS = 90
 RESPONSE_RATE_MIN_SAMPLE = 5
 
-
 def _agency_acceptance_rate(client_name):
-	"""« Taux de réponse » du tableau de bord client (demande explicite) :
-	parmi les agences ayant reçu un de ses projets postulés (`Opportunity`,
-	un par agence contactée/shortlistée) au cours des `RESPONSE_RATE_WINDOW_DAYS`
-	derniers jours, quelle proportion a accepté l'offre plutôt que de rester
-	sans réponse ("Reçue") ou de la refuser ("Archivée") ? BUG CORRIGÉ :
-	`ClientProfile.response_rate` était un champ stocké jamais écrit nulle
-	part (aucun hook, aucune tâche planifiée) — toujours 0 par défaut.
-	Calculé ici à la volée plutôt que via un compteur stocké, pour éviter de
-	reproduire le bug de `projects_published_count` (compteur figé si le
-	hook qui l'incrémente ne se déclenche jamais) — et donc naturellement
-	glissant : un ancien événement isolé ne domine jamais indéfiniment le
-	résultat, seule l'activité récente compte.
-	"""
 	project_names = frappe.get_all("Project", {"client": client_name}, pluck="name")
 	if not project_names:
 		return None
@@ -347,13 +276,8 @@ def _agency_acceptance_rate(client_name):
 	)
 	return round(100 * accepted / total, 1)
 
-
 @frappe.whitelist()
 def request_phone_otp(phone=None):
-	"""Vérification du téléphone (cf. §1.1). Pas de passerelle SMS configurée
-	dans ce projet : repli honnête par email (même esprit que les modes stub
-	déjà présents ailleurs dans le monorepo, ex. ia-service) — on n'invente
-	jamais un faux succès SMS."""
 	phone = require_body_arg(phone, "phone", _("Téléphone manquant"))
 	claims = require_user_type("client")
 	client_name = require_client_profile(claims["sub"])
@@ -374,7 +298,6 @@ def request_phone_otp(phone=None):
 	)
 	return {"sent": True}
 
-
 @frappe.whitelist()
 def verify_phone_otp(code=None):
 	code = require_body_arg(code, "code", _("Code manquant"))
@@ -387,27 +310,11 @@ def verify_phone_otp(code=None):
 	client_name = require_client_profile(claims["sub"])
 	doc = frappe.get_doc("ClientProfile", client_name)
 	doc.phone_verified = 1
-	doc.save(ignore_permissions=True)  # recalcule trust_score via validate()
+	doc.save(ignore_permissions=True)
 	return {"verified": True}
-
 
 @frappe.whitelist()
 def get_client_profile_for_agency(client=None):
-	"""Consultation du profil d'un client PAR une agence (Prospection IA,
-	§2.6) : une fois un lead identifié (visiteur connecté au moment du
-	tracking, cf. `prospection.leads.client_email`), l'agence doit pouvoir
-	consulter son profil réel et les avis laissés par d'autres agences à son
-	sujet avant de le contacter — demande explicite, aucun endpoint agence
-	n'exposait jusqu'ici le profil d'un client arbitraire. `client` accepte
-	le nom ClientProfile ou l'email User associé (les deux circulent selon
-	l'appelant : prospection-service ne connaît que l'email).
-
-	VOLONTAIREMENT SANS COORDONNÉES (ni email, ni téléphone) : l'objectif est
-	que l'agence puisse évaluer un prospect (nom, secteur, score de
-	confiance, avis) sans pouvoir le contacter en dehors de la plateforme —
-	l'envoi effectif de l'e-mail de prospection reste géré côté serveur
-	(cf. prospection-service `/leads/:id/send-email`, qui utilise
-	`leads.client_email` en interne sans jamais l'exposer à l'agence)."""
 	client = require_body_arg(client, "client", _("Client manquant"))
 	require_active_agency()
 
@@ -440,16 +347,8 @@ def get_client_profile_for_agency(client=None):
 		"reviews": reviews,
 	}
 
-
 @frappe.whitelist()
 def pay_agency_for_project(project=None, payment_method=None, provider_token=None):
-	"""AJOUTÉ (demande explicite) : chemin de paiement du CLIENT vers
-	l'AGENCE pour les frais du projet — le montant de l'offre acceptée
-	(`Proposal.amount`), distinct des 5% de commission facturés à l'agence
-	côté plateforme (cf. Invoice/Payment, réglés séparément par l'agence via
-	`api.payment`). Sans clé Stripe configurée, le règlement est simulé
-	(cf. `ProjectPayment.before_insert`), dans le même esprit que
-	`api.payment._charge_invoice`."""
 	project = require_body_arg(project, "project", _("Projet manquant"))
 	payment_method = require_body_arg(payment_method, "payment_method", _("Moyen de paiement manquant"))
 	provider_token = require_body_arg(provider_token, "provider_token", _("Jeton du fournisseur manquant"))

@@ -47,7 +47,6 @@ export const Route = createFileRoute("/_authenticated/agence/invitations")({
   component: AgencyInvitationsPage,
 });
 
-// ✅ STYLES MODERNISÉS POUR LES STATUTS
 type StatusKey = "Pending" | "Approved" | "Rejected";
 
 const STATUS_STYLES: Record<
@@ -87,7 +86,7 @@ function getStatusConfig(status: string): typeof STATUS_STYLES.Pending {
   if (status === "Pending" || status === "Approved" || status === "Rejected") {
     return STATUS_STYLES[status];
   }
-  return STATUS_STYLES.Pending; // fallback
+  return STATUS_STYLES.Pending;
 }
 
 const SENT_STATUS_LABEL: Record<JoinRequestSent["status"], string> = {
@@ -302,7 +301,6 @@ function AgencyInvitationsPage() {
         ? rejectMutation.variables.item.id
         : null;
 
-  // Filtrage des demandes reçues
   const filteredReceived = query.trim()
     ? received.filter((item) => item.user.toLowerCase().includes(query.trim().toLowerCase()))
     : received;

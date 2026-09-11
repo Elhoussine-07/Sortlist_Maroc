@@ -10,35 +10,6 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 
-/**
- * Resolves the Frappe base URL to route {@code /api/method/**},
- * {@code /api/resource/**}, {@code /files/**} and {@code /private/files/**}
- * traffic to, without ever hardcoding "Frappe runs locally" or "in a
- * container" — see {@code docs/FRAPPE_FALLBACK.md} at the repo root.
- *
- * <p>Non-blocking counterpart of {@code matching-service}'s
- * {@code FrappeUrlResolver} (the two Java services don't share a module
- * here, so this is intentionally a simplified, Gateway-appropriate
- * reimplementation): the Gateway runs on Reactor Netty event-loop threads,
- * so probing must never block, hence {@link WebClient} + {@link Mono}
- * instead of the blocking {@code java.net.http.HttpClient} used by
- * matching-service.
- *
- * <p>Strategy: probe the "container" URL first
- * ({@code services.frappe-url-container}, i.e. {@code FRAPPE_URL_CONTAINER},
- * default {@code http://frappe:8000}) with a short timeout on
- * {@code /api/method/platform_core.platform_core.api.utils.ping} (public
- * {@code allow_guest=True} method, docs/INTEGRATION.md §5). On failure,
- * fall back to the "local" URL ({@code services.frappe-url-local}, i.e.
- * {@code FRAPPE_URL_LOCAL}, default {@code http://host.docker.internal:8000}).
- * The result is cached (via {@link Mono#cache(Duration)}) for
- * {@link #CACHE_TTL}, then automatically re-probed on the next request after
- * expiry — so a mid-flight switch of where Frappe runs is picked up within
- * one TTL window instead of the Gateway staying stuck on the wrong side.
- *
- * <p>If {@code services.frappe-url} ({@code FRAPPE_URL}) is explicitly set,
- * it is returned as-is and probing is disabled entirely (debug override).
- */
 @Component
 public class FrappeUrlResolver {
 
@@ -53,10 +24,8 @@ public class FrappeUrlResolver {
     private final String localUrl;
     private final WebClient probeClient;
 
-    /** Last URL a probe actually succeeded on; used as the fallback when both probes fail. */
     private final AtomicReference<String> lastGood = new AtomicReference<>();
 
-    /** {@code Mono#cache(Duration)} gives us the TTL-cache-then-reprobe behaviour for free. */
     private final Mono<String> cachedResolution;
 
     public FrappeUrlResolver(
@@ -76,7 +45,6 @@ public class FrappeUrlResolver {
         }
     }
 
-    /** Returns the Frappe base URL to use *right now* (no trailing slash). */
     public Mono<String> resolve() {
         if (explicitUrl != null) {
             return Mono.just(explicitUrl);

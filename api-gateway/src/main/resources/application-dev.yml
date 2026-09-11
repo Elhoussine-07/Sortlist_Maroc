@@ -1,8 +1,3 @@
-# Dev profile — everything points at localhost instead of the Docker
-# service names used in docker-compose, so the gateway can be run standalone
-# with `mvn spring-boot:run -Dspring-boot.run.profiles=dev` against services
-# started directly on the host. Override any of these with real env vars
-# (see /docs/INTEGRATION.md §9) when only some services run locally.
 jwt:
   secret: ${JWT_SECRET:dev-insecure-secret-change-me}
 
@@ -10,9 +5,6 @@ frontend:
   url: ${FRONTEND_URL:http://localhost:3000}
 
 services:
-  # Standalone dev: force a fixed local Frappe URL (disables the
-  # container/local automatic fallback, which only makes sense inside
-  # docker-compose — cf. docs/FRAPPE_FALLBACK.md).
   frappe-url: ${FRAPPE_URL:http://localhost:8000}
   frappe-url-container: ${FRAPPE_URL_CONTAINER:http://localhost:8000}
   frappe-url-local: ${FRAPPE_URL_LOCAL:http://localhost:8000}

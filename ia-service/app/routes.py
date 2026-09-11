@@ -1,7 +1,3 @@
-"""Endpoints HTTP de ia-service, préfixés `/api/ia/` par le Gateway (cf.
-docs/INTEGRATION.md §5). Le Gateway a déjà validé le JWT de l'utilisateur
-final et transmet `X-User-Email` / `X-User-Type` : ce service leur fait
-confiance sans re-vérifier la signature."""
 
 from __future__ import annotations
 
@@ -31,11 +27,7 @@ router = APIRouter(prefix="/api/ia")
 
 _CATEGORIZE_AUTO_THRESHOLD = 0.2
 
-
 def _validate_category_result(result: Optional[dict], categories: list[dict]) -> bool:
-    """Garde-fou anti-hallucination : une catégorie/sous-catégorie renvoyée
-    par le LLM doit exister dans le catalogue Frappe, sinon on ignore le
-    résultat et on retombe sur l'heuristique par mots-clés."""
     if not result or not result.get("category"):
         return False
     cat_match = next((c for c in categories if c.get("name") == result["category"]), None)
@@ -46,16 +38,9 @@ def _validate_category_result(result: Optional[dict], categories: list[dict]) ->
         return False
     return True
 
-
 @router.get("/health")
 async def health():
     return {"status": "ok", "service": "ia-service"}
-
-
-# --------------------------------------------------------------------------
-# 1. Smart Briefing IA — étape conversationnelle (cahier §1.2)
-# --------------------------------------------------------------------------
-
 
 @router.post("/briefing/turn", response_model=BriefingTurnResponse)
 async def briefing_turn(payload: BriefingTurnRequest):
@@ -68,12 +53,6 @@ async def briefing_turn(payload: BriefingTurnRequest):
         prev_slot = nlp_service.next_missing_slot(brief)
         category_hint = None
 
-        # Mode assisté LLM : tente une extraction structurée à partir du
-        # message libre. Peut remplir plusieurs champs d'un coup si le
-        # client les a tous mentionnés dans un seul message (cf. prompt
-        # système d'`extract_fields`) — pas seulement le slot en cours.
-        # Toujours complété par la logique déterministe ci-dessous pour
-        # garantir qu'un slot n'est jamais laissé vide.
         if prev_slot and openai_client.is_configured:
             extracted = openai_client.extract_fields(user_message, brief, prev_slot)
             if extracted:
@@ -85,11 +64,6 @@ async def briefing_turn(payload: BriefingTurnRequest):
                     value = extracted.get(key)
                     if value not in (None, ""):
                         brief[key] = value
-                # `category_hint` n'est PAS un identifiant Frappe valide (le
-                # LLM ne connaît pas le catalogue) : c'est juste une
-                # expression en langage naturel ("design graphique"...) qui
-                # sert à améliorer le matching par mots-clés ci-dessous,
-                # jamais écrite telle quelle dans `brief["category"]`.
                 hint = extracted.get("category_hint")
                 if isinstance(hint, str) and hint.strip():
                     category_hint = hint.strip()
@@ -111,26 +85,12 @@ async def briefing_turn(payload: BriefingTurnRequest):
                 brief["delivery_delay_days"] = days
         elif prev_slot == "category" and not brief.get("category"):
             categories = await frappe_client.get_categories()
-            # `category_hint` (LLM, si dispo) est un signal plus propre que
-            # le message brut pour le matching par mots-clés (moins de bruit
-            # que la phrase complète du client) : on le combine au message
-            # brut plutôt que de le remplacer, au cas où le LLM aurait
-            # manqué une partie du texte.
             category_query = f"{category_hint} {user_message}" if category_hint else user_message
             result = nlp_service.categorize_text(category_query, categories)
             if result.get("category"):
                 brief["category"] = result["category"]
                 brief["sub_category"] = result.get("sub_category")
             else:
-                # Garde-fou anti-boucle infinie : `category` n'est pas un
-                # champ obligatoire côté Project (cf. next_missing_slot). Si
-                # le catalogue Frappe est vide/injoignable (get_categories()
-                # se dégrade alors gracieusement en liste vide, cf.
-                # frappe_client.py), ou si le texte du client n'a matché
-                # aucune catégorie connue après 2 tentatives déjà posées,
-                # on ne repose plus la question : le texte libre est
-                # conservé dans la description plutôt que perdu, et le
-                # questionnaire avance normalement.
                 prior_attempts = sum(
                     1
                     for m in history
@@ -142,13 +102,6 @@ async def briefing_turn(payload: BriefingTurnRequest):
                     hint = f"Catégorie indiquée par le client (non reconnue automatiquement) : {user_message}"
                     brief["description"] = f"{existing_description}\n{hint}" if existing_description else hint
 
-        # Catégorisation opportuniste dès qu'une description est connue,
-        # pour éviter de poser une question de catégorie inutile si le
-        # texte libre du client suffisait déjà à la déduire. `category_hint`
-        # (LLM) est ajouté au texte comparé quand disponible, ex: un message
-        # riche envoyé en une fois ("plateforme B2B de mise en relation
-        # design/marketing, budget 5000€...") peut ainsi remplir catégorie +
-        # description + budget en un seul tour au lieu de 3.
         if brief.get("description") and not brief.get("category"):
             categories = await frappe_client.get_categories()
             opportunistic_query = (
@@ -180,7 +133,6 @@ async def briefing_turn(payload: BriefingTurnRequest):
         provider=provider,
     )
 
-
 @router.post("/briefing/categorize", response_model=CategorizeResponse)
 async def briefing_categorize(payload: CategorizeRequest):
     categories = await frappe_client.get_categories()
@@ -198,7 +150,6 @@ async def briefing_categorize(payload: CategorizeRequest):
 
     known = {k: result.get(k) for k in ("category", "category_name", "sub_category", "sub_category_name", "confidence")}
     return CategorizeResponse(provider=provider, **known)
-
 
 @router.post("/briefing/enrich", response_model=EnrichResponse)
 async def briefing_enrich(payload: EnrichRequest):
@@ -227,12 +178,8 @@ async def briefing_enrich(payload: EnrichRequest):
         provider=provider,
     )
 
-
 @router.post("/briefing/confirm", response_model=ConfirmResponse)
 async def briefing_confirm(payload: ConfirmRequest, x_user_email: Optional[str] = Header(None, alias="X-User-Email")):
-    # Le Gateway a déjà authentifié l'utilisateur final ; on privilégie
-    # l'en-tête forwardé (source de confiance réseau interne) sur le champ
-    # `client` du body si les deux sont fournis mais divergent.
     client_email = x_user_email or payload.client
     if not client_email:
         raise HTTPException(status_code=400, detail="client (email) requis")
@@ -246,12 +193,6 @@ async def briefing_confirm(payload: ConfirmRequest, x_user_email: Optional[str] 
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return ConfirmResponse(project=result.get("project"), cdc_file=result.get("cdc_file"))
-
-
-# --------------------------------------------------------------------------
-# 2. Assistant conversationnel / Chatbot (cahier §3.4)
-# --------------------------------------------------------------------------
-
 
 async def _chatbot_handler(payload: ChatbotRequest) -> ChatbotResponse:
     faq_match = nlp_service.match_faq(payload.message)
@@ -268,7 +209,6 @@ async def _chatbot_handler(payload: ChatbotRequest) -> ChatbotResponse:
                 provider="openai",
             )
 
-    # Hors périmètre du bot -> escalade humaine (cahier §3.4 "Escalade humaine").
     return ChatbotResponse(
         reply=(
             "Je n'ai pas de réponse fiable à vous apporter sur ce point. "
@@ -279,15 +219,10 @@ async def _chatbot_handler(payload: ChatbotRequest) -> ChatbotResponse:
         provider="stub",
     )
 
-
 @router.post("/chatbot", response_model=ChatbotResponse)
 async def chatbot(payload: ChatbotRequest):
     return await _chatbot_handler(payload)
 
-
 @router.post("/chatbot/public", response_model=ChatbotResponse)
 async def chatbot_public(payload: ChatbotRequest):
-    """Alias sans authentification : le Gateway route `/api/ia/chatbot/public`
-    sans exiger de JWT (cf. docs/INTEGRATION.md §5), pour un usage vitrine
-    (FAQ publique) avant connexion."""
     return await _chatbot_handler(payload)

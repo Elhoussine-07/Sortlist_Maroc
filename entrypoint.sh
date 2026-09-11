@@ -1,8 +1,4 @@
 #!/bin/bash
-# Idempotent : à la première exécution, installe l'app platform_core et crée
-# le site s'il n'existe pas encore. Aux exécutions suivantes, se contente de
-# démarrer bench. Nécessite MariaDB + Redis déjà joignables (docker-compose
-# `depends_on` + `healthcheck` s'en chargent).
 set -e
 
 cd "$BENCH_PATH"
@@ -22,8 +18,6 @@ bench set-config -g developer_mode 1
 bench set-config -g jwt_secret "${JWT_SECRET:-dev-insecure-secret-change-me}"
 bench set-config -g internal_service_token "${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}"
 bench set-config -g notifications_url "${NOTIFICATIONS_URL:-http://notifications-service:8085}"
-# Permet l'accès direct navigateur à Frappe (hors Gateway) pendant le dev,
-# cf. docs/INTEGRATION.md §3 ("rester utilisable en accès direct pendant le dev").
 bench set-config -g allow_cors "${FRONTEND_URL:-http://localhost:3000}"
 
 if [ ! -d "apps/platform_core" ]; then
@@ -31,7 +25,6 @@ if [ ! -d "apps/platform_core" ]; then
 	bench get-app platform_core /home/frappe/platform_core_src
 fi
 
-# Attendre que MariaDB accepte les connexions avant de tenter new-site.
 echo "==> Attente de MariaDB ($DB_HOST)..."
 until mysqladmin ping -h "$DB_HOST" -u root -p"$DB_ROOT_PASSWORD" --silent 2>/dev/null; do
 	sleep 2

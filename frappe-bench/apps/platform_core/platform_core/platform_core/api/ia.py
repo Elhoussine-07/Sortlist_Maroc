@@ -1,15 +1,7 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""🔒 Interne — consommé par ia-service (FastAPI), cf. docs/INTEGRATION.md §6.
-ia-service mène la conversation (Smart Briefing IA, cf. §1.2) côté client de
-manière stateless, puis appelle `create_project_from_briefing` une fois le
-brief structuré pour que Frappe (source de vérité) crée le Project et génère
-le CDC (cf. cdc.py)."""
 import json
 
 import frappe
 from platform_core.platform_core.auth import require_internal_token
-
 
 @frappe.whitelist(allow_guest=True)
 def get_categories():
@@ -17,22 +9,13 @@ def get_categories():
 	from platform_core.platform_core.api.utils import get_categories as _get_categories
 	return _get_categories()
 
-
 def _read_json_body():
-	"""BUG CORRIGÉ : `frappe.parse_json` avale silencieusement toute erreur de
-	décodage JSON et renvoie la valeur d'origine inchangée (bytes bruts) au
-	lieu de lever une exception claire — `payload.get("client")` plantait
-	alors avec `AttributeError: 'bytes' object has no attribute 'get'`, sans
-	jamais indiquer que le vrai problème était un échec de parsing JSON.
-	`json.loads` explicite ici : soit ça réussit, soit l'erreur est un
-	`json.JSONDecodeError` explicite et diagnostiquable."""
 	raw = frappe.request.data
 	if isinstance(raw, (bytes, bytearray)):
 		raw = raw.decode("utf-8")
 	if raw:
 		return json.loads(raw)
 	return dict(frappe.local.form_dict)
-
 
 @frappe.whitelist(allow_guest=True)
 def create_project_from_briefing():

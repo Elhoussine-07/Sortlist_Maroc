@@ -15,28 +15,11 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Client HTTP vers les deux endpoints internes Frappe consommes par
- * matching-service (cf. docs/INTEGRATION.md §6). Le header
- * {@code X-Internal-Token} est deja pose par defaut sur le {@link RestClient}
- * injecte (voir {@code WebConfig}).
- *
- * <p>L'URL de base n'est plus figee sur le {@link RestClient} : elle est
- * resolue a chaque appel via {@link FrappeUrlResolver}, qui bascule
- * automatiquement entre l'URL "conteneur" et l'URL "locale" de Frappe
- * (cf. {@code docs/FRAPPE_FALLBACK.md}).
- */
 @Component
 public class FrappeClient {
 
     private static final Logger log = LoggerFactory.getLogger(FrappeClient.class);
 
-    // NB: prefixe double "platform_core.platform_core.api.*" -- c'est le nom
-    // reel du module Python (app "platform_core" contenant elle-meme un
-    // package "platform_core.api"), confirme par docs/INTEGRATION.md §6 et
-    // par l'implementation ia-service (app/frappe_client.py). Un prefixe
-    // simple "platform_core.api.*" (utilise ici par erreur auparavant) ne
-    // resout a rien cote Frappe.
     private static final String GET_PROJECT_CONTEXT_PATH =
             "/api/method/platform_core.platform_core.api.matching.get_project_context";
     private static final String SAVE_SHORTLIST_PATH =

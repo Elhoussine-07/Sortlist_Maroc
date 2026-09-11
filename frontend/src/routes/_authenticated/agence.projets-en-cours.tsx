@@ -234,11 +234,6 @@ function buildColumns(
           </button>
           {project.status === "finished" &&
             (project.reviewedByAgency ? (
-              /* BUG CORRIGÉ : le bouton "Avis" restait cliquable indéfiniment
-                 même après envoi — `opportunity.list_opportunities` renvoie
-                 désormais `reviewed_by_agency` par projet (présence d'un
-                 `ClientReview` pour ce couple agence/projet), affiché ici
-                 comme état terminal plutôt que comme bouton. */
               <span className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-[13px] font-semibold text-emerald-700">
                 <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
                 Avis envoyé

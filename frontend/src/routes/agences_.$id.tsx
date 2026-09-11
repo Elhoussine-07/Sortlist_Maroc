@@ -109,15 +109,6 @@ const TAB_ORDER: { key: TabKey; label: string; icon: typeof Sparkles }[] = [
   { key: "contact", label: "Contact", icon: Phone },
 ];
 
-/**
- * Suivi de prospection par onglet (§2.6, MUST) : la page est découpée en
- * onglets — un seul contenu visible à la fois — donc la durée RÉELLE passée
- * sur l'onglet précédent est envoyée au moment où l'utilisateur en change
- * (ou quitte la page). `latestRef` évite les fermetures obsolètes dans le
- * flush appelé au démontage (le composant peut se démonter longtemps après
- * le premier rendu, une fois les données — compteurs, identité client —
- * chargées).
- */
 function useTabbedProspectionTracking(
   agencyId: string,
   ready: boolean,
@@ -127,14 +118,6 @@ function useTabbedProspectionTracking(
 ) {
   const [activeTab, setActiveTab] = useState<TabKey>("apercu");
   const activeTabRef = useRef<TabKey>("apercu");
-  // BUG CORRIGÉ (demande explicite) : `enteredAtRef` démarrait dès que la
-  // page était prête (`ready`), donc l'onglet "Aperçu" par défaut se
-  // retrouvait tracké (comme une "Consultation du profil" avec une vraie
-  // durée) sans que le visiteur n'ait jamais cliqué sur rien — un simple
-  // chargement de page suffisait à faire grimper le score, ce qui pouvait
-  // l'amener à 100% sans qu'aucune section n'ait été réellement consultée.
-  // `null` tant qu'aucun clic réel sur un onglet n'a eu lieu ; `flush`
-  // n'envoie donc plus rien pour une vue par défaut jamais cliquée.
   const enteredAtRef = useRef<number | null>(null);
   const latestRef = useRef({ countFor, clientEmail, clientName });
   latestRef.current = { countFor, clientEmail, clientName };
@@ -152,14 +135,6 @@ function useTabbedProspectionTracking(
     }
   }
 
-  // BUG CORRIGÉ : chaque changement d'onglet envoyait DEUX signaux pour le
-  // même onglet — `trackClick` au clic (immédiat, sans durée) ET `flush` en
-  // le quittant (avec la vraie durée) — `/track` insérant une ligne et
-  // additionnant les points à CHAQUE appel, les points de base de chaque
-  // section étaient donc comptés deux fois par simple visite. Un onglet
-  // n'est désormais compté qu'une seule fois, à la sortie (`flush`), muni de
-  // sa durée réelle — `flush` ignore déjà les visites de moins d'1 seconde
-  // (clic accidentel), ce qui est le comportement voulu.
   useEffect(() => {
     return () => {
       flush(activeTabRef.current);
@@ -171,10 +146,6 @@ function useTabbedProspectionTracking(
     if (tab === activeTabRef.current) return;
     flush(activeTabRef.current);
     activeTabRef.current = tab;
-    // Ne démarre le suivi que si les données de l'agence sont chargées
-    // (cf. `ready`, inchangé par ailleurs) — sinon pas de tracking du tout
-    // pour ce clic, plutôt que de fausser la durée avec un timestamp
-    // prématuré.
     enteredAtRef.current = ready && agencyId ? Date.now() : null;
     setActiveTab(tab);
   }
@@ -282,10 +253,6 @@ function PublicAgencyProfilePage() {
       .finally(() => setIsReviewsLoading(false));
   }, [id]);
 
-  // AJOUTÉ (demande explicite) : compte une vraie visite du profil, UNE
-  // SEULE FOIS au chargement de la page — découplé du tracking par onglet
-  // (`useTabbedProspectionTracking`), qui lui reste déclenché par clic et
-  // n'influence que le score, jamais `visit_count`.
   useEffect(() => {
     recordProfileVisit(id, { clientEmail, clientName }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -314,12 +281,6 @@ function PublicAgencyProfilePage() {
       const result = await toggleFavoriteAgency(id);
       setIsFavorite(result.favorited);
       toast(result.favorited ? "Agence ajoutée à vos favoris" : "Agence retirée de vos favoris");
-      // BUG CORRIGÉ (demande explicite) : le vrai bouton "Ajouter aux
-      // favoris" n'envoyait jamais de signal de prospection — seul
-      // trackStrongIntentClick() (câblé sur "Contacter"/"Publier un
-      // projet") envoyait l'action "favorite", donc cliquer sur l'étoile
-      // elle-même n'avait aucun effet sur le score. Envoyé uniquement à
-      // l'ajout (pas au retrait), qui reste le signal fort réel.
       if (result.favorited) {
         trackProspectionSignal(id, "favorite", { clientEmail, clientName }).catch(() => {});
       }

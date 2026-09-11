@@ -399,7 +399,6 @@ function StatCard({
   );
 }
 
-// --- STATUTS MODERNISÉS AVEC COULEURS PERSONNALISÉES ---
 const STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; border: string; icon: LucideIcon }

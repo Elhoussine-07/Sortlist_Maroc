@@ -4,39 +4,11 @@ import { dialCodeFor, flagEmoji } from "@/lib/countries";
 import { getCountries, type CountryOption } from "@/services/countries.service";
 
 export interface SelectedCountry {
-  /** Nom exact tel que stocké dans Frappe (anglais, ex. "Morocco") — c'est
-   * cette valeur qu'il faut envoyer au backend à l'inscription. */
   name: string;
   code: string;
   dialCode: string;
 }
 
-/**
- * Sélecteur de pays avec recherche texte et drapeau — remplace le champ
- * "Pays" en texte libre des formulaires d'inscription (client + agence).
- *
- * La liste vient de Frappe (`utils.get_countries`, doctype natif `Country`)
- * plutôt que d'une liste statique française : `CountryLegalIDRule.country`
- * est un Link vers `Country` et attend donc le nom anglais exact (ex.
- * "Morocco", pas "Maroc") — une liste locale traduite aurait cassé la
- * validation de l'identifiant légal en aval malgré une sélection correcte
- * à l'écran.
- *
- * Utilisation typique avec react-hook-form (composant contrôlé, pas de
- * `register` direct comme pour un `<input>` natif) :
- *
- * ```tsx
- * <CountrySelect
- *   label="Pays"
- *   value={form.watch("country")}
- *   onSelect={(country) => {
- *     form.setValue("country", country.name, { shouldValidate: true });
- *     form.setValue("phoneCountryCode", country.dialCode, { shouldValidate: true });
- *   }}
- *   error={form.formState.errors.country?.message}
- * />
- * ```
- */
 export function CountrySelect({
   label,
   value,
@@ -45,7 +17,6 @@ export function CountrySelect({
   placeholder = "Rechercher un pays...",
 }: {
   label: string;
-  /** Nom du pays actuellement sélectionné (valeur Frappe, ex. "Morocco"), ou vide. */
   value: string;
   onSelect: (country: SelectedCountry) => void;
   error?: string | undefined;

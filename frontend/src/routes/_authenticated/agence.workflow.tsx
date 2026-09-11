@@ -54,7 +54,6 @@ const STEP_TABS: { value: string; label: string }[] = [
   { value: "won", label: "Signature" },
 ];
 
-// ✅ STYLES MODERNISÉS POUR LES ÉTAPES
 const STAGE_STYLES: Record<
   WorkflowStatus,
   {
@@ -93,7 +92,7 @@ function getStageConfig(step: string): typeof STAGE_STYLES.quote_sent {
   if (step === "quote_sent" || step === "awaiting_client" || step === "won") {
     return STAGE_STYLES[step];
   }
-  return STAGE_STYLES.quote_sent; // fallback
+  return STAGE_STYLES.quote_sent;
 }
 
 function getStepIcon(step: string): LucideIcon {
@@ -206,7 +205,6 @@ function AgencyWorkflowPage() {
     items = [...items].reverse();
   }
 
-  // Calculer le total des opportunités
   const totalItems = items.length;
 
   return (

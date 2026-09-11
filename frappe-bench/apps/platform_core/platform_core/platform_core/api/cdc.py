@@ -1,21 +1,10 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Génération du CDC (cahier des charges) PDF — cf. docs/INTEGRATION.md §7.
-
-Mécanisme unique partagé par le Smart Briefing IA (ia-service) et les
-formulaires Unicast/Multicast (quick_actions) : seule la donnée d'entrée
-change, le rendu est strictement identique."""
 
 import frappe
 from frappe.utils import now_datetime
 from frappe.utils.pdf import get_pdf
 
-
 def generate_cdc(project_name):
         project = frappe.get_doc("Project", project_name)
-        # NOTE : project.client porte déjà le nom du document ClientProfile (cf.
-        # Project.before_insert), pas l'email de l'utilisateur — filtrer par
-        # {"user": project.client} ne trouvait donc jamais le bon profil.
         client = frappe.get_doc("ClientProfile", project.client)
 
         client_email = frappe.db.get_value("User", client.user, "email") if client.user else None

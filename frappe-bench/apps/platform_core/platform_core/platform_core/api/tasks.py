@@ -1,29 +1,17 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Tâches planifiées — cf. hooks.py `scheduler_events`.
-
-Implémente le circuit de relance/escalade du workflow de devis en deux
-étapes (cahier des charges §1.3.3) : 48h de réponse, +24h après rappel,
-puis Suspendu (validation humaine) et enfin Rejeté si toujours sans
-réponse `suspension_grace_hours` après la validation du modérateur.
-"""
 
 import frappe
 from frappe.utils import add_to_date, now_datetime
 
 from platform_core.platform_core.notify import notify
 
-
 def _settings():
 	return frappe.get_single("PlatformSettings")
-
 
 def process_quote_deadlines():
 	_send_first_reminders()
 	_escalate_to_suspension_request()
 	_escalate_expired_suspensions_to_rejected()
 	_escalate_expired_litige_notices()
-
 
 def _send_first_reminders():
 	settings = _settings()
@@ -51,7 +39,6 @@ def _send_first_reminders():
 			channel="Both",
 		)
 
-
 def _escalate_to_suspension_request():
 	now = now_datetime()
 	overdue = frappe.get_all(
@@ -72,7 +59,7 @@ def _escalate_to_suspension_request():
 		request_suspension(
 			row.project,
 			requested_by="System",
-			category="Suspension amiable",  # "Suspendu Vérification" — validation modérateur (CDC 1.5.1)
+			category="Suspension amiable",
 			justification="Absence de réponse du client au devis dans les délais impartis (48h + 24h de rappel).",
 		)
 
@@ -85,7 +72,6 @@ def _escalate_to_suspension_request():
 				body="Le client n'a pas répondu au devis dans les délais. Confirmez le passage en Suspendu.",
 				link=f"/moderation/suspensions?project={project.name}",
 			)
-
 
 def _escalate_expired_suspensions_to_rejected():
 	settings = _settings()
@@ -116,13 +102,7 @@ def _escalate_expired_suspensions_to_rejected():
 			channel="Both",
 		)
 
-
 def _escalate_expired_litige_notices():
-	"""§2.5.3, correctif sur demande explicite : un litige client jugé fondé
-	laisse `suspension_grace_hours` (défaut 24h) à l'agence pour répondre
-	(cf. ProjectSuspension._apply_founded_verdict/record_agency_litige_response)
-	avant que les conséquences prévues par le CDC (rejet + pénalité PQI) ne
-	s'appliquent automatiquement, faute de réponse."""
 	now = now_datetime()
 	overdue = frappe.get_all(
 		"ProjectSuspension",
@@ -155,10 +135,7 @@ def _escalate_expired_litige_notices():
 				channel="Both",
 			)
 
-
 def process_invoice_reminders():
-	"""cf. 2.5.1 point 5 : relance après échéance, suspension des offres si
-	dépassement prolongé."""
 	settings = _settings()
 	today = frappe.utils.today()
 
@@ -191,17 +168,7 @@ def process_invoice_reminders():
 		frappe.db.set_value("Invoice", row.name, "status", "Overdue")
 		frappe.db.set_value("AgencyProfile", row.agency, "offers_suspended", 1)
 
-
 def suspend_projects_for_unpaid_commission():
-	"""AJOUTÉ (demande explicite) : à partir du passage En cours d'un projet
-	(création de la facture de commission, cf. Proposal._create_invoice),
-	l'agence dispose de `invoice_payment_deadline_hours` (défaut 48h,
-	PlatformSettings) pour régler cette facture — passé ce délai sans
-	règlement (Invoice.status toujours "Pending"), le projet est
-	automatiquement suspendu (catégorie "Non-paiement", cf.
-	ProjectSuspension.suspend_for_unpaid_invoice). Distinct de
-	process_invoice_reminders (relance/offers_suspended basé sur
-	invoice_due_days, non modifié)."""
 	from platform_core.platform_core.doctype.projectsuspension.projectsuspension import (
 		suspend_for_unpaid_invoice,
 	)
@@ -216,29 +183,12 @@ def suspend_projects_for_unpaid_commission():
 			continue
 		suspend_for_unpaid_invoice(row.name)
 
-
 def recompute_pqi_alerts():
-	"""cf. 2.4 : recalcule le PQI de toutes les agences (déclenche les alertes
-	de baisse de visibilité via scoring.update_agency_pqi)."""
 	for agency in frappe.get_all("AgencyProfile", pluck="name"):
 		frappe.get_doc("AgencyProfile", agency).refresh_pqi()
 	frappe.db.commit()
 
-
 def complete_overdue_projects():
-	"""AJOUTÉ (sur demande explicite) : le délai convenu en début de projet
-	(`expected_end_date`, déjà recalculé pour intégrer les jours de suspension
-	cumulés — cf. `ProjectSuspension._resume_project`/`_apply_founded_verdict`,
-	rien à faire de plus ici) doit être respecté : un projet encore "In
-	Progress" une fois ce délai dépassé passe automatiquement Terminé, sans
-	attendre la confirmation manuelle du client (`project.confirm_completion`)
-	ni la validation du modérateur (`moderation.validate_completion`) — ces
-	deux mécanismes restent disponibles pour une clôture ANTICIPÉE avant
-	l'échéance, mais ne conditionnent plus la clôture à l'échéance elle-même.
-	Déclenche aussi la possibilité pour les deux parties de laisser un avis
-	l'une sur l'autre (cf. Project.on_update -> _notify_client/_notify_agency,
-	`review.submit_agency_review` côté client, `opportunity.review_client`
-	côté agence)."""
 	today = frappe.utils.today()
 	overdue = frappe.get_all(
 		"Project",

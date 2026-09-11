@@ -1,14 +1,8 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Amorçage des données de référence (rôles, réglages, barèmes) — appelé par
-`after_install` et rejouable sans risque à chaque `bench migrate`."""
 
 import frappe
 
-
 def after_install():
 	after_migrate()
-
 
 def after_migrate():
 	_ensure_roles()
@@ -20,14 +14,12 @@ def after_migrate():
 	_ensure_user_custom_fields()
 	frappe.db.commit()
 
-
 def _ensure_roles():
 	for role in ("Client", "Agency", "Moderator"):
 		if not frappe.db.exists("Role", role):
 			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 0}).insert(
 				ignore_permissions=True
 			)
-
 
 def _ensure_platform_settings():
 	settings = frappe.get_single("PlatformSettings")
@@ -52,7 +44,6 @@ def _ensure_platform_settings():
 	if changed:
 		settings.save(ignore_permissions=True)
 
-
 def _ensure_pqi_criteria():
 	criteria = [
 		("Netteté des visuels", "Logo ou photo de couverture flous, pixelisés ou mal cadrés"),
@@ -72,33 +63,15 @@ def _ensure_pqi_criteria():
 				"is_active": 1,
 			}).insert(ignore_permissions=True)
 
-
 def _ensure_lead_scoring_rules():
-	# CDC 2.6.1 — barème de scoring des leads. Le Select `action_code` du
-	# DocType n'accepte que les codes anglais consommés par le
-	# prospection-service externe ; on ne stocke donc que ces codes, avec le
-	# libellé FR conservé uniquement en commentaire pour la lisibilité.
-	#
-	# BUG CORRIGÉ : `bonus_condition` contenait du texte FR descriptif
-	# ("durée > 1 min", "> 5 projets consultés"...) alors que
-	# `LeadScoringRule._validate_bonus_syntax` n'accepte QUE la syntaxe
-	# machine `duration > <secondes>` / `count > <n>` (consommée telle
-	# quelle par le prospection-service Node.js). Sur toute installation
-	# fraîche, le tout premier `.insert()` de cette liste levait donc une
-	# `ValidationError` qui interrompait `after_migrate` avant même d'avoir
-	# atteint `_ensure_service_taxonomy`/`_ensure_legal_id_rules`/
-	# `_ensure_user_custom_fields` plus bas dans la séquence — aucun d'eux
-	# ne s'exécutait jamais, sur aucun site, depuis l'ajout de cette
-	# fonction (cf. Paramètres : `theme_preference` et consorts n'étaient
-	# jamais créés, quel que soit le nombre de `bench migrate`).
 	rules = [
-		("profile_view", 10, "duration > 60", 15),  # Consultation du profil, durée > 1 min
-		("portfolio_view", 5, "count > 5", 10),  # Consultation portfolio, > 5 projets consultés
-		("reviews_view", 5, "count > 3", 5),  # Consultation avis, > 3 avis lus
-		("team_view", 3, "count > 2", 5),  # Consultation équipe, > 2 membres consultés
-		("certificates_view", 3, "count > 2", 5),  # Consultation certifications, > 2 certificats consultés
-		("services_view", 3, "count > 2", 5),  # Consultation prestations, > 2 prestations consultées
-		("add_favorite", 20, None, 0),  # Ajout aux favoris — signal fort, aucun palier supplémentaire
+		("profile_view", 10, "duration > 60", 15),
+		("portfolio_view", 5, "count > 5", 10),
+		("reviews_view", 5, "count > 3", 5),
+		("team_view", 3, "count > 2", 5),
+		("certificates_view", 3, "count > 2", 5),
+		("services_view", 3, "count > 2", 5),
+		("add_favorite", 20, None, 0),
 	]
 	for action, base, bonus_condition, bonus in rules:
 		if not frappe.db.exists("LeadScoringRule", {"action_code": action}):
@@ -110,7 +83,6 @@ def _ensure_lead_scoring_rules():
 				"bonus_points": bonus,
 				"is_active": 1,
 			}).insert(ignore_permissions=True)
-
 
 def _ensure_service_taxonomy():
 	categories = {
@@ -133,7 +105,6 @@ def _ensure_service_taxonomy():
 					"is_active": 1,
 				}).insert(ignore_permissions=True)
 
-
 def _ensure_legal_id_rules():
 	rules = [
 		("Morocco", "ICE", r"^\d{15}$", "001234567000012"),
@@ -155,31 +126,7 @@ def _ensure_legal_id_rules():
 				"is_active": 1,
 			}).insert(ignore_permissions=True)
 
-
 def _ensure_user_custom_fields():
-	"""cf. module 6 (Paramètres) : préférences enregistrées au niveau du compte
-	utilisateur (pas du profil Client/Agence), pour suivre l'utilisateur d'un
-	appareil à l'autre. cf. module 5 : progression du guide de démonstration.
-
-	BUG CORRIGÉ : `theme_preference` utilisait des options capitalisées
-	("Light"/"Dark"/"System") alors que tout le frontend (`Settings["theme"]`,
-	les `<select>` de `client.parametres.tsx`/`agence.parametres.tsx`) envoie
-	des valeurs en minuscules ("light"/"dark"/"system") — chaque changement de
-	thème faisait échouer `user.save()` avec une erreur de validation Select
-	("n'est pas une des options valides"), un des multiples "erreur à chaque
-	clic" remontés. `font_size` valait par défaut 16 (une taille de police en
-	pixels) alors que le frontend l'affiche comme un pourcentage (curseur
-	80-130%, défaut 100) — un profil neuf affichait donc un curseur hors
-	plage. Cf. `api.settings.get_settings` pour le filet de sécurité côté
-	lecture (anciennes valeurs déjà enregistrées avant ce correctif).
-
-	BUG CORRIGÉ (v2) : la boucle `if frappe.db.exists(...): continue` ne
-	créait ces champs qu'une seule fois — sur une installation où
-	`bench migrate` avait déjà tourné avec les anciennes définitions
-	(options capitalisées, défaut 16), relancer `bench migrate` après ce
-	correctif ne changeait plus rien : les Custom Field existants n'étaient
-	jamais mis à jour. Le upsert ci-dessous met à jour `options`/`default`
-	sur les champs déjà présents."""
 	fields = [
 		{"fieldname": "theme_preference", "label": "Thème", "fieldtype": "Select",
 		 "options": "light\ndark\nsystem", "default": "light", "insert_after": "language"},

@@ -50,10 +50,6 @@ const SORT_OPTIONS: Array<{
   { value: "recent", label: "Plus récentes" },
 ];
 
-/* TODO backend: aucun endpoint de taxonomie (catégories/sous-catégories)
-   trouvé côté `platform_core` — référentiel figé côté client en attendant.
-   Les valeurs envoyées à l'API restent des chaînes (comme avant), donc ce
-   changement n'impacte pas le contrat avec `searchAgencies`. */
 const CATEGORIES: Array<{
   label: string;
   subCategories: string[];
@@ -92,8 +88,6 @@ const CATEGORIES: Array<{
   },
 ];
 
-/* Avatar coloré déterministe : chaque agence garde toujours la même couleur
-   (dérivée de son id), sans dépendre d'un champ "couleur" côté API. */
 function hashSeed(seed: string): number {
   let hash = 0;
 
@@ -177,8 +171,6 @@ function SearchAgenciesPage() {
     [category],
   );
 
-  // Débounce simple sur le texte libre : on ne relance pas la recherche à
-  // chaque frappe, seulement 350ms après la dernière saisie.
   useEffect(() => {
     setIsLoading(true);
 

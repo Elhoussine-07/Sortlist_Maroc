@@ -42,9 +42,6 @@ frontend:
   url: ${FRONTEND_URL:http://localhost:3000}
 
 services:
-  # Optional explicit override (debug) — if FRAPPE_URL is set, it disables
-  # the automatic container/local fallback entirely, cf.
-  # com.platform.gateway.config.FrappeUrlResolver and docs/FRAPPE_FALLBACK.md.
   frappe-url: ${FRAPPE_URL:}
   frappe-url-container: ${FRAPPE_URL_CONTAINER:http://frappe:8000}
   frappe-url-local: ${FRAPPE_URL_LOCAL:http://host.docker.internal:8000}

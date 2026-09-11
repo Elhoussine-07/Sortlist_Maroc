@@ -4,10 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
-/**
- * Reponse de {@code GET .../matching.get_project_context}
- * (cf. docs/INTEGRATION.md §6).
- */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ProjectContext(
         ProjectRequest project,

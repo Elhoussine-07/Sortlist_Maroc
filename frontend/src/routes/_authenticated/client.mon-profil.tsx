@@ -87,15 +87,6 @@ function initialsOf(name: string): string {
 
 const MAX_LOGO_SIZE_BYTES = 4 * 1024 * 1024;
 
-/**
- * BUG CORRIGÉ : `client.get_profile` ne renvoie jamais de `missing_fields`
- * (absent de `clientprofile.py`/`client.py`, qui ne calculent qu'un
- * pourcentage `profile_completion`) — `profile.missingFields` retombait
- * donc toujours sur `[]` côté frontend, faisant afficher "Votre profil est
- * complet !" quel que soit le vrai taux de complétion. On recalcule la
- * liste ici à partir des mêmes champs que `_calculate_profile_completion`
- * (clientprofile.py), plutôt que de se fier à ce champ jamais peuplé.
- */
 function computeMissingFields(profile: {
   contactFirstName: string;
   contactLastName: string;
@@ -130,12 +121,6 @@ function ClientProfilePage() {
   const profile = profileQuery.data ?? null;
   const isLoading = profileQuery.isPending;
 
-  /**
-   * AJOUTÉ : côté client, rien n'affichait les avis laissés par les agences
-   * (`ClientReview`, cf. `opportunity.py::review_client`) — le formulaire
-   * agence existait mais aucune vue ne consommait `review.list_client_reviews`
-   * (nouvel endpoint, symétrique de `list_agency_reviews`).
-   */
   const reviewsQuery = useQuery({
     queryKey: ["client", "reviews"],
     queryFn: () => listClientReviews(),

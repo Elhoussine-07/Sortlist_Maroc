@@ -1,19 +1,9 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
 
 import frappe
 from frappe.model.document import Document
 from frappe.utils import nowdate
 
-
 class ProjectPayment(Document):
-    """Règlement du CLIENT à l'AGENCE pour les frais du projet (le montant de
-    l'offre acceptée, `Proposal.amount`) — distinct de la commission
-    plateforme (5%, cf. Invoice/Payment). Sans clé Stripe configurée côté
-    plateforme, le règlement est simulé (provider="stub", même esprit que
-    `api.payment._charge_invoice`) pour rester fonctionnel en environnement
-    de développement.
-    """
 
     def validate(self):
         if not self.amount or self.amount <= 0:

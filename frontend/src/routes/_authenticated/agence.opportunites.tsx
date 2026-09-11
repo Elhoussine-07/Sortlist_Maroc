@@ -83,7 +83,6 @@ const BUDGET_OPTIONS: { value: string; label: string }[] = [
   { value: "100000-", label: "Plus de 100 000 €" },
 ];
 
-// STYLES MODERNISÉS POUR LES STATUTS D'OPPORTUNITÉ
 const STATUS_STYLES: Record<
   string,
   { bg: string; text: string; border: string; icon: LucideIcon; label: string }
@@ -146,7 +145,6 @@ const STATUS_STYLES: Record<
   },
 };
 
-// CORRECTION : Fonction avec fallback par défaut
 function getStatusConfig(status: string): (typeof STATUS_STYLES)[keyof typeof STATUS_STYLES] {
   const config = STATUS_STYLES[status] ?? STATUS_STYLES["Reçue"];
   return config as (typeof STATUS_STYLES)[keyof typeof STATUS_STYLES];
@@ -183,7 +181,6 @@ function isPendingAgencyDecision(opportunity: Opportunity): boolean {
   return opportunity.rawStatus === "Reçue";
 }
 
-// Fonction de troncature pour les titres longs
 function truncateTitle(title: string, maxLength: number = 25): string {
   if (!title) return "";
   if (title.length <= maxLength) return title;

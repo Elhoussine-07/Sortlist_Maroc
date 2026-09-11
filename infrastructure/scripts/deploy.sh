@@ -1,5 +1,4 @@
 #!/bin/bash
-# Redéploiement simple : pull + rebuild + restart, sans interruption des volumes.
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

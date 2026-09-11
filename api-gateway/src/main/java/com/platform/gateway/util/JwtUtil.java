@@ -11,28 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
 
-/**
- * HS256 sign/verify helper for the JWT shared across every service of the
- * platform (see /docs/INTEGRATION.md §3).
- *
- * Claims carried by the token: sub (email), user_type, agency_id,
- * full_name, iat, exp.
- *
- * <p>The secret comes from the env var {@code JWT_SECRET} (see
- * application.yml, property {@code jwt.secret}) and falls back to the same
- * literal Frappe falls back to ("dev-insecure-secret-change-me", see
- * {@code platform_core/platform_core/auth.py}) so a fresh dev checkout
- * works end to end without any .env file.
- *
- * <p>Frappe issues tokens with PyJWT ({@code jwt.encode(payload, secret,
- * algorithm="HS256")}), which uses the UTF-8 bytes of the secret directly
- * as the HMAC key with no minimum-length requirement. This class implements
- * HMAC-SHA256 verification manually (instead of relying on a JWT library
- * such as jjwt, whose {@code Keys.hmacShaKeyFor}/algorithm enforcement
- * rejects keys shorter than 256 bits) so that verification is
- * byte-for-byte compatible with PyJWT even for the short dev fallback
- * secret.
- */
 @Component
 public class JwtUtil {
 
@@ -50,16 +28,6 @@ public class JwtUtil {
         this.secretKeyBytes = secret.getBytes(StandardCharsets.UTF_8);
     }
 
-    /**
-     * Parses and validates the given compact JWT (structure, HS256
-     * signature and expiry).
-     *
-     * @param token the raw JWT, without the "Bearer " prefix
-     * @return the decoded claims
-     * @throws JwtValidationException if the token is malformed, the
-     *                                 signature does not match, the alg is
-     *                                 unsupported, or the token is expired
-     */
     public JsonNode parseAndValidate(String token) throws JwtValidationException {
         if (token == null || token.isBlank()) {
             throw new JwtValidationException("Empty token");
@@ -122,7 +90,6 @@ public class JwtUtil {
         return claims;
     }
 
-    /** Convenience wrapper returning {@code false} instead of throwing. */
     public boolean isValid(String token) {
         try {
             parseAndValidate(token);
@@ -148,7 +115,6 @@ public class JwtUtil {
         return sb.toString();
     }
 
-    /** Thrown when a JWT fails structural, signature, or expiry validation. */
     public static class JwtValidationException extends Exception {
         public JwtValidationException(String message) {
             super(message);

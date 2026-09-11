@@ -1,8 +1,6 @@
 import type { PaginatedResponse, Project, ProjectStatus } from "@/lib/types";
 import { camelizeKeys, fetchBlob, frappeCall, GATEWAY_URL, resolveFileUrl } from "@/services/http";
 
-/** Service projets (côté Client, + mapping partagé avec agence). */
-
 export interface ProjectSearchParams {
   query?: string;
   category?: string;
@@ -11,7 +9,6 @@ export interface ProjectSearchParams {
   sort?: "recent" | "relevance";
   page?: number;
   pageSize?: number;
-  /** Filtre de statut, utilisé par `getMyProjects`. */
   status?: string;
 }
 
@@ -46,13 +43,6 @@ const STATUS_LABELS: Record<ProjectStatus, string> = {
   rejected: "Rejeté",
 };
 
-/**
- * Traduit un doctype Frappe `Project` (snake_case) vers le type `Project`
- * (camelCase) du frontend. Les champs sans équivalent direct dans les
- * champs "historiques" (reference, statusLabel, lastActivity, ...) sont
- * approximés au mieux — voir les champs additionnels ajoutés à `Project`
- * dans `lib/types.ts` pour les vraies valeurs backend brutes.
- */
 export function mapProject(raw: unknown): Project {
   const data = camelizeKeys(raw) as Record<string, unknown>;
   const status = mapProjectStatus(data["status"]);
@@ -174,22 +164,7 @@ export interface PublicProjectDetail {
   clientTrustScore: number | null;
 }
 
-/**
- * Détail public d'un projet (bouton « Voir le projet », page /projets/$id) —
- * accessible sans connexion, distinct de `getProject` (réservé au client
- * propriétaire du projet).
- *
- * NOTE: Le backend utilise `list_public_projects` qui retourne une liste.
- * Pour obtenir un projet spécifique, on appelle `list_public_projects` avec
- * un filtre ou on utilise `get_project` si disponible.
- *
- * BUG CORRIGÉ: La méthode `get_public_project` n'existe pas dans le backend.
- * On utilise `project.get_project` à la place qui est disponible.
- *
- * // API CALL : frappeCall("project.get_project", { project: id })
- */
 export async function getPublicProject(id: string): Promise<PublicProjectDetail> {
-  // Utiliser project.get_project qui existe et retourne les détails d'un projet
   const raw = await frappeCall<unknown>("project.get_project", { project: id });
   const data = camelizeKeys(raw) as Record<string, unknown>;
 
@@ -227,10 +202,6 @@ export async function getPublicProject(id: string): Promise<PublicProjectDetail>
   };
 }
 
-/**
- * Recherche publique de projets (page /projets)
- * // API CALL : frappeCall("opportunity.list_public_projects", ...)
- */
 export async function searchProjects(
   params: ProjectSearchParams,
 ): Promise<PaginatedResponse<Project> & { availableCount: number }> {

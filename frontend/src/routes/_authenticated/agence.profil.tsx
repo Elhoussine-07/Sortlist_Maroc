@@ -163,12 +163,6 @@ function getRandomGradient(): string {
   return gradients[Math.floor(Math.random() * gradients.length)];
 }
 
-/**
- * AJOUTÉ (demande explicite) : une fois ajoutée, une ligne (service,
- * réalisation, membre, certificat) s'affiche en carte résumée non modifiable
- * — un clic sur « Modifier » ouvre le formulaire d'édition, plutôt que tous
- * les champs affichés directement en édition libre en permanence.
- */
 function CollapsedItemCard({
   title,
   subtitle,
@@ -263,7 +257,6 @@ function CollapsedItemCard({
   );
 }
 
-/** Profil agence — présentation, compétences, portfolio, coordonnées. */
 export const Route = createFileRoute("/_authenticated/agence/profil")({
   head: () => ({
     meta: [
@@ -360,19 +353,11 @@ function AgencyProfilePage() {
     updateMutation.mutate(values);
   });
 
-  // Sections listes (Services, Portfolio, Staff, Certificats) : chaque
-  // sauvegarde remplace la table entière côté backend (agency.update_profile
-  // vide puis réinsère les lignes fournies), l'état local doit donc toujours
-  // contenir la liste complète à jour.
   const [services, setServices] = useState<AgencyServiceItem[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<AgencyPortfolioItem[]>([]);
   const [team, setTeam] = useState<AgencyTeamItem[]>([]);
   const [certifications, setCertifications] = useState<AgencyCertificationItem[]>([]);
 
-  // AJOUTÉ (demande explicite) : une ligne déjà enregistrée s'affiche en
-  // carte résumée non modifiable tant qu'on n'a pas cliqué sur « Modifier »
-  // — un tableau parallèle (même index) suit l'état ouvert/fermé de chaque
-  // ligne pour chacune des 4 listes.
   const [servicesEditing, setServicesEditing] = useState<boolean[]>([]);
   const [portfolioEditing, setPortfolioEditing] = useState<boolean[]>([]);
   const [teamEditing, setTeamEditing] = useState<boolean[]>([]);
@@ -384,7 +369,6 @@ function AgencyProfilePage() {
     setPortfolioItems(profile.portfolio ?? []);
     setTeam(profile.team ?? []);
     setCertifications(profile.certifications ?? []);
-    // Lignes déjà enregistrées : affichées fermées (carte résumée) par défaut.
     setServicesEditing((profile.services ?? []).map(() => false));
     setPortfolioEditing((profile.portfolio ?? []).map(() => false));
     setTeamEditing((profile.team ?? []).map(() => false));

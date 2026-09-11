@@ -13,7 +13,6 @@ import type { Collaboration, CollaborationProjectReview } from "@/lib/types";
 import { getCollaborations, submitCollaborationReview } from "@/services/collaborations.service";
 import { ApiError } from "@/services/http";
 
-/** Écran Collaborations (espace Client) — agences avec projets terminés. */
 export const Route = createFileRoute("/_authenticated/client/collaborations")({
   head: () => ({
     meta: [
@@ -41,12 +40,6 @@ const RATING_TABS = [
 
 const PAGE_SIZE = 20;
 
-/** AJOUTÉ (demande explicite) : filtres "Agence"/"Période"/"Note reçue" —
- * jusqu'ici rendus volontairement inertes (cf. `FilterSelect`, "mieux vaut
- * un contrôle honnêtement indisponible qu'un faux succès") faute de données
- * exposées pour les alimenter. Les dates brutes par projet et la note
- * agrégée existent désormais côté backend/mapping — filtrage 100% côté
- * client, dans le même esprit que la recherche et les onglets ci-dessus. */
 const PERIOD_OPTIONS: Array<{ value: string; label: string; days: number }> = [
   { value: "7d", label: "7 derniers jours", days: 7 },
   { value: "30d", label: "30 derniers jours", days: 30 },
@@ -64,9 +57,6 @@ const RATING_OPTIONS: Array<{ value: string; label: string }> = [
 function ClientCollaborationsPage() {
   const queryClient = useQueryClient();
 
-  // Le backend (`client.list_collaborations`) ne filtre/trie/pagine pas —
-  // on récupère la liste complète une fois, puis recherche/onglets/tri sont
-  // appliqués côté client (voir `collaborations.service.ts::getCollaborations`).
   const collaborationsQuery = useQuery({
     queryKey: ["client", "collaborations"],
     queryFn: () => getCollaborations(),
@@ -84,18 +74,11 @@ function ClientCollaborationsPage() {
   const [periodFilter, setPeriodFilter] = useState("");
   const [ratingFilter, setRatingFilter] = useState("");
 
-  // Une ligne = une agence déjà unique (cf. client.list_collaborations,
-  // groupé par agence) : pas besoin de dédupliquer.
   const agencyOptions = useMemo(
     () => allCollaborations.map((c) => ({ value: c.id, label: c.agencyName })),
     [allCollaborations],
   );
 
-  // BUG CORRIGÉ (demande explicite) : "reviewed"/"pending" se basaient sur
-  // UN SEUL avis par agence, alors qu'une agence peut avoir plusieurs
-  // projets Terminés nécessitant chacun leur propre avis — une collaboration
-  // ne compte désormais comme "avis publié" que si TOUS ses projets ont un
-  // avis (cf. `collaboration.projects[].reviewed`).
   const isFullyReviewed = (collaboration: Collaboration) =>
     collaboration.projects.length > 0 && collaboration.projects.every((p) => p.reviewed);
 
@@ -142,10 +125,6 @@ function ClientCollaborationsPage() {
     currentPage * PAGE_SIZE,
   );
 
-  // AJOUTÉ (demande explicite) : un avis par PROJET, pas par agence — quand
-  // une agence a plusieurs projets Terminés, l'action ouvre d'abord un choix
-  // de projet (`projectPickerTarget`) plutôt que de notifier directement le
-  // premier projet trouvé.
   const [projectPickerTarget, setProjectPickerTarget] = useState<Collaboration | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{
     collaboration: Collaboration;
@@ -177,9 +156,6 @@ function ClientCollaborationsPage() {
     setReviewComment(project.yourComment);
   };
 
-  // AJOUTÉ (demande explicite) : toujours passer par la liste des projets
-  // (même s'il n'y en a qu'un seul) — c'est là qu'on peut accéder au détail
-  // du projet, pas seulement laisser un avis directement.
   const openReviewFlow = (collaboration: Collaboration) => {
     setProjectPickerTarget(collaboration);
   };

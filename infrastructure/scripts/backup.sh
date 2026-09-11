@@ -1,5 +1,4 @@
 #!/bin/bash
-# Sauvegarde du site Frappe (base + fichiers privés/publics) via bench.
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

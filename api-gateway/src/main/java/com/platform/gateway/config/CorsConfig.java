@@ -9,21 +9,11 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * CORS is open to the frontend origin only ({@code FRONTEND_URL}, see
- * /docs/INTEGRATION.md �2 and �9). The frontend talks exclusively to the
- * Gateway (and directly to notifications-service for Socket.IO), so this is
- * the single place CORS needs to be configured.
- *
- * ⚠️ DÉSACTIVÉ : Le CORS est désormais géré par application.yml
- */
-// @Configuration  // ← DÉSACTIVÉ pour éviter le double header CORS
 public class CorsConfig {
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
-    // @Bean  // ← DÉSACTIVÉ pour éviter le double header CORS
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(frontendUrl));
