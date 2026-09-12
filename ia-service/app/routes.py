@@ -4,10 +4,11 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app import frappe_client, nlp_service, openai_client
 from app.frappe_client import FrappeClientError
+from app.security import require_internal_token
 from app.models import (
     BriefingTurnRequest,
     BriefingTurnResponse,
@@ -42,7 +43,7 @@ def _validate_category_result(result: Optional[dict], categories: list[dict]) ->
 async def health():
     return {"status": "ok", "service": "ia-service"}
 
-@router.post("/briefing/turn", response_model=BriefingTurnResponse)
+@router.post("/briefing/turn", response_model=BriefingTurnResponse, dependencies=[Depends(require_internal_token)])
 async def briefing_turn(payload: BriefingTurnRequest):
     brief: dict = dict(payload.current_brief or {})
     provider = "stub"
@@ -133,7 +134,7 @@ async def briefing_turn(payload: BriefingTurnRequest):
         provider=provider,
     )
 
-@router.post("/briefing/categorize", response_model=CategorizeResponse)
+@router.post("/briefing/categorize", response_model=CategorizeResponse, dependencies=[Depends(require_internal_token)])
 async def briefing_categorize(payload: CategorizeRequest):
     categories = await frappe_client.get_categories()
     provider = "stub"
@@ -151,7 +152,7 @@ async def briefing_categorize(payload: CategorizeRequest):
     known = {k: result.get(k) for k in ("category", "category_name", "sub_category", "sub_category_name", "confidence")}
     return CategorizeResponse(provider=provider, **known)
 
-@router.post("/briefing/enrich", response_model=EnrichResponse)
+@router.post("/briefing/enrich", response_model=EnrichResponse, dependencies=[Depends(require_internal_token)])
 async def briefing_enrich(payload: EnrichRequest):
     provider = "stub"
     category_name = None
@@ -178,7 +179,7 @@ async def briefing_enrich(payload: EnrichRequest):
         provider=provider,
     )
 
-@router.post("/briefing/confirm", response_model=ConfirmResponse)
+@router.post("/briefing/confirm", response_model=ConfirmResponse, dependencies=[Depends(require_internal_token)])
 async def briefing_confirm(payload: ConfirmRequest, x_user_email: Optional[str] = Header(None, alias="X-User-Email")):
     client_email = x_user_email or payload.client
     if not client_email:
@@ -219,7 +220,7 @@ async def _chatbot_handler(payload: ChatbotRequest) -> ChatbotResponse:
         provider="stub",
     )
 
-@router.post("/chatbot", response_model=ChatbotResponse)
+@router.post("/chatbot", response_model=ChatbotResponse, dependencies=[Depends(require_internal_token)])
 async def chatbot(payload: ChatbotRequest):
     return await _chatbot_handler(payload)
 

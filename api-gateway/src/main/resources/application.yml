@@ -38,6 +38,9 @@ server:
 jwt:
   secret: ${JWT_SECRET:dev-insecure-secret-change-me}
 
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:dev-insecure-internal-token}
+
 frontend:
   url: ${FRONTEND_URL:http://localhost:3000}
 

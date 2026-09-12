@@ -105,6 +105,7 @@ services:
         condition: service_healthy
     environment:
       JWT_SECRET: ${JWT_SECRET:-dev-insecure-secret-change-me}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
       FRAPPE_URL: ${FRAPPE_URL:-}
       FRAPPE_URL_CONTAINER: ${FRAPPE_URL_CONTAINER:-http://frappe:8000}
       FRAPPE_URL_LOCAL: ${FRAPPE_URL_LOCAL:-http://host.docker.internal:8000}

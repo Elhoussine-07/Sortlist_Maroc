@@ -24,23 +24,28 @@ public class GatewayConfig {
     @Value("${services.notifications-url:http://notifications-service:8085}")
     private String notificationsUrl;
 
+    @Value("${internal.service-token}")
+    private String internalServiceToken;
+
     @Bean
     public RouteLocator routeLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                
+
                 .route("frappe", r -> r
                         .path("/api/method/**", "/api/resource/**", "/files/**", "/private/files/**")
                         .uri(frappeUrl))
                 .route("matching-service", r -> r
                         .path("/api/matching/**")
+                        .filters(f -> f.setRequestHeader("X-Internal-Token", internalServiceToken))
                         .uri(matchingUrl))
                 .route("ia-service", r -> r
                         .path("/api/ia/**")
+                        .filters(f -> f.setRequestHeader("X-Internal-Token", internalServiceToken))
                         .uri(iaUrl))
                 .route("prospection-service", r -> r
                         .path("/api/prospection/**")
                         .uri(prospectionUrl))
-                
+
                 .route("notifications-ws", r -> r
                         .path("/socket.io/**")
                         .uri(toWebSocketUri(notificationsUrl)))
