@@ -116,7 +116,6 @@ const CATEGORY_STYLES: Record<string, CategoryStyle> = {
   },
 };
 
-// ✅ STATUTS MODERNISÉS POUR LES PROJETS
 const STATUS_STYLES: Record<
   string,
   { bg: string; text: string; border: string; icon: typeof Clock; label: string }
@@ -190,7 +189,6 @@ function StarRow({ value }: { value: number }) {
   );
 }
 
-// ✅ BADGE PQI AVEC COULEUR DYNAMIQUE
 function PQIBadge({ score }: { score: number | null }) {
   if (score === null) return null;
 

@@ -1,11 +1,3 @@
-/**
- * Frappe (doctype natif `Country`, cf. `utils.get_countries`) fournit le nom
- * et le code ISO2 de chaque pays, mais pas l'indicatif téléphonique. Cette
- * table locale ne sert qu'à ça : retrouver l'indicatif à partir du code ISO2
- * renvoyé par le backend. Si un code n'a pas d'entrée ici, `dialCodeFor`
- * renvoie une chaîne vide plutôt que de planter — le champ "Indicatif" reste
- * alors éditable manuellement dans le formulaire.
- */
 const DIAL_CODES: Record<string, string> = {
   MA: "+212",
   FR: "+33",
@@ -51,10 +43,6 @@ export function dialCodeFor(isoCode: string): string {
   return DIAL_CODES[isoCode.toUpperCase()] ?? "";
 }
 
-/**
- * Transforme un code ISO2 en emoji drapeau (ex. "MA" -> "🇲🇦") via les
- * "regional indicator symbols" Unicode — aucune image, aucune dépendance.
- */
 export function flagEmoji(isoCode: string): string {
   return isoCode
     .toUpperCase()

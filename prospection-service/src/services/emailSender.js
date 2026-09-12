@@ -9,24 +9,15 @@ try {
   nodemailer = null;
 }
 
-/**
- * Valide le format d'une adresse email
- */
 function isValidEmail(email) {
   if (!email || typeof email !== 'string') return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
-/**
- * Vérifie si le transport SMTP est configuré
- */
 function isEnabled() {
   return Boolean(nodemailer && process.env.SMTP_HOST);
 }
 
-/**
- * Construit le transport SMTP
- */
 function buildTransport() {
   const config = {
     host: process.env.SMTP_HOST,
@@ -37,7 +28,6 @@ function buildTransport() {
     }
   };
 
-  // N'ajouter l'auth que si les credentials sont fournis
   if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
     config.auth = {
       user: process.env.SMTP_USER,
@@ -48,18 +38,7 @@ function buildTransport() {
   return nodemailer.createTransport(config);
 }
 
-/**
- * Envoie un email de prospection à un lead
- *
- * @param {object} params
- * @param {string} params.to - Adresse email du destinataire (valide)
- * @param {string} params.subject - Objet de l'email
- * @param {string} params.body - Corps de l'email (plain text)
- * @param {string} [params.htmlBody] - Version HTML du corps (optionnel)
- * @returns {Promise<{provider: "smtp"|"stub", sent: boolean, sent_on: string, note: string, messageId?: string, error?: string}>}
- */
 async function sendEmail({ to, subject, body, htmlBody }) {
-  // 1. Validation du destinataire
   if (!isValidEmail(to)) {
     logger.warn("Invalid recipient email blocked", { to });
     return {
@@ -70,7 +49,6 @@ async function sendEmail({ to, subject, body, htmlBody }) {
     };
   }
 
-  // 2. Mode stub (SMTP non configuré)
   if (!isEnabled()) {
     logger.info("Simulating outreach email send (SMTP_HOST not configured)", {
       to,
@@ -86,11 +64,9 @@ async function sendEmail({ to, subject, body, htmlBody }) {
     };
   }
 
-  // 3. Envoi réel via SMTP
   try {
     const transport = buildTransport();
 
-    // Vérifier la connexion SMTP
     await transport.verify();
 
     const from = process.env.SMTP_FROM || "prospection@platform-core.local";
@@ -102,11 +78,9 @@ async function sendEmail({ to, subject, body, htmlBody }) {
       text: body, // Version texte
     };
 
-    // Ajouter le HTML si disponible
     if (htmlBody) {
       mailOptions.html = htmlBody;
     } else if (body) {
-      // Si body contient du HTML, l'utiliser comme HTML aussi
       mailOptions.html = body;
     }
 
@@ -128,7 +102,6 @@ async function sendEmail({ to, subject, body, htmlBody }) {
     };
 
   } catch (error) {
-    // Gestion propre des erreurs
     const errorMessage = error.message || 'Unknown SMTP error';
 
     logger.error("SMTP send failed", {
@@ -138,7 +111,6 @@ async function sendEmail({ to, subject, body, htmlBody }) {
       code: error.code
     });
 
-    // Messages d'erreur plus explicites
     let userNote = `Échec d'envoi SMTP: ${errorMessage}`;
     if (error.code === 'EAUTH') {
       userNote = 'Échec d\'authentification SMTP - Vérifiez SMTP_USER et SMTP_PASSWORD';

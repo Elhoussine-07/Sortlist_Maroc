@@ -5,15 +5,11 @@ const logger = require("../utils/logger");
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 15000);
 
-/**
- * Détecte le type de lead en fonction de l'email
- */
 function detectLeadType(email, companyName) {
   if (!email) return 'unknown';
 
   const domain = email.split('@')[1]?.toLowerCase() || '';
 
-  // 1. Email étudiant (.edu, .ac.ma, etc.)
   if (email.includes('.edu') ||
       email.includes('@edu.') ||
       email.includes('@uiz.ac.ma') ||
@@ -24,7 +20,6 @@ function detectLeadType(email, companyName) {
     return 'student';
   }
 
-  // 2. Email personnel (Gmail, Yahoo, Outlook, etc.)
   const personalDomains = [
     'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com',
     'live.fr', 'live.com', 'msn.com', 'orange.fr', 'sfr.fr',
@@ -35,12 +30,10 @@ function detectLeadType(email, companyName) {
     return 'personal';
   }
 
-  // 3. Email professionnel (nom de domaine personnalisé)
   if (companyName) {
     return 'company';
   }
 
-  // 4. Si le domaine n'est pas dans la liste des personnels, c'est probablement une entreprise
   if (domain && !personalDomains.some(d => domain.includes(d))) {
     return 'company';
   }
@@ -48,21 +41,13 @@ function detectLeadType(email, companyName) {
   return 'unknown';
 }
 
-/**
- * Extrait le prénom de l'email
- */
 function extractFirstName(email) {
   if (!email) return '';
   const namePart = email.split('@')[0];
-  // Remplacer . et _ par des espaces
   const clean = namePart.replace(/[._-]/g, ' ');
-  // Mettre en majuscule la première lettre de chaque mot
   return clean.replace(/\b\w/g, l => l.toUpperCase());
 }
 
-/**
- * Construit le prompt pour l'IA en fonction des données du lead
- */
 function buildPrompt(lead) {
   const email = lead.email || '';
   const company = lead.company_name || '';
@@ -117,9 +102,6 @@ function buildPrompt(lead) {
   ].join("\n");
 }
 
-/**
- * Template de secours quand OpenAI n'est pas disponible
- */
 function stubDraft(lead) {
   const email = lead.email || '';
   const company = lead.company_name || '';
@@ -182,9 +164,6 @@ L'équipe agence`;
   };
 }
 
-/**
- * Génère un email via l'API OpenAI
- */
 async function generateViaOpenAI(lead) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -241,38 +220,21 @@ async function generateViaOpenAI(lead) {
   }
 }
 
-/**
- * Génère un email de prospection pour un lead
- *
- * @param {object} lead - Les données du lead
- * @param {string} lead.email - Email du contact
- * @param {string} lead.company_name - Nom de l'entreprise
- * @param {number} lead.cumulative_score - Score d'intention (0-100)
- * @param {string} lead.classification - Classification du lead
- * @param {string} lead.last_action - Dernière action observée
- * @param {string} [lead.first_name] - Prénom du contact (optionnel)
- * @param {string} [lead.industry] - Secteur d'activité (optionnel)
- * @returns {Promise<{subject: string, body: string, provider: string, model?: string, note?: string, degraded?: boolean, reason?: string}>}
- */
 async function generateEmail(lead) {
-  // Vérifier que le lead a des données minimales
   if (!lead || typeof lead !== 'object') {
     logger.error("Lead invalide pour la génération d'email");
     return stubDraft({ company_name: "Prospect" });
   }
 
-  // Si pas de clé API OpenAI, utiliser le template
   if (!process.env.OPENAI_API_KEY) {
     logger.info("Utilisation du template stub (OPENAI_API_KEY non configurée)");
     return stubDraft(lead);
   }
 
-  // Essayer la génération via OpenAI
   try {
     const result = await generateViaOpenAI(lead);
     return result;
   } catch (error) {
-    // En cas d'erreur, fallback sur le template
     logger.warn(
         "La génération OpenAI a échoué — fallback sur le template stub",
         {

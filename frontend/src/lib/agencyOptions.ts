@@ -1,14 +1,3 @@
-/**
- * Listes statiques utilisées par `TagSelect` dans l'inscription agence
- * (étape 2 — Compétences). Aucun endpoint backend dédié n'existe pour ces
- * trois listes (seul `utils.get_categories` existe, pour les catégories de
- * projet, pas les compétences d'agence) — listes maintenues ici en attendant
- * une éventuelle doctype dédiée côté Frappe.
- *
- * Le composant `TagSelect` permet d'ajouter une valeur hors liste, donc ces
- * listes n'ont pas besoin d'être exhaustives : elles couvrent les cas
- * courants pour accélérer la saisie, sans bloquer les cas de niche.
- */
 
 export const SKILL_OPTIONS: string[] = [
   "SEO",

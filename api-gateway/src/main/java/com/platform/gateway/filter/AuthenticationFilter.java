@@ -21,54 +21,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Global gateway filter implementing /docs/INTEGRATION.md §3 "Authentification".
- *
- * <ul>
- *   <li>Skips JWT validation entirely on the public Frappe routes listed in
- *       §5 "Routes Frappe publiques" (allow_guest=True endpoints), on
- *       {@code /actuator/**} (health checks), and on {@code /socket.io/**}
- *       (Socket.IO carries its token as a query param and notifications-service
- *       validates it itself).</li>
- *   <li>On every other route, requires a valid {@code Authorization: Bearer
- *       <jwt>} header. On failure, short-circuits with {@code 401}.</li>
- *   <li>On success, injects {@code X-User-Email}, {@code X-User-Type},
- *       {@code X-Agency-Id} headers (from the {@code sub}, {@code user_type},
- *       {@code agency_id} claims) before forwarding downstream.</li>
- *   <li>Additionally enforces {@code user_type=agency} on
- *       {@code /api/prospection/**}, per the routing table in §5.</li>
- * </ul>
- */
 @Component
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationFilter.class);
 
-    /** Prefixes that never require JWT validation, matched with startsWith. */
     private static final List<String> PUBLIC_PREFIXES = List.of(
-            // §5: whole auth.** namespace is public (login/otp/register).
+            
             "/api/method/platform_core.platform_core.api.auth.",
-            // Health checks must stay open (§10).
+            
             "/actuator",
-            // BUG CORRIGÉ : `/files/**` est bien routé vers Frappe (cf.
-            // GatewayConfig), mais restait bloqué en 401 par ce filtre faute
-            // d'un JWT — qu'un simple `<img src>` n'envoie jamais. Ces
-            // fichiers sont explicitement publics (uploadés avec
-            // `is_private=0`, cf. profile.service.ts::uploadFile) : logo/
-            // couverture d'agence, photos d'équipe, images de portfolio...
-            // ne s'affichaient donc jamais. `/private/files/**` reste
-            // protégé (téléchargé via des endpoints dédiés avec Bearer,
-            // jamais via un <img src> direct).
+            
             "/files/"
     );
 
-    /**
-     * Exact `allow_guest=True` Frappe methods listed in §5 "Routes Frappe
-     * publiques" (outside of the auth.** namespace already covered above).
-     */
     private static final Set<String> PUBLIC_EXACT_PATHS = Set.of(
-
-
 
             "/api/method/platform_core.platform_core.api.auth.request_otp",
             "/api/method/platform_core.platform_core.api.auth.verify_otp",
@@ -78,13 +45,12 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/api/method/platform_core.platform_core.api.agency.get_profile",
             "/api/method/platform_core.platform_core.api.agency.list_agencies",
             "/api/method/platform_core.platform_core.api.agency.track_website_click",
-            // Used by the public agency registration form before a user has a JWT.
+            
             "/api/method/platform_core.platform_core.api.agency.check_name_availability",
             "/api/method/platform_core.platform_core.api.search.search_agencies",
             "/api/method/platform_core.platform_core.api.search.search_natural_language",
             "/api/method/platform_core.platform_core.api.review.list_agency_reviews",
-            // Page publique /projets (visiteur anonyme) — cf. platform_core
-            // api/opportunity.py::list_public_projects, allow_guest=True.
+            
             "/api/method/platform_core.platform_core.api.opportunity.list_public_projects",
             "/api/method/platform_core.platform_core.api.utils.ping",
             "/api/method/platform_core.platform_core.api.utils.get_categories",
@@ -92,19 +58,13 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/api/method/platform_core.platform_core.api.utils.get_legal_id_rule",
             "/api/method/platform_core.platform_core.api.utils.validate_legal_id",
 
-
-
-            // §5: sole public exception under /api/ia/**.
             "/api/ia/chatbot/public",
-            // §5 addendum: fired by anonymous visitors on public agency profile
-            // pages (module 2.6 détection IP) — cannot require a JWT.
+            
             "/api/prospection/track"
     );
 
-    /** Socket.IO route: token travels as a query param, not a Bearer header (§5). */
     private static final String SOCKET_IO_PREFIX = "/socket.io";
 
-    /** Routes that require an authenticated user_type=agency (§5). */
     private static final String PROSPECTION_PREFIX = "/api/prospection/";
     private static final String AGENCY_USER_TYPE = "agency";
 
@@ -160,8 +120,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        // Run before Spring Cloud Gateway's routing/netty filters so the
-        // mutated headers are visible to the proxied request.
+        
         return -1;
     }
 

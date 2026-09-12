@@ -22,11 +22,6 @@ export function mapCollaboration(raw: unknown): Collaboration {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
 
-  // BUG CORRIGÉ (demande explicite) : `client.list_collaborations` ne
-  // renvoyait qu'UN SEUL avis (le plus récent) pour toute l'agence, alors
-  // qu'`AgencyReview` est déjà scopé par projet côté backend — impossible de
-  // laisser un avis distinct par projet Terminé avec la même agence. Chaque
-  // entrée de `projects[]` porte désormais SON PROPRE avis (donné et reçu).
   const rawProjects = Array.isArray(data["projects"])
     ? (data["projects"] as Record<string, unknown>[])
     : [];
@@ -57,8 +52,6 @@ export function mapCollaboration(raw: unknown): Collaboration {
     };
   });
 
-  // Avis DONNÉ le plus récent, pour le résumé de ligne — le détail par
-  // projet (utilisé pour l'action "Laisser un avis") vient de `projects[]`.
   const review = (data["review"] ?? null) as Record<string, unknown> | null;
   const reviewComment = review ? String(review["comment"] ?? "") : "";
   const budgetRaw = data["budget"];

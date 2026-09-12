@@ -215,7 +215,6 @@ function TrendChart({ series, label }: { series: TrendPoint[]; label: string }) 
   );
 }
 
-// ✅ TYPE POUR LES RECOMMANDATIONS
 type Recommendation = {
   id: string;
   title: string;
@@ -546,7 +545,6 @@ function AgencyAnalyticsPage() {
               ) : (
                 <ul className="space-y-4">
                   {recommendations.map((recommendation) => {
-                    // ✅ Vérification sécurisée de la priorité
                     const priority = recommendation.priority || "low";
                     const priorityLabel =
                       priority === "high"

@@ -1,14 +1,9 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Authentification unifiée (cf. cahier des charges §4.2) : une seule page,
-deux boutons (Client / Agence), OTP par email, JWT partagé (docs/INTEGRATION.md §3)."""
 
 import random
 
 import frappe
 from frappe import _
 
-# ✅ CORRECTION - Ajouter un niveau supplémentaire
 from platform_core.platform_core.auth import current_claims, issue_token, require_active_agency, require_body_arg
 from platform_core.platform_core.doctype.agencyjoinrequest.agencyjoinrequest import request_to_join
 from platform_core.platform_core.doctype.agencymember.agencymember import list_agencies_for_user
@@ -28,14 +23,12 @@ def _user_type(email):
 		return "client"
 	return "client"
 
-
 def _default_agency_for(email):
 	agencies = list_agencies_for_user(email)
 	if not agencies:
 		return None
 	owner = next((a for a in agencies if a["role"] == "Owner"), None)
 	return (owner or agencies[0])["agency"]
-
 
 def _build_token(email):
 	user_type = _user_type(email)
@@ -50,7 +43,6 @@ def _build_token(email):
 		"email": email,
 		"full_name": full_name,
 	}
-
 
 @frappe.whitelist(allow_guest=True)
 def request_otp(email=None):
@@ -67,7 +59,6 @@ def request_otp(email=None):
 	)
 	return {"sent": True}
 
-
 @frappe.whitelist(allow_guest=True)
 def verify_otp(email=None, code=None):
 	email = require_body_arg(email, "email", _("Email manquant"))
@@ -79,15 +70,6 @@ def verify_otp(email=None, code=None):
 
 	frappe.cache().delete_value(f"otp:{email}")
 
-	# AJOUTÉ : BUG CORRIGÉ — `register_agency` créait auparavant le compte
-	# (User + AgencyProfile + AgencyMember) IMMÉDIATEMENT, avant même l'envoi
-	# de l'OTP ; cette fonction ne faisait ensuite que basculer un flag
-	# `email_verified` sur un compte déjà pleinement créé et fonctionnel —
-	# l'email n'était donc jamais réellement vérifié AVANT la création du
-	# compte, seulement après coup, de façon cosmétique. `register_agency`
-	# met maintenant le payload d'inscription en cache (même TTL que l'OTP)
-	# au lieu de créer le compte directement ; la création réelle (cf.
-	# `_create_agency_account`) n'a lieu qu'ici, une fois le code confirmé.
 	pending_raw = frappe.cache().get_value(f"pending_agency_registration:{email}")
 	if pending_raw:
 		frappe.cache().delete_value(f"pending_agency_registration:{email}")
@@ -107,15 +89,8 @@ def verify_otp(email=None, code=None):
 
 	return _build_token(email)
 
-
 @frappe.whitelist(allow_guest=True)
 def login(email=None, password=None):
-	"""cf. Paramètres > Double authentification (`settings.toggle_two_factor`) :
-	quand `User.two_factor_enabled` est actif, le mot de passe seul ne suffit
-	plus à obtenir un token — un code à usage unique est envoyé par email et
-	doit être validé via `verify_login_otp` avant `_build_token`. Ce flag
-	était jusqu'ici enregistré sans jamais être lu nulle part côté connexion,
-	rendant le bouton "2FA" entièrement sans effet."""
 	email = require_body_arg(email, "email", _("Email manquant"))
 	password = require_body_arg(password, "password", _("Mot de passe manquant"))
 	email = email.strip().lower()
@@ -137,10 +112,8 @@ def login(email=None, password=None):
 
 	return _build_token(email)
 
-
 @frappe.whitelist(allow_guest=True)
 def verify_login_otp(email=None, code=None):
-	"""Seconde étape de `login` quand la 2FA est activée (cf. ci-dessus)."""
 	email = require_body_arg(email, "email", _("Email manquant"))
 	code = require_body_arg(code, "code", _("Code manquant"))
 	email = email.strip().lower()
@@ -149,7 +122,6 @@ def verify_login_otp(email=None, code=None):
 		frappe.throw(_("Code invalide ou expiré"))
 	frappe.cache().delete_value(f"login2fa:{email}")
 	return _build_token(email)
-
 
 @frappe.whitelist(allow_guest=True)
 def register_client(email=None, password=None, first_name=None, last_name=None, country=None,
@@ -172,14 +144,6 @@ def register_client(email=None, password=None, first_name=None, last_name=None, 
 		"new_password": password,
 		"user_type": "Website User",
 	})
-	# BUG CORRIGÉ : Frappe (core `User` doctype) envoie automatiquement une
-	# alerte "Security Alert: Your password has been changed" dès que
-	# `new_password` est défini sur un insert/save, sans distinguer une
-	# CRÉATION de compte d'un vrai changement de mot de passe ultérieur —
-	# `send_welcome_email: 0` ne bloque que l'email de bienvenue, pas
-	# celui-ci. `mute_emails` désactive `frappe.sendmail` le temps de cet
-	# insert précis, puis est immédiatement réactivé pour ne pas affecter
-	# l'email OTP envoyé juste après par `request_otp`.
 	frappe.flags.mute_emails = True
 	try:
 		user.insert(ignore_permissions=True)
@@ -200,12 +164,7 @@ def register_client(email=None, password=None, first_name=None, last_name=None, 
 	request_otp(email)
 	return {"registered": True, "email": email}
 
-
 def _create_agency_account(payload):
-	"""Création RÉELLE du compte agence (User + AgencyProfile + AgencyMember,
-	ou User + AgencyJoinRequest en cas de doublon de nom d'agence) à partir
-	du payload mis en cache par `register_agency`. Appelée UNIQUEMENT depuis
-	`verify_otp`, une fois le code confirmé — jamais avant."""
 	email = payload["email"]
 	agency_name = payload["agency_name"]
 
@@ -218,11 +177,6 @@ def _create_agency_account(payload):
 		"new_password": payload["password"],
 		"user_type": "Website User",
 	})
-	# BUG CORRIGÉ : cf. même correctif dans `register_client` — Frappe (core
-	# `User` doctype) envoie automatiquement une alerte "Security Alert:
-	# Your password has been changed" dès que `new_password` est défini sur
-	# un insert/save, sans distinguer une CRÉATION de compte d'un vrai
-	# changement de mot de passe ultérieur.
 	frappe.flags.mute_emails = True
 	try:
 		user.insert(ignore_permissions=True)
@@ -231,7 +185,6 @@ def _create_agency_account(payload):
 	user.add_roles("Agency")
 
 	if payload.get("duplicate_agency") and payload.get("existing_agency"):
-		# cf. 2.1 : détection de doublon -> rattachement en tant que collaborateur, sous validation.
 		join_request = request_to_join(email, payload["existing_agency"], context="At Signup")
 		return {
 			"duplicate_agency": True,
@@ -239,18 +192,6 @@ def _create_agency_account(payload):
 			"join_request": join_request.name,
 		}
 
-	# BUG CORRIGÉ : `AgencyProfile.before_insert()` vérifie les rôles de
-	# `frappe.session.user` (cf. doctype/agencyprofile/agencyprofile.py) pour
-	# n'autoriser la création qu'aux comptes ayant déjà le rôle "Agency" — mais
-	# `user.add_roles("Agency")` ci-dessus l'attribue au NOUVEL utilisateur,
-	# sans jamais faire basculer la session dessus. Résultat : ce garde
-	# comparait toujours les rôles de l'appelant (Guest en inscription
-	# publique, ou n'importe quel utilisateur déjà connecté) plutôt que ceux
-	# du compte agence tout juste créé — l'inscription agence échouait
-	# systématiquement avec "Seuls les Agences et Administrateurs peuvent
-	# créer un profil Agence.", jamais seulement en cas de session déjà
-	# ouverte. On bascule donc temporairement la session sur le nouvel
-	# utilisateur pour ces deux insertions, puis on la restaure.
 	original_user = frappe.session.user
 	frappe.set_user(user.name)
 	try:
@@ -262,7 +203,6 @@ def _create_agency_account(payload):
 			"phone": payload.get("phone"),
 			"website": payload.get("website"),
 			"email": email,
-			# L'email vient d'être confirmé par OTP à l'instant -> vrai dès la création.
 			"email_verified": 1,
 		}).insert(ignore_permissions=True)
 
@@ -279,7 +219,6 @@ def _create_agency_account(payload):
 
 	return {"duplicate_agency": False, "agency": agency.name}
 
-
 @frappe.whitelist(allow_guest=True)
 def register_agency(email=None, password=None, agency_name=None, country=None, first_name=None,
 	last_name=None, description=None, phone=None, website=None):
@@ -293,15 +232,6 @@ def register_agency(email=None, password=None, agency_name=None, country=None, f
 
 	existing_agency = frappe.db.exists("AgencyProfile", {"agency_name": agency_name})
 
-	# BUG CORRIGÉ : cette fonction créait auparavant le User + AgencyProfile +
-	# AgencyMember (ou la demande de rattachement en cas de doublon)
-	# IMMÉDIATEMENT, avant même l'envoi de l'OTP — `verify_otp` ne faisait
-	# ensuite que confirmer un code sur un compte déjà pleinement créé et
-	# utilisable, sans jamais réellement bloquer la création sur une adresse
-	# email vérifiée. Le payload d'inscription est désormais mis en cache
-	# (même TTL que l'OTP) ; la création réelle du compte (cf.
-	# `_create_agency_account`) n'a lieu que dans `verify_otp`, une fois le
-	# code confirmé.
 	pending_payload = {
 		"email": email,
 		"password": password,
@@ -328,7 +258,6 @@ def register_agency(email=None, password=None, agency_name=None, country=None, f
 		"duplicate_agency": bool(existing_agency),
 	}
 
-
 @frappe.whitelist()
 def me():
 	claims = current_claims()
@@ -337,13 +266,8 @@ def me():
 		data["agencies"] = list_agencies_for_user(claims["sub"])
 	return data
 
-
 @frappe.whitelist(allow_guest=True)
 def request_password_reset(email=None):
-	"""Mot de passe oublié — 1ère étape (code par email, cache `pwreset:{email}`,
-	TTL 5 min). Ne révèle jamais si le compte existe (anti-énumération) : le
-	code n'est envoyé que si l'utilisateur existe réellement, mais la réponse
-	est identique dans tous les cas."""
 	email = require_body_arg(email, "email", _("Email manquant"))
 	email = email.strip().lower()
 	if frappe.db.exists("User", email):
@@ -358,11 +282,8 @@ def request_password_reset(email=None):
 		)
 	return {"sent": True}
 
-
 @frappe.whitelist(allow_guest=True)
 def reset_password(email=None, code=None, new_password=None):
-	"""Mot de passe oublié — 2ème étape : vérifie le code puis fixe le nouveau
-	mot de passe via le mécanisme standard Frappe (cf. api.settings.change_password)."""
 	email = require_body_arg(email, "email", _("Email manquant"))
 	code = require_body_arg(code, "code", _("Code manquant"))
 	new_password = require_body_arg(new_password, "new_password", _("Nouveau mot de passe manquant"))
@@ -380,7 +301,6 @@ def reset_password(email=None, code=None, new_password=None):
 
 	update_password(email, new_password)
 	return {"reset": True}
-
 
 @frappe.whitelist()
 def switch_agency(agency=None):

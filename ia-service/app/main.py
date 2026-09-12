@@ -1,7 +1,3 @@
-"""Point d'entrée FastAPI de ia-service (port 8083).
-
-Cf. docs/INTEGRATION.md §2 (table des ports) et §6 (contrat ia-service).
-"""
 
 from __future__ import annotations
 
@@ -9,7 +5,6 @@ import logging
 import os
 
 from fastapi import FastAPI
-# from fastapi.middleware.cors import CORSMiddleware  # ← DÉSACTIVÉ
 
 from app.openai_client import is_configured as openai_configured
 from app.routes import router as ia_router
@@ -25,24 +20,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# ✅ DÉSACTIVÉ : Le CORS est géré par le Gateway
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=[FRONTEND_URL],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
 app.include_router(ia_router)
-
 
 @app.get("/health")
 async def health():
-    """Healthcheck racine, sans auth - utilisé par docker-compose (cf.
-    docs/INTEGRATION.md §10)."""
     return {"status": "ok", "service": "ia-service"}
-
 
 @app.on_event("startup")
 async def on_startup():

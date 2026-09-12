@@ -207,7 +207,6 @@ function SearchProjectsPage() {
             <div className="flex flex-col gap-5">
               {projects.map((project) => {
                 const publishedDate = new Date(project.lastActivity);
-                // Utiliser l'ID du projet pour la redirection
                 const projectId = project.id;
 
                 return (

@@ -48,7 +48,6 @@ import {
 import { ApiError } from "@/services/http";
 import { useInvoicesStore } from "@/store/invoices.store";
 
-/** Facturation (Agence) - factures émises / reçues, filtres, téléchargement. */
 export const Route = createFileRoute("/_authenticated/agence/facturation")({
   head: () => ({
     meta: [
@@ -75,10 +74,6 @@ const TABS = [
   { value: "late", label: "En retard" },
 ];
 
-/**
- * Utility function to safely format currency values
- * Rounds to 2 decimal places and formats with € symbol
- */
 function formatCurrency(amount: number | null | undefined): string {
   if (amount == null || isNaN(amount)) return "?";
   return new Intl.NumberFormat("fr-FR", {
@@ -89,27 +84,19 @@ function formatCurrency(amount: number | null | undefined): string {
   }).format(amount);
 }
 
-/**
- * Utility function to safely sum amounts with floating-point precision handling
- * Uses integer math (multiply by 100, sum, divide by 100) to avoid precision errors
- */
 function sumAmounts(invoices: Invoice[], status?: string): number {
   const filtered = status ? invoices.filter((inv) => inv.status === status) : invoices;
 
-  // Sum in cents (multiply by 100, round to avoid floating point issues)
   const totalCents = filtered.reduce((sum, invoice) => {
     const amount = invoice.amountDue ?? invoice.amount;
     if (typeof amount !== "number" || isNaN(amount)) return sum;
-    // Convert to cents, round to avoid floating point issues
     const cents = Math.round(amount * 100);
     return sum + cents;
   }, 0);
 
-  // Convert back to euros with 2 decimal precision
   return totalCents / 100;
 }
 
-/** Rafraîchit `Date.now()` toutes les 60s */
 function useNow(intervalMs = 60_000): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -119,10 +106,6 @@ function useNow(intervalMs = 60_000): number {
   return now;
 }
 
-/**
- * CDC: 48h (configurable) à partir de la création de la facture de commission
- * pour la régler, sans quoi le projet est automatiquement suspendu
- */
 function describePaymentDeadline(
   invoice: Invoice,
   now: number,
@@ -318,9 +301,6 @@ function buildColumns(
   ];
 }
 
-/**
- * Le backend ne distingue pas "émises" vs "reçues" - seul le statut est fiable.
- */
 function filterByTab(invoices: Invoice[], tab: string): Invoice[] {
   if (tab === "paid") return invoices.filter((invoice) => invoice.status === "paid");
   if (tab === "late") return invoices.filter((invoice) => invoice.status === "late");
@@ -335,9 +315,6 @@ const paymentMethodSchema = z.object({
 
 type PaymentMethodForm = z.infer<typeof paymentMethodSchema>;
 
-/**
- * CDC 2.5.1: Gestion des moyens de paiement
- */
 function PaymentMethodSection() {
   const queryClient = useQueryClient();
   const methodsQuery = useQuery({
@@ -492,7 +469,6 @@ function AgencyInvoicingPage() {
     queryFn: getInvoicesSummary,
   });
 
-  // Alimenter le store avec les données
   useEffect(() => {
     setStoreLoading(invoicesQuery.isLoading);
     if (invoicesQuery.data) setStoreInvoices(invoicesQuery.data.items);
@@ -526,7 +502,6 @@ function AgencyInvoicingPage() {
     late: storeInvoices.filter((invoice) => invoice.status === "late").length,
   };
 
-  // BUG CORRIGÉ: Utilisation de sumAmounts pour éviter les erreurs de précision
   const totalLate = sumAmounts(storeInvoices, "late");
   const totalIssued = sumAmounts(storeInvoices);
 

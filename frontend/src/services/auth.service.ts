@@ -17,12 +17,6 @@ export interface LoginResponse {
 
   roleKnown: boolean;
 
-  /**
-   * `true` quand `settings.toggle_two_factor` est actif sur ce compte :
-   * `auth.login` n'a alors renvoyé aucun token, seulement `{ email }` — un
-   * code de connexion vient de partir par email et doit être validé via
-   * `verifyLoginOtp` avant d'obtenir un token exploitable.
-   */
   requires2fa: boolean;
 }
 
@@ -129,11 +123,6 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   return mapLoginResponse(raw, payload.role);
 }
 
-/**
- * Seconde étape de `login` quand la réponse porte `requires2fa: true`
- * (compte avec "Authentification à deux facteurs" activée dans Paramètres).
- * // API CALL : frappeCall("auth.verify_login_otp", { email, code }) → JWT
- */
 export async function verifyLoginOtp(
   email: string,
   code: string,

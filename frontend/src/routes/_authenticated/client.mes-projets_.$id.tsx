@@ -47,8 +47,6 @@ import {
 } from "@/services/proposals.service";
 import { ApiError } from "@/services/http";
 
-/** Rafraîchit `Date.now()` toutes les 60s — suffisant pour un compte à
- * rebours affiché en heures/minutes (délai de réponse à un devis, 48h+24h). */
 function useNow(intervalMs = 60_000): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -89,12 +87,6 @@ function describeQuoteDeadline(
   };
 }
 
-/**
- * Écran 15bis — DÉTAIL D'UN PROJET (CDC §1.5.8, MUST).
- * Route manquante identifiée dans la passe précédente : `client.tableau-de-bord.tsx`
- * et `client.mes-projets.tsx` laissaient "Voir le projet" en `uiAction` faute
- * de cible. Structure de fichier calquée sur `agences.$id.tsx`.
- */
 export const Route = createFileRoute("/_authenticated/client/mes-projets_/$id")({
   head: () => ({
     meta: [
@@ -114,7 +106,6 @@ export const Route = createFileRoute("/_authenticated/client/mes-projets_/$id")(
   component: ClientProjectDetailPage,
 });
 
-/* Avatar coloré déterministe, cohérent avec le reste du site. */
 function hashSeed(seed: string): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
@@ -148,17 +139,6 @@ function ClientProjectDetailPage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
 
-  // AJOUTÉ (demande explicite) : toute mutation de cette page qui change
-  // l'état du projet (accepter/refuser un devis ou une candidature,
-  // suspension, relance, reprise, paiement) doit aussi invalider la liste
-  // "Mes projets" (`["client","projects"]`) — une clé de query DIFFÉRENTE de
-  // celle de cette page détail (`["client","project",id]`, singulier).
-  // React Query ne fait que du préfixe sur les clés ("project" != "projects"
-  // au premier niveau déjà différent), donc invalider l'une n'invalide
-  // jamais l'autre. BUG CORRIGÉ : sans ce second appel, retourner sur "Mes
-  // projets" après une action ici affichait encore l'ancien statut en cache
-  // (ex. "En attente" après acceptation d'un devis), donnant l'impression
-  // que l'action n'avait aucun effet alors que le backend était à jour.
   function invalidateProjectQueries() {
     void queryClient.invalidateQueries({ queryKey: ["client", "project", id] });
     void queryClient.invalidateQueries({ queryKey: ["client", "projects"] });
@@ -188,8 +168,6 @@ function ClientProjectDetailPage() {
     }
   }
 
-  // Shortlist IA — visible une fois le projet publié ("Postulé"), affichée en
-  // lecture seule (mêmes cartes agence que `SmartBriefing.tsx::ShortlistSection`).
   const shortlistQuery = useQuery({
     queryKey: ["client", "project", id, "shortlist"],
     queryFn: () => getProjectShortlist(id),
@@ -199,9 +177,6 @@ function ClientProjectDetailPage() {
 
   const now = useNow();
 
-  // Devis en attente de décision (CDC §1.3.3, étape 4) — visible dès que le
-  // projet atteint "En attente" (une relation a atteint "Devis envoyé"), et
-  // peut comporter plusieurs devis simultanés en Multicast.
   const pendingProposalsQuery = useQuery({
     queryKey: ["client", "project", id, "pending-proposals"],
     queryFn: () => getPendingProposals(id),
@@ -225,10 +200,6 @@ function ClientProjectDetailPage() {
   }
 
   const [respondingProposalId, setRespondingProposalId] = useState<string | null>(null);
-  // AJOUTÉ (demande explicite, négociation) : un refus n'est plus définitif
-  // — le client peut joindre un motif/contre-proposition, transmis à
-  // l'agence, qui peut alors renvoyer un devis ajusté sans repartir de zéro
-  // (cf. Proposal.refuse()/_handle_refusal()).
   const [refusingProposal, setRefusingProposal] = useState<PendingProposal | null>(null);
   const [refusalMessage, setRefusalMessage] = useState("");
   const respondMutation = useMutation({
@@ -260,11 +231,6 @@ function ClientProjectDetailPage() {
     onSettled: () => setRespondingProposalId(null),
   });
 
-  // Candidatures spontanées d'agences (bouton "Postuler" côté agence depuis
-  // "Disponibles", cf. `opportunity.express_interest`) : le CLIENT doit les
-  // accepter/refuser avant que l'agence ne puisse envoyer un devis — même
-  // fenêtre de visibilité que la Shortlist/les devis (projet "Postulé"/"En
-  // attente").
   const agencyApplicationsQuery = useQuery({
     queryKey: ["client", "project", id, "agency-applications"],
     queryFn: () => listAgencyApplications(id),
@@ -312,11 +278,6 @@ function ClientProjectDetailPage() {
     }
   }
 
-  // Litige / suspension — un litige existant prime sur le bouton de demande.
-  // `project.get_dispute` : pas de garantie qu'un 404/erreur signifie
-  // "aucun litige" plutôt qu'un vrai problème réseau — on traite les deux de
-  // la même façon (pas de section litige affichée) plutôt que de bloquer le
-  // reste de la page sur une erreur non bloquante.
   const disputeQuery = useQuery({
     queryKey: ["client", "project", id, "dispute"],
     queryFn: () => getDispute(id),
@@ -359,9 +320,6 @@ function ClientProjectDetailPage() {
     },
   });
 
-  // BUG CORRIGÉ (CDC §1.5.3) : `project.resume` n'était appelé nulle part
-  // côté frontend — un projet Suspendu (Suspension amiable validée) restait
-  // bloqué sans aucun moyen de le reprendre depuis l'UI.
   const resumeMutation = useMutation({
     mutationFn: () => resumeProject(id),
     onSuccess: () => {
@@ -373,9 +331,6 @@ function ClientProjectDetailPage() {
     },
   });
 
-  // AJOUTÉ (demande explicite) : le client règle directement à l'agence les
-  // frais du projet (montant de l'offre acceptée) — distinct de la
-  // commission plateforme (5%), réglée séparément par l'agence.
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"Card" | "Bank Transfer" | "PayPal">("Card");
   const [providerToken, setProviderToken] = useState("");

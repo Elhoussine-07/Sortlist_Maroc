@@ -68,7 +68,6 @@ const STEPS = [
   { id: 4, label: "Vérification", icon: ShieldCheck },
 ];
 
-// Validation du nom avec minimum 2 caractères
 const registrationSchema = z
   .object({
     name: z
@@ -79,9 +78,6 @@ const registrationSchema = z
     description: z.string().trim().min(1, "Champ requis").max(2000),
     foundedYear: z.string().trim().min(4, "Année invalide").max(4),
     teamSize: z.string().trim().min(1, "Champ requis").max(40),
-    // BUG CORRIGÉ : `.url()` exigeait un préfixe http(s):// et `.optional()`
-    // n'acceptait pas la chaîne vide "" envoyée par défaut par le formulaire
-    // -> impossible de laisser le champ vide ou de saisir juste "sortlist.com".
     website: z
       .string()
       .trim()
@@ -136,8 +132,6 @@ const FIELDS_BEFORE_ACCOUNT_CREATION: (keyof RegistrationForm)[] = [
   ...STEP_FIELDS[3]!,
 ];
 
-// Délai avant de vérifier la disponibilité du nom d'agence pendant la saisie,
-// pour ne pas envoyer une requête à chaque caractère tapé.
 const NAME_CHECK_DEBOUNCE_MS = 500;
 
 function AgencyRegistrationPage() {
@@ -147,10 +141,6 @@ function AgencyRegistrationPage() {
   const [pendingApproval, setPendingApproval] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // AJOUT : détection en direct d'un nom d'agence déjà pris (étape 1), pour
-  // avertir tôt plutôt qu'à la toute fin des 4 étapes. Purement informatif :
-  // n'envoie aucune demande de rattachement automatiquement (ça reste une
-  // action volontaire, à faire depuis le compte une fois connecté).
   const [nameCheckStatus, setNameCheckStatus] = useState<
     "idle" | "checking" | "available" | "taken"
   >("idle");
@@ -189,9 +179,6 @@ function AgencyRegistrationPage() {
   const email = form.watch("email");
   const nameValue = form.watch("name");
 
-  // AJOUT : vérifie la disponibilité du nom d'agence pendant la saisie
-  // (debounce + protection contre les réponses obsolètes si l'utilisateur
-  // continue de taper pendant qu'une requête précédente est encore en vol).
   useEffect(() => {
     const trimmed = (nameValue ?? "").trim();
     if (trimmed.length < 2) {
@@ -216,9 +203,6 @@ function AgencyRegistrationPage() {
     return () => clearTimeout(timeoutId);
   }, [nameValue]);
 
-  // AJOUT : nettoie l'erreur "nom déjà pris" posée par goToNextStep /
-  // handleCreateAccount dès que l'utilisateur corrige le nom vers une valeur
-  // disponible (sinon le message resterait affiché jusqu'au prochain clic).
   useEffect(() => {
     if (nameCheckStatus === "available") {
       form.clearErrors("name");
@@ -230,10 +214,6 @@ function AgencyRegistrationPage() {
     const isStepValid = fieldsToValidate ? await form.trigger(fieldsToValidate) : true;
     if (!isStepValid) return;
 
-    // AJOUT : bloque le passage à l'étape suivante tant que le nom d'agence
-    // saisi correspond à une agence existante (ou que la vérification est
-    // encore en cours, pour éviter une course où on avancerait juste avant
-    // que la réponse "taken" n'arrive).
     if (step === 1 && (nameCheckStatus === "taken" || nameCheckStatus === "checking")) {
       form.setError("name", {
         message:
@@ -266,7 +246,6 @@ function AgencyRegistrationPage() {
   }
 
   async function handleCreateAccount() {
-    // Vérification explicite du nom avant la soumission
     const values = form.getValues();
 
     if (!values.name || values.name.trim().length < 2) {
@@ -276,10 +255,6 @@ function AgencyRegistrationPage() {
       return;
     }
 
-    // AJOUT : même garde-fou qu'à l'étape 1, au cas où l'utilisateur serait
-    // revenu en arrière et aurait remodifié le nom sans repasser par
-    // goToNextStep (ex. retour à l'étape 1 depuis l'étape 4 puis clic direct
-    // sur "Créer mon compte agence" sans revalider chaque étape).
     if (nameCheckStatus === "taken" || nameCheckStatus === "checking") {
       form.setError("name", {
         message:
@@ -316,7 +291,6 @@ function AgencyRegistrationPage() {
         website: values.website || "",
       });
 
-      // Vérifier si l'agence existe déjà
       if (
         result &&
         typeof result === "object" &&
@@ -367,11 +341,6 @@ function AgencyRegistrationPage() {
             .split(",")
             .map((item) => item.trim())
             .filter(Boolean),
-          // BUG CORRIGÉ : `skills`/`techStack` sont saisis à l'étape 2
-          // (TagSelect) mais n'étaient jamais envoyés au backend — le
-          // profil public affichait donc toujours "Non renseigné" pour
-          // "Compétences"/"Technologies", même après une inscription
-          // complète.
           skills: values.skills
             .split(",")
             .map((item) => item.trim())

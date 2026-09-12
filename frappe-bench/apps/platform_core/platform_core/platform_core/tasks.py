@@ -1,28 +1,16 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Tâches planifiées — cf. hooks.py `scheduler_events`.
-
-Implémente le circuit de relance/escalade du workflow de devis en deux
-étapes (cahier des charges §1.3.3) : 48h de réponse, +24h après rappel,
-puis Suspendu (validation humaine) et enfin Rejeté si toujours sans
-réponse `suspension_grace_hours` après la validation du modérateur.
-"""
 
 import frappe
 from frappe.utils import add_to_date, now_datetime
 
 from platform_core.platform_core.notify import notify
 
-
 def _settings():
 	return frappe.get_single("PlatformSettings")
-
 
 def process_quote_deadlines():
 	_send_first_reminders()
 	_escalate_to_suspension_request()
 	_escalate_expired_suspensions_to_rejected()
-
 
 def _send_first_reminders():
 	settings = _settings()
@@ -50,7 +38,6 @@ def _send_first_reminders():
 			channel="Both",
 		)
 
-
 def _escalate_to_suspension_request():
 	now = now_datetime()
 	overdue = frappe.get_all(
@@ -71,7 +58,7 @@ def _escalate_to_suspension_request():
 		request_suspension(
 			row.project,
 			requested_by="System",
-			category="Suspension amiable",  # "Suspendu Vérification" — validation modérateur (CDC 1.5.1)
+			category="Suspension amiable",
 			justification="Absence de réponse du client au devis dans les délais impartis (48h + 24h de rappel).",
 		)
 
@@ -84,7 +71,6 @@ def _escalate_to_suspension_request():
 				body="Le client n'a pas répondu au devis dans les délais. Confirmez le passage en Suspendu.",
 				link=f"/moderation/suspensions?project={project.name}",
 			)
-
 
 def _escalate_expired_suspensions_to_rejected():
 	settings = _settings()
@@ -115,10 +101,7 @@ def _escalate_expired_suspensions_to_rejected():
 			channel="Both",
 		)
 
-
 def process_invoice_reminders():
-	"""cf. 2.5.1 point 5 : relance après échéance, suspension des offres si
-	dépassement prolongé."""
 	settings = _settings()
 	today = frappe.utils.today()
 
@@ -149,18 +132,8 @@ def process_invoice_reminders():
 	)
 	for row in very_late:
 		frappe.db.set_value("Invoice", row.name, "status", "Overdue")
-		# DÉSACTIVÉ (demande explicite, phase de test) : plus aucune facture en
-		# retard ne bloque l'envoi de devis de l'agence. Rien n'a jamais remis
-		# `offers_suspended` à 0 nulle part dans le code (même après paiement de
-		# la facture), donc ce blocage était de toute façon permanent une fois
-		# déclenché — à réactiver avec un vrai mécanisme de levée automatique
-		# avant la mise en production.
-		# frappe.db.set_value("AgencyProfile", row.agency, "offers_suspended", 1)
-
 
 def recompute_pqi_alerts():
-	"""cf. 2.4 : recalcule le PQI de toutes les agences (déclenche les alertes
-	de baisse de visibilité via scoring.update_agency_pqi)."""
 	for agency in frappe.get_all("AgencyProfile", pluck="name"):
 		frappe.get_doc("AgencyProfile", agency).refresh_pqi()
 	frappe.db.commit()

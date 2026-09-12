@@ -1,23 +1,13 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Module Paramètres (cf. §6) : profil, mot de passe/2FA, langue, police, thème."""
 
 import frappe
 from frappe import _
 
 from platform_core.platform_core.auth import current_claims, require_body_arg
 
-
 @frappe.whitelist()
 def get_settings():
 	claims = current_claims()
 	user = frappe.get_doc("User", claims["sub"])
-	# BUG CORRIGÉ : sur les comptes provisionnés avant le correctif de
-	# `setup._ensure_user_custom_fields`, `theme_preference` peut encore
-	# valoir "Light"/"Dark"/"System" (ancienne casse) et `font_size` 16
-	# (ancien défaut en pixels, hors de la plage 80-130% attendue par le
-	# curseur du frontend) — normalisés ici pour ne pas dépendre d'une
-	# migration de données rétroactive.
 	theme = (user.theme_preference or "system").strip().lower()
 	if theme not in ("light", "dark", "system"):
 		theme = "system"
@@ -32,7 +22,6 @@ def get_settings():
 		"two_factor_enabled": user.two_factor_enabled,
 		"notification_prefs": frappe.parse_json(user.notification_prefs) if user.notification_prefs else {},
 	}
-
 
 @frappe.whitelist()
 def update_settings(language=None, theme_preference=None, font_preference=None, font_size=None):
@@ -49,7 +38,6 @@ def update_settings(language=None, theme_preference=None, font_preference=None, 
 	user.save(ignore_permissions=True)
 	return get_settings()
 
-
 @frappe.whitelist()
 def update_notification_prefs(prefs=None):
 	prefs = require_body_arg(prefs, "prefs", _("Préférences manquantes"))
@@ -58,7 +46,6 @@ def update_notification_prefs(prefs=None):
 		prefs = frappe.parse_json(prefs)
 	frappe.db.set_value("User", claims["sub"], "notification_prefs", frappe.as_json(prefs))
 	return prefs
-
 
 @frappe.whitelist()
 def change_password(old_password=None, new_password=None):
@@ -74,7 +61,6 @@ def change_password(old_password=None, new_password=None):
 
 	update_password(claims["sub"], new_password)
 	return {"updated": True}
-
 
 @frappe.whitelist()
 def toggle_two_factor(enabled=None):

@@ -9,10 +9,6 @@ spring:
     deserialization:
       fail-on-unknown-properties: false
 
-# Config service-a-service vers Frappe (cf. docs/INTEGRATION.md §4 et §9,
-# et docs/FRAPPE_FALLBACK.md pour la bascule conteneur/local).
-# FRAPPE_URL est un override explicite optionnel (debug) : si absente, le
-# service bascule automatiquement entre url-container et url-local.
 frappe:
   url: ${FRAPPE_URL:}
   url-container: ${FRAPPE_URL_CONTAINER:http://frappe:8000}
@@ -20,7 +16,6 @@ frappe:
   internal-token: ${INTERNAL_SERVICE_TOKEN:dev-insecure-internal-token}
 
 matching:
-  # Nombre d'agences retournees dans la shortlist finale (triees par score desc).
   shortlist-size: ${MATCHING_SHORTLIST_SIZE:10}
 
 management:

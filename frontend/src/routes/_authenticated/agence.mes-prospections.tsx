@@ -48,7 +48,6 @@ const TABS = [
   { value: "no_answer", label: "Sans réponse" },
 ];
 
-// ✅ TYPE EXPLICITE POUR LES STATUTS
 type StatusConfig = {
   bg: string;
   text: string;
@@ -57,10 +56,8 @@ type StatusConfig = {
   label: string;
 };
 
-// ? TYPES STRICTS POUR LES STATUTS
 type StatusKey = "sent" | "answered" | "no_answer" | "hot" | "warm" | "cold";
 
-// ? STYLES MODERNISÉS POUR LES STATUTS
 const STATUS_STYLES: Record<StatusKey, StatusConfig> = {
   sent: {
     bg: "bg-blue-100",
@@ -106,18 +103,16 @@ const STATUS_STYLES: Record<StatusKey, StatusConfig> = {
   },
 };
 
-// Type guard pour vérifier si une clé est valide
 function isValidStatusKey(key: string): key is StatusKey {
   return key === "sent" || key === "answered" || key === "no_answer" ||
     key === "hot" || key === "warm" || key === "cold";
 }
 
-// ? CORRECTION : Fonction avec fallback par défaut
 function getStatusConfig(status: string): StatusConfig {
   if (isValidStatusKey(status)) {
     return STATUS_STYLES[status];
   }
-  return STATUS_STYLES.sent; // fallback par défaut
+  return STATUS_STYLES.sent;
 }
 
 function buildColumns(): Column<Lead>[] {
@@ -241,7 +236,6 @@ function AgencyMyProspectionsPage() {
   }, [leadsQuery.data, sortDirection]);
   const isLoading = leadsQuery.isLoading;
 
-  // Filtrage par statut
   const statusFiltered =
     activeTab === "all"
       ? allProspections
@@ -253,7 +247,6 @@ function AgencyMyProspectionsPage() {
           return true;
         });
 
-  // Filtrage par recherche
   const filtered = query.trim()
     ? statusFiltered.filter((item) =>
         item.companyName.toLowerCase().includes(query.trim().toLowerCase()),

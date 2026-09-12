@@ -1,6 +1,3 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Création de notifications (module 7) + relais temps réel vers notifications-service."""
 
 import os
 
@@ -9,10 +6,8 @@ import requests
 
 from platform_core.platform_core.auth import _internal_token
 
-
 def notifications_service_url():
 	return frappe.conf.get("notifications_url") or os.environ.get("NOTIFICATIONS_URL") or "http://notifications-service:8085"
-
 
 def notify(
 	recipient,
@@ -25,8 +20,6 @@ def notify(
 	reference_name=None,
 	channel="Both",
 ):
-	"""Crée un `Notification` (source de vérité) — le relais temps réel se fait
-	dans `on_notification_insert` via `doc_events`."""
 	doc = frappe.get_doc({
 		"doctype": "Notification",
 		"recipient": recipient,
@@ -43,15 +36,11 @@ def notify(
 	doc.insert(ignore_permissions=True)
 	return doc
 
-
 def on_notification_insert(doc, method=None):
-	"""doc_events after_insert sur Notification : pousse vers notifications-service
-	(Socket.IO temps réel) et envoie un email si le canal le prévoit."""
 	if doc.channel in ("Platform", "Both"):
 		_push_realtime(doc)
 	if doc.channel in ("Email", "Both"):
 		_send_email(doc)
-
 
 def _push_realtime(doc):
 	try:
@@ -69,10 +58,7 @@ def _push_realtime(doc):
 			timeout=3,
 		)
 	except requests.RequestException:
-		# Le relais temps réel est un bonus (badge live) — l'historique reste
-		# consultable via l'API Frappe même si notifications-service est down.
 		frappe.log_error(title="notifications-service unreachable", message=frappe.get_traceback())
-
 
 def _send_email(doc):
 	try:

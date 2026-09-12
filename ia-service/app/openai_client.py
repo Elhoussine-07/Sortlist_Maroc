@@ -1,14 +1,3 @@
-"""Enveloppe optionnelle autour de l'API OpenAI.
-
-Cf. docs/INTEGRATION.md §9 : si `OPENAI_API_KEY` est absent, ia-service doit
-utiliser un générateur de texte STUB déterministe — jamais un faux succès
-silencieux. Chaque réponse indique `"provider": "openai"` ou `"provider":
-"stub"` en conséquence.
-
-Ce module n'échoue jamais bruyamment vers l'appelant : si l'appel OpenAI
-plante (réseau, quota, clé invalide...), on renvoie None et l'appelant
-retombe sur son propre stub déterministe.
-"""
 
 from __future__ import annotations
 
@@ -25,23 +14,12 @@ is_configured = bool(OPENAI_API_KEY)
 _client = None
 if is_configured:
     try:
-        from openai import OpenAI  # type: ignore
+        from openai import OpenAI
 
-        # BUG CORRIGÉ : OPENAI_BASE_URL était lu depuis l'environnement mais
-        # jamais transmis au client — celui-ci appelait donc toujours la
-        # vraie API OpenAI (api.openai.com) même quand OPENAI_BASE_URL
-        # pointait vers un serveur Ollama local compatible OpenAI
-        # (http://host.docker.internal:11434/v1). Avec la clé factice
-        # "ollama" par défaut, l'appel échouait systématiquement en
-        # authentification contre la vraie API OpenAI, l'exception était
-        # avalée par _chat(), et le service retombait silencieusement sur
-        # la logique par mots-clés (jamais de faux succès, mais Ollama
-        # n'était jamais réellement sollicité).
         _client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL or None)
-    except Exception:  # pragma: no cover - dépendance optionnelle manquante/erreur d'init
+    except Exception:
         _client = None
         is_configured = False
-
 
 def _chat(messages: list[dict[str, str]], *, json_mode: bool = False, temperature: float = 0.4) -> Optional[str]:
     if not _client:
@@ -57,15 +35,9 @@ def _chat(messages: list[dict[str, str]], *, json_mode: bool = False, temperatur
         completion = _client.chat.completions.create(**kwargs)
         return completion.choices[0].message.content
     except Exception:
-        # Toute erreur OpenAI (réseau, quota, clé invalide...) => on laisse
-        # l'appelant retomber sur son stub déterministe plutôt que de faire
-        # planter la requête.
         return None
 
-
 def generate_next_question(missing_field: str, brief: dict[str, Any], conversation_history: list[dict[str, str]]) -> Optional[str]:
-    """Demande à OpenAI de formuler la prochaine question du Smart Briefing
-    en français naturel, en tenant compte de ce qui a déjà été collecté."""
     system = (
         "Tu es l'assistant de briefing d'une marketplace B2B qui met en relation des "
         "entreprises clientes avec des prestataires/agences. Tu aides le client à "
@@ -84,10 +56,7 @@ def generate_next_question(missing_field: str, brief: dict[str, Any], conversati
     messages.append({"role": "user", "content": user})
     return _chat(messages)
 
-
 def extract_fields(user_message: str, current_brief: dict[str, Any], target_field: str) -> Optional[dict[str, Any]]:
-    """Demande à OpenAI d'extraire le(s) champ(s) structuré(s) depuis un
-    message libre, en réponse JSON."""
     system = (
         "Tu extrais des informations structurées depuis un message libre d'un client "
         "d'une marketplace B2B, pour compléter un brief de projet. Réponds UNIQUEMENT "
@@ -110,10 +79,7 @@ def extract_fields(user_message: str, current_brief: dict[str, Any], target_fiel
     except (json.JSONDecodeError, TypeError):
         return None
 
-
 def categorize(text: str, categories: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
-    """Demande à OpenAI de choisir la catégorie/sous-catégorie la plus
-    pertinente parmi celles fournies (issues de Frappe)."""
     if not categories:
         return None
     catalog = [
@@ -147,7 +113,6 @@ def categorize(text: str, categories: list[dict[str, Any]]) -> Optional[dict[str
     except (json.JSONDecodeError, TypeError):
         return None
 
-
 def enrich_description(description: str, category_name: Optional[str]) -> Optional[str]:
     system = (
         "Tu reformules et complètes le besoin exprimé par un client d'une marketplace "
@@ -158,10 +123,7 @@ def enrich_description(description: str, category_name: Optional[str]) -> Option
     user = f"Catégorie: {category_name or 'inconnue'}\nBesoin exprimé par le client: {description}"
     return _chat([{"role": "system", "content": system}, {"role": "user", "content": user}], temperature=0.5)
 
-
 def chatbot_reply(message: str, context: dict[str, Any]) -> Optional[dict[str, Any]]:
-    """Réponse du chatbot FAQ/aide à la rédaction quand aucune règle
-    déterministe ne matche. Réponse JSON {reply, escalate}."""
     system = (
         "Tu es l'assistant conversationnel d'une marketplace B2B mettant en relation "
         "entreprises et prestataires/agences. Tu réponds aux questions sur le "

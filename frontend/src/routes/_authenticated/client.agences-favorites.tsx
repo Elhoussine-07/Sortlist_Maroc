@@ -28,13 +28,6 @@ import {
 } from "@/services/agencies.service";
 import { ApiError } from "@/services/http";
 
-/**
- * Agences favorites (Client) — CDC §1.4 : le client ajoute une agence en
- * favori depuis son profil public (bouton étoile) pour la retrouver
- * facilement et la contacter plus tard, sans avoir à la rechercher à
- * nouveau. `client.list_favorites`/`client.toggle_favorite` existaient déjà
- * côté backend mais n'étaient jamais appelés côté frontend.
- */
 export const Route = createFileRoute("/_authenticated/client/agences-favorites")({
   head: () => ({
     meta: [
@@ -112,17 +105,14 @@ function ClientFavoriteAgenciesPage() {
   const favorites = favoritesQuery.data ?? [];
   const isLoading = favoritesQuery.isPending;
 
-  // Extraire les catégories uniques (si disponibles)
   const categories = useMemo(() => {
     const cats = new Set<string>();
     favorites.forEach((fav) => {
-      // @ts-expect-error - Si la propriété existe dans l'API
       if (fav.category) cats.add(fav.category);
     });
     return Array.from(cats);
   }, [favorites]);
 
-  // Filtrer et trier les favoris
   const filteredAndSortedFavorites = useMemo(() => {
     const result = favorites.filter((fav) => {
       const matchesSearch =
@@ -130,7 +120,6 @@ function ClientFavoriteAgenciesPage() {
         fav.agency?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory =
         filterCategory === "all" ||
-        // @ts-expect-error - Si la propriété existe dans l'API
         fav.category === filterCategory;
       return matchesSearch && matchesCategory;
     });
@@ -139,7 +128,6 @@ function ClientFavoriteAgenciesPage() {
       if (sortBy === "name") {
         return (a.agencyName || "").localeCompare(b.agencyName || "");
       }
-      // Date d'ajout (par défaut)
       const dateA = a.dateAdded ? new Date(a.dateAdded).getTime() : 0;
       const dateB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
       return dateB - dateA;

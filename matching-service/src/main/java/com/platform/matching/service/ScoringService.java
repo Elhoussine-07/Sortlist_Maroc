@@ -18,76 +18,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Moteur de scoring multicritere (cahier des charges 3.2 "Moteur de
- * recommandation IA avance" / 3.3 "Prediction des chances de succes").
- *
- * <p>Deux scores independants sont calcules par agence candidate :
- * <ul>
- *   <li>{@code matching_score} (0-100) : pondere expertise/skills, budget,
- *       localisation, avis et disponibilite (proxy PQI) — cf. cahier §3.2
- *       "Scoring multicritere : Ponderation dynamique de l'expertise, du
- *       budget, de la localisation, des avis et de la disponibilite".</li>
- *   <li>{@code success_prediction} (0-100) : "Probabilite de collaboration
- *       reussie calculee a partir de projets historiques comparables"
- *       (cahier §3.3), accompagnee de "facteurs explicatifs" (transparence
- *       de l'IA).</li>
- * </ul>
- *
- * Les poids sont des constantes nommees, volontairement modestes en nombre,
- * pour rester faciles a re-calibrer plus tard (apprentissage continu —
- * cahier §3.2, hors perimetre de cette iteration).
- */
 @Service
 public class ScoringService {
 
-    // ------------------------------------------------------------------
-    // Ponderation du matching_score (somme = 1.0)
-    // PONDERATION AJUSTEE (25/08) : rééquilibrage suite a analyse des
-    // incoherences internes du systeme de scoring. Details :
-    //   - PQI releve 0.15 -> 0.20 : c'est une metrique propriete de la
-    //     plateforme, deja auditee (PQICriterion), plus fiable que Location.
-    //   - LOCATION baissee 0.20 -> 0.15 : score deja "court-circuite" a 100
-    //     des qu'une agence est en remote_work, ce qui reduit son pouvoir
-    //     discriminant pour une part croissante d'agences.
-    //   - RATING baissee 0.20 -> 0.15 : deja pris en compte a 30% dans le
-    //     success_prediction (SP_RATING_WEIGHT) ; le laisser a 20% ici
-    //     revenait a compter deux fois le meme signal de qualite.
-    //   - BUDGET relevee 0.10 -> 0.15 : la capacite financiere reste un
-    //     risque business reel, meme via un proxy imparfait (CA annuel).
-    //   - SKILLS inchangee a 0.35 : reste le critere central du matching.
-    // Somme = 1.0 (35+20+15+15+15).
-    // ------------------------------------------------------------------
     public static final double LOCATION_WEIGHT = 0.15;
     public static final double SKILLS_WEIGHT = 0.35;
     public static final double BUDGET_WEIGHT = 0.15;
     public static final double RATING_WEIGHT = 0.15;
     public static final double PQI_WEIGHT = 0.20;
 
-    // Score neutre utilise quand une donnee necessaire au calcul d'un
-    // facteur est absente (evite de penalizer/avantager injustement une
-    // agence pour un manque de donnee plutot qu'un vrai mismatch).
     private static final double NEUTRAL_SCORE = 50.0;
 
-    // ------------------------------------------------------------------
-    // Ponderation du success_prediction (somme = 1.0)
-    // ------------------------------------------------------------------
     private static final double EXPERIENCE_WEIGHT = 0.5;
     private static final double SP_RATING_WEIGHT = 0.3;
     private static final double CLIENT_TRUST_WEIGHT = 0.2;
 
-    // Nombre de projets termines a partir duquel le facteur "experience"
-    // sature a 100 (au-dela, un projet de plus ne differencie plus).
     private static final double EXPERIENCE_SATURATION_PROJECTS = 10.0;
 
-    // Ratio chiffre d'affaires annuel / budget projet a partir duquel on
-    // considere l'agence en pleine capacite financiere pour ce projet.
     private static final double COMFORTABLE_REVENUE_RATIO = 5.0;
 
-    // CORRECTIF : "a" apparaissait deux fois (liste FR "a"/"à" + liste EN
-    // "a" article indefini), ce qui faisait planter Set.of() au chargement
-    // de la classe (IllegalArgumentException: duplicate element: a).
-    // Le doublon a ete retire, "a" couvre deja les deux usages.
     private static final Set<String> STOPWORDS = Set.of(
             "de", "des", "du", "la", "le", "les", "un", "une", "et", "en",
             "pour", "avec", "dans", "sur", "au", "aux", "a", "ou", "que",
@@ -95,11 +44,6 @@ public class ScoringService {
             "the", "and", "for", "with", "of", "to", "an"
     );
 
-    /**
-     * Calcule le score des agences candidates pour un projet donne et
-     * retourne les {@code limit} meilleures, triees par matching_score
-     * decroissant.
-     */
     public List<AgencyScore> score(ProjectRequest project, double clientTrustScore,
                                    List<CandidateAgency> candidates, int limit) {
         return candidates.stream()
@@ -144,9 +88,6 @@ public class ScoringService {
         );
     }
 
-    // ------------------------------------------------------------------
-    // Facteur localisation
-    // ------------------------------------------------------------------
     private double scoreLocation(ProjectRequest project, CandidateAgency agency) {
         if (agency.isRemoteWork()) {
             return 100.0;
@@ -169,9 +110,6 @@ public class ScoringService {
         return 20.0;
     }
 
-    // ------------------------------------------------------------------
-    // Facteur expertise / competences (overlap de mots-cles)
-    // ------------------------------------------------------------------
     private double scoreSkills(ProjectRequest project, CandidateAgency agency) {
         Set<String> coreTokens = tokenize(join(project.category(), project.subCategory()));
         Set<String> extraTokens = tokenize(project.description());
@@ -193,15 +131,6 @@ public class ScoringService {
         return coreOverlap >= 0 ? coreOverlap : extraOverlap;
     }
 
-    // ------------------------------------------------------------------
-    // Facteur budget — DEVIATION documentee (voir README) : le payload
-    // get_project_context ne renvoie pas price_range (AgencyService), donc
-    // impossible de comparer directement une fourchette de prix agence au
-    // budget du projet. On utilise le chiffre d'affaires annuel comme proxy
-    // de capacite financiere. Poids releve a 0.15 (voir note en tete de
-    // fichier) car ce risque business reste pertinent malgre la donnee
-    // approximative.
-    // ------------------------------------------------------------------
     private double scoreBudgetFit(ProjectRequest project, CandidateAgency agency) {
         Double budgetMax = project.budgetMax();
         Double revenue = agency.annualRevenue();
@@ -218,9 +147,6 @@ public class ScoringService {
         return 20.0 + ratio * 40.0;
     }
 
-    // ------------------------------------------------------------------
-    // Facteur avis clients
-    // ------------------------------------------------------------------
     private double scoreRating(CandidateAgency agency) {
         if (agency.rating() == null) {
             return NEUTRAL_SCORE;
@@ -228,9 +154,6 @@ public class ScoringService {
         return clamp(agency.rating() / 5.0 * 100.0);
     }
 
-    // ------------------------------------------------------------------
-    // Facteur disponibilite / qualite proxy (PQI, deja sur 0-100)
-    // ------------------------------------------------------------------
     private double scorePqi(CandidateAgency agency) {
         if (agency.pqiScore() == null) {
             return NEUTRAL_SCORE;
@@ -238,9 +161,6 @@ public class ScoringService {
         return clamp(agency.pqiScore());
     }
 
-    // ------------------------------------------------------------------
-    // success_prediction — "Score de compatibilite" (cahier §3.3)
-    // ------------------------------------------------------------------
     private double computeSuccessPrediction(CandidateAgency agency, double clientTrustScore, double ratingScore) {
         double experienceScore = Math.min(
                 agency.completedProjectsOrZero() / EXPERIENCE_SATURATION_PROJECTS, 1.0) * 100.0;
@@ -250,7 +170,6 @@ public class ScoringService {
                 + trustScore * CLIENT_TRUST_WEIGHT;
     }
 
-    /** "Facteurs explicatifs" — cahier §3.3, transparence de l'IA. */
     private List<String> explainSuccessPrediction(CandidateAgency agency, double clientTrustScore) {
         List<String> factors = new ArrayList<>();
 
@@ -281,9 +200,6 @@ public class ScoringService {
         return factors;
     }
 
-    // ------------------------------------------------------------------
-    // Utilitaires texte
-    // ------------------------------------------------------------------
     private static String join(String... parts) {
         return Arrays.stream(parts)
                 .filter(p -> p != null && !p.isBlank())

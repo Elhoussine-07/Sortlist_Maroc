@@ -1,6 +1,3 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Module Démonstration & Guide utilisateur (cf. §5)."""
 
 import frappe
 
@@ -23,7 +20,6 @@ GUIDE_STEPS = {
 	],
 }
 
-
 @frappe.whitelist()
 def get_guide(account_type=None):
 	account_type = require_body_arg(account_type, "account_type", "Type de compte manquant")
@@ -31,7 +27,6 @@ def get_guide(account_type=None):
 	steps = GUIDE_STEPS.get(account_type, [])
 	progress = frappe.db.get_value("User", claims["sub"], ["demo_guide_step", "demo_guide_completed"], as_dict=True)
 	return {"steps": steps, "current_step": progress.demo_guide_step, "completed": progress.demo_guide_completed}
-
 
 @frappe.whitelist()
 def set_progress(step=None, completed=0):

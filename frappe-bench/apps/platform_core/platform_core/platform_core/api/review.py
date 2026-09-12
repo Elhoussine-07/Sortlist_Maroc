@@ -1,12 +1,8 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Avis (cf. §1.4, 2.2.6) : notation client -> agence, internalisée (anti-faux-avis)."""
 
 import frappe
 from frappe import _
 
 from platform_core.platform_core.auth import get_client_profile_name, require_body_arg, require_user_type
-
 
 @frappe.whitelist()
 def submit_agency_review(project=None, rating=None, quality_score=None, deadline_score=None,
@@ -40,7 +36,6 @@ def submit_agency_review(project=None, rating=None, quality_score=None, deadline
 	review.insert(ignore_permissions=True)
 	return review.as_dict()
 
-
 @frappe.whitelist(allow_guest=True)
 def list_agency_reviews(agency=None, page=1, page_size=10):
 	agency = require_body_arg(agency, "agency", _("Agence manquante"))
@@ -55,10 +50,6 @@ def list_agency_reviews(agency=None, page=1, page_size=10):
 		limit_start=(page - 1) * page_size,
 		limit_page_length=page_size,
 	)
-	# AJOUTÉ : `AgencyReview.client` pointe vers `User` (claims["sub"], cf.
-	# `submit_agency_review`), jamais exposé tel quel (endpoint allow_guest) —
-	# on résout plutôt le nom d'affichage via `ClientProfile` (raison sociale,
-	# sinon prénom/nom), au lieu de renvoyer l'email brut ou de le taire.
 	for row in rows:
 		client_email = row.pop("client", None)
 		profile = frappe.db.get_value(
@@ -71,20 +62,11 @@ def list_agency_reviews(agency=None, page=1, page_size=10):
 			row["client_name"] = f"{profile.first_name or ''} {profile.last_name or ''}".strip()
 		else:
 			row["client_name"] = "Client vérifié"
-		# AJOUTÉ : un avis doit être accompagné du projet concerné (titre +
-		# CDC), pas seulement affiché isolément.
 		row["project_title"] = frappe.db.get_value("Project", row["project"], "title") if row["project"] else None
 	return rows
 
-
 @frappe.whitelist()
 def list_client_reviews(page=1, page_size=10):
-	"""AJOUTÉ : symétrique de `list_agency_reviews`, côté client — avis
-	laissés par les agences sur le client authentifié (`ClientReview`, cf.
-	`opportunity.review_client`). Contrairement à `AgencyReview`,
-	`ClientReview` n'a pas de champ de statut/modération (cf.
-	`moderation.py::list_recent_client_reviews`) : publié directement, pas
-	de filtre `status` ici."""
 	page = int(page)
 	page_size = int(page_size)
 	claims = require_user_type("client")
@@ -101,6 +83,5 @@ def list_client_reviews(page=1, page_size=10):
 	)
 	for row in rows:
 		row["agency_name"] = frappe.db.get_value("AgencyProfile", row["agency"], "agency_name")
-		# AJOUTÉ : un avis doit être accompagné du projet concerné (titre).
 		row["project_title"] = frappe.db.get_value("Project", row["project"], "title") if row["project"] else None
 	return rows

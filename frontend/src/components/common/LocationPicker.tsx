@@ -16,9 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// BUG CONNU Leaflet + bundlers (Vite/Webpack) : les icônes de marqueur par
-// défaut pointent vers des chemins relatifs cassés par le bundler, sans ce
-// correctif explicite (icônes invisibles ou 404 sinon).
 const DefaultIcon = L.icon({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,
@@ -35,7 +32,6 @@ interface NominatimResult {
 }
 
 const SEARCH_DEBOUNCE_MS = 500;
-// Centre par défaut de la carte si la géolocalisation est indisponible/refusée.
 const DEFAULT_CENTER: [number, number] = [33.5731, -7.5898];
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
@@ -48,7 +44,6 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
   return data.display_name;
 }
 
-/** Capte les clics sur la carte (bibliothèque react-leaflet : hook dédié, pas de prop onClick sur MapContainer). */
 function MapClickHandler({ onSelect }: { onSelect: (lat: number, lon: number) => void }) {
   useMapEvents({
     click(event) {
@@ -58,12 +53,6 @@ function MapClickHandler({ onSelect }: { onSelect: (lat: number, lon: number) =>
   return null;
 }
 
-/**
- * BUG CONNU react-leaflet : la prop `center` de `MapContainer` ne définit
- * la vue qu'au premier rendu — changer `mapPosition` ensuite (ex. bouton
- * "Me localiser") déplacerait le marqueur mais pas la caméra sans ce
- * correctif explicite (`map.setView`).
- */
 function MapViewSync({ position }: { position: [number, number] }) {
   const map = useMap();
   useEffect(() => {
@@ -72,12 +61,6 @@ function MapViewSync({ position }: { position: [number, number] }) {
   return null;
 }
 
-/**
- * BUG CONNU Leaflet dans une modale : la carte peut se rendre grisée/mal
- * dimensionnée si son conteneur avait une taille nulle au moment du premier
- * rendu (cas d'une modale qui s'anime à l'ouverture). `invalidateSize()`
- * après un court délai force Leaflet à recalculer ses dimensions.
- */
 function MapResizeFix() {
   const map = useMap();
   useEffect(() => {
@@ -87,21 +70,6 @@ function MapResizeFix() {
   return null;
 }
 
-/**
- * Champ "Localisation" combinant 3 façons de renseigner une adresse :
- * saisie libre avec autocomplétion (recherche Nominatim/OpenStreetMap),
- * sélection directe sur une carte interactive, ou détection de la position
- * actuelle du navigateur (géolocalisation + géocodage inverse).
- *
- * Ne stocke que le texte de l'adresse (`value: string`), pas de coordonnées
- * — cohérent avec le schéma Zod existant (`location: z.string()...`), les
- * coordonnées ne servent qu'en interne pour retrouver le texte via Nominatim.
- *
- * Utilise Nominatim (service de recherche/géocodage gratuit d'OpenStreetMap,
- * aucune clé API requise). Politique d'usage raisonnable côté OSM — largement
- * suffisant en développement et pour un lancement normal, à reconsidérer
- * seulement en cas de très fort trafic plus tard.
- */
 export function LocationPicker({
   label,
   value,
@@ -122,8 +90,6 @@ export function LocationPicker({
   const [isLocating, setIsLocating] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
-  // État propre à la modale carte, distinct de `value` tant que
-  // l'utilisateur n'a pas cliqué "Confirmer cet emplacement".
   const [mapPosition, setMapPosition] = useState<[number, number]>(DEFAULT_CENTER);
   const [mapAddress, setMapAddress] = useState("");
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
@@ -131,8 +97,6 @@ export function LocationPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const searchIdRef = useRef(0);
 
-  // Garde le champ synchronisé si `value` change depuis l'extérieur (ex.
-  // réinitialisation du formulaire).
   useEffect(() => {
     setQuery(value);
   }, [value]);
@@ -147,8 +111,6 @@ export function LocationPicker({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Recherche d'adresse en direct pendant la saisie (debounce 500ms, comme
-  // la vérification du nom d'agence à l'inscription).
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 3 || trimmed === value) {
@@ -185,10 +147,6 @@ export function LocationPicker({
     setSuggestions([]);
   }
 
-  // AJOUT : la géolocalisation vit maintenant dans la modale carte (centre +
-  // marqueur + géocodage inverse dans mapAddress), pas de commit direct sur
-  // le champ — l'utilisateur confirme toujours via "Confirmer cet emplacement",
-  // cohérent avec le flux "clic sur la carte".
   function locateMeOnMap() {
     if (!navigator.geolocation) {
       toast.error("La géolocalisation n'est pas disponible sur ce navigateur.");

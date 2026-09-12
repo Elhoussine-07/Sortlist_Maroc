@@ -102,10 +102,6 @@ const ADMIN_NAV: NavItem[] = [
   },
 ];
 
-// AJOUT : routes réservées au owner de l'agence (pas aux membres invités).
-// Un membre n'a pas de droit d'accès sur ces écrans côté backend non plus
-// (paramètres/invitations/profil de l'agence relèvent du propriétaire) — on
-// les masque donc aussi côté nav pour éviter d'exposer un lien mort/403.
 const OWNER_ONLY_AGENCY_ROUTES = new Set([
   "/agence/parametres",
   "/agence/invitations",
@@ -118,15 +114,6 @@ function navForRole(role: UserRole): NavItem[] {
   return ADMIN_NAV;
 }
 
-/**
- * Regroupement purement visuel de la nav (aucun impact sur les routes/icônes
- * affichées ni sur le filtre owner/membre appliqué en amont) : classe les
- * items déjà résolus par `navForRole`/le filtre owner-only dans de petites
- * sections repliables visuellement (juste un libellé, pas de logique) pour
- * que la sidebar reste lisible malgré le nombre d'entrées côté Agence.
- * `route` -> libellé de section ; tout item non listé ici (aucun cas
- * aujourd'hui) retombe dans une section "Autres" plutôt que de disparaître.
- */
 const NAV_SECTION_BY_ROUTE: Record<string, string> = {
   "/client/tableau-de-bord": "Principal",
   "/agence/tableau-de-bord": "Principal",
@@ -186,9 +173,6 @@ function groupNavItems(items: NavItem[]): { section: string; items: NavItem[] }[
   })).filter((group) => group.items.length > 0);
 }
 
-/* Avatar coloré déterministe, cohérent avec le reste du site : même
-   personne/agence = même couleur, dérivée d'une chaîne stable, sans champ
-   "couleur" côté API. */
 function hashSeed(seed: string): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
@@ -209,31 +193,20 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
     select: (state) => state.location.pathname,
   });
 
-  // API CALL : GET /api/auth/me -> alimente le store utilisateur (aucune donnée en dur)
   const user = useAuthStore((state) => state.user);
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
   const setUnreadCount = useNotificationsStore((state) => state.setUnreadCount);
 
-  // AJOUT : membership de l'agence active, pour filtrer la nav (voir items
-  // ci-dessous). Alimenté par AgencySwitcher via setAgencies/setActiveAgency
-  // (même store), donc disponible ici sans appel API supplémentaire.
   const activeAgencyId = useAgencyStore((state) => state.activeAgencyId);
   const agencies = useAgencyStore((state) => state.agencies);
   const activeMembership = agencies.find((agency) => agency.id === activeAgencyId)?.membership;
 
-  // AJOUT : un membre (non-owner) d'une agence ne voit pas Paramètres,
-  // Invitations et Profil agence. Les comptes client/admin ne sont pas
-  // concernés (activeMembership reste undefined pour eux).
   const items = navForRole(role).filter((item) => {
     if (role !== "agency" || activeMembership !== "member") return true;
     return !OWNER_ONLY_AGENCY_ROUTES.has(item.to);
   });
   const navGroups = groupNavItems(items);
 
-  // Le badge de notifications non lues n'était jusque-là mis à jour qu'en
-  // visitant l'écran Notifications. Interrogé ici (montage du shell, présent
-  // sur tout le dashboard) avec un rafraîchissement périodique pour rester à
-  // jour sans action de l'utilisateur.
   const unreadCountQuery = useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: getUnreadCount,
@@ -245,8 +218,6 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
     }
   }, [unreadCountQuery.data, setUnreadCount]);
 
-  // CDC module 5 : bouton "Démo / Découvrir la plateforme" accessible depuis
-  // le dashboard, quel que soit le contexte d'agence actif.
   const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   const roleLabel =
@@ -350,8 +321,6 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
                 <DropdownMenuItem
                   className="gap-2"
                   onClick={() => {
-                    // Le JWT Frappe est sans état (pas de révocation serveur) :
-                    // `logout()` vide juste le store local, cf. auth.service.ts.
                     void logout().finally(() => {
                       void navigate({ to: "/connexion" });
                     });
@@ -423,19 +392,6 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
   );
 }
 
-/**
- * Sélecteur d'agence (bascule multi-agences) + bouton "+" pour rejoindre une
- * agence — CDC §2.1.1. Visible uniquement pour les comptes Agence (rendu
- * conditionnel dans `DashboardShell`), affiché discrètement à côté du
- * nom/avatar dans le header. Réutilise les primitives shadcn déjà utilisées
- * ailleurs dans le repo (`DropdownMenu`, `ActionModal`).
- *
- * Branché sur `agencies.service.ts::getMyAgencies` (liste), `auth.service.ts::switchAgency`
- * (bascule — récupère et stocke un nouveau JWT scoped) et
- * `agencies.service.ts::requestToJoinAgency` (bouton "+"). L'agence active est
- * conservée dans `agency.store.ts` (`activeAgencyId`), consommée ensuite par
- * `profile.service.ts::getAgencyProfile`/`getAgencyDashboard`.
- */
 function AgencySwitcher() {
   const queryClient = useQueryClient();
   const activeAgencyId = useAgencyStore((state) => state.activeAgencyId);
@@ -450,9 +406,6 @@ function AgencySwitcher() {
     queryFn: getMyAgencies,
   });
 
-  // Alimente le store (persisté) dès que la liste est connue, et choisit la
-  // première agence comme agence active par défaut si aucune n'est encore
-  // sélectionnée (premier chargement / nouvel appareil).
   useEffect(() => {
     if (!agencies) return;
     setAgencies(agencies);
@@ -465,8 +418,6 @@ function AgencySwitcher() {
     mutationFn: switchAgency,
     onSuccess: (_result, agencyId) => {
       setActiveAgency(agencyId);
-      // L'agence active a changé : tout ce qui dépendait de l'ancienne
-      // (profil, dashboard, analytics...) doit être rechargé.
       void queryClient.invalidateQueries();
       toast("Agence changée", {
         description: agencies?.find((agency) => agency.id === agencyId)?.name,
@@ -480,8 +431,6 @@ function AgencySwitcher() {
   const joinMutation = useMutation({
     mutationFn: async (query: string) => {
       const trimmed = query.trim();
-      // Le champ accepte un nom (recherché via `agency.list_agencies`) ou un
-      // identifiant d'agence saisi directement.
       const results = await searchAgencies({ query: trimmed, pageSize: 5 });
       const targetId = results.items[0]?.id ?? trimmed;
       return requestToJoinAgency(targetId);

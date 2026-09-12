@@ -1,33 +1,8 @@
 import { camelizeKeys, frappeCall, restCall } from "@/services/http";
 
-/** Service Prospection IA — microservice `prospection-service` via le Gateway. */
-
 const VISITOR_SESSION_KEY = "sortlist_visitor_session_id";
 const VISITOR_SESSION_OWNER_KEY = "sortlist_visitor_session_owner";
 
-/**
- * Identifiant de session visiteur, stable pour tout le passage sur le site
- * (localStorage) — requis par `POST /api/prospection/track` (cf.
- * `prospection-service/src/routes/prospection.js`) pour cumuler le score
- * d'un même visiteur sur sa fenêtre glissante (`window_days`, §2.6.1).
- *
- * BUG CORRIGÉ (demande explicite) : cet identifiant était lié au
- * NAVIGATEUR, jamais réinitialisé au changement de compte connecté — un
- * même navigateur testé successivement avec plusieurs comptes clients
- * différents envoyait le MÊME `session_id` à chaque fois. Côté backend,
- * `visits`/`leads` sont indexés par `(agency, session_id)`, pas par
- * `client_email` : un compte "jamais utilisé" héritait donc de tout
- * l'historique (avis, favoris, certificats...) accumulé par les comptes
- * précédents sur ce même navigateur, avant même d'avoir cliqué quoi que ce
- * soit.
- *
- * On mémorise désormais aussi le dernier `client_email` associé à la
- * session stockée (`VISITOR_SESSION_OWNER_KEY`). Dès qu'un visiteur
- * identifié se connecte avec un email DIFFÉRENT de celui déjà associé, un
- * nouveau `session_id` est généré — reparti d'un historique vide pour
- * cette nouvelle identité. Un visiteur anonyme (jamais connecté) ou qui
- * revient avec le MÊME compte garde sa session existante, comme avant.
- */
 function visitorSessionId(clientEmail?: string | undefined): string {
   if (typeof window === "undefined") return "server";
   try {
@@ -62,16 +37,6 @@ function visitorSessionId(clientEmail?: string | undefined): string {
 export type ProspectionTrackAction =
   "profile" | "portfolio" | "reviews" | "team" | "certifications" | "services" | "favorite";
 
-/**
- * // API CALL : restCall('prospection', '/track', { method: 'POST', body: { agency, session_id, action, duration_seconds, count } })
- * Signal de prospection (§2.6, MUST) déclenché depuis le profil public d'une
- * agence — jusqu'ici jamais appelé nulle part côté frontend, ce qui laissait
- * la table `leads` de prospection-service en permanence vide (d'où le
- * dashboard "Prospection IA" systématiquement vide côté agence, quelle que
- * soit l'activité réelle des visiteurs). Non bloquant : un échec (service
- * indisponible, etc.) ne doit jamais casser la navigation du visiteur sur le
- * profil public, d'où le `.catch` silencieux à l'appel.
- */
 export async function trackProspectionSignal(
   agency: string,
   action: ProspectionTrackAction,
@@ -91,26 +56,12 @@ export async function trackProspectionSignal(
       action,
       duration_seconds: context?.durationSeconds,
       count: context?.count,
-      // Identifie le prospect quand le visiteur est un client connecté (cf.
-      // /track dans prospection-service, colonnes `leads.client_email`/
-      // `client_name`) — permet à l'agence de voir QUI a été détecté
-      // (nom affiché) sans jamais exposer de coordonnées de contact.
       client_email: context?.clientEmail,
       client_name: context?.clientName,
     },
   });
 }
 
-/**
- * // API CALL : restCall('prospection', '/visit', { method: 'POST', body: { agency, session_id, client_email, client_name } })
- * AJOUTÉ (demande explicite) : compte une VRAIE visite du profil (un
- * chargement de page), à appeler UNE SEULE FOIS au montage de
- * `agences_.$id.tsx` — jamais à chaque changement d'onglet. Découplé de
- * `trackProspectionSignal`/`/track` : aucun impact sur le score, juste sur
- * `leads.visit_count` (cf. routes/prospection.js). Avant ce correctif,
- * `visit_count` était incrémenté à chaque action trackée (chaque onglet
- * cliqué), donnant "×3 visites" pour une seule visite avec 3 clics.
- */
 export async function recordProfileVisit(
   agency: string,
   context?: { clientEmail?: string | undefined; clientName?: string | undefined },
@@ -139,27 +90,9 @@ export interface Lead {
   temperature: LeadTemperature;
   temperatureLabel: string;
   score: number;
-  /** Présent seulement si le visiteur était un client connecté au moment du tracking. */
   clientEmail: string | null;
-  /** Nom affiché du client identifié (jamais son email/téléphone dans l'UI agence). */
   clientName: string | null;
-  /**
-   * Nombre de sessions distinctes fusionnées sous ce prospect (cf.
-   * `prospection.js::mergeLeadsByClientIdentity`) — un même client identifié
-   * revenant plusieurs fois (navigation privée, navigateur différent...)
-   * n'apparaît plus comme plusieurs prospects séparés. Toujours 1 pour un
-   * visiteur non identifié (pas d'identité fiable pour fusionner).
-   *
-   * BUG CORRIGÉ (demande explicite) : ce compteur n'augmente QUE quand un
-   * `session_id` distinct est fusionné (nouveau navigateur/navigation
-   * privée) — il reste inchangé quand le MÊME visiteur revient plusieurs
-   * fois avec le même navigateur. `visitCount` ci-dessous est le bon
-   * indicateur pour "combien de fois il est revenu".
-   */
   sessionCount: number;
-  /** Nombre total de visites/actions trackées (`leads.visit_count`, sommé
-   * sur toutes les sessions fusionnées) — augmente à chaque retour du
-   * visiteur, contrairement à `sessionCount`. */
   visitCount: number;
 }
 
@@ -201,11 +134,6 @@ function mapLead(raw: unknown): Lead {
     actions: Array.isArray(data["actions"]) ? (data["actions"] as string[]) : [],
     temperature,
     temperatureLabel: String(data["temperatureLabel"] ?? TEMPERATURE_LABELS[temperature]),
-    // BUG CORRIGÉ : lisait `data["score"]`, une clé que le backend n'a
-    // jamais renvoyée (il renvoie `cumulative_score` -> `cumulativeScore`
-    // après camelCase) — le score affiché était donc TOUJOURS 0, quel que
-    // soit le score réel du lead (visible par ex. quand la température
-    // était "Chaud" via le signal "Ajout aux favoris" mais le score à 0).
     score: Number(data["cumulativeScore"] ?? 0),
     clientEmail: (data["clientEmail"] as string | null | undefined) || null,
     clientName: (data["clientName"] as string | null | undefined) || null,
@@ -214,21 +142,11 @@ function mapLead(raw: unknown): Lead {
   };
 }
 
-/**
- * // API CALL : restCall('prospection', '/leads', { method: 'GET', query: { classification, from, to } })
- * `from`/`to` filtrent sur `leads.last_seen_at` côté backend (ISO 8601,
- * bornes inclusives) — permet à l'agence de restreindre le suivi à une
- * période donnée plutôt que de voir l'historique complet mélangé. Les
- * compteurs par température sont dérivés côté client (pas de `counters`
- * confirmé dans la réponse brute).
- */
 export async function getLeads(params?: {
   page?: number;
   pageSize?: number;
   temperature?: LeadTemperature;
-  /** Borne basse (incluse), ISO 8601 — ex. sortie d'un `<input type="datetime-local">`. */
   from?: string;
-  /** Borne haute (incluse), ISO 8601. */
   to?: string;
 }): Promise<{
   items: Lead[];
@@ -245,11 +163,6 @@ export async function getLeads(params?: {
   const raw = await restCall<unknown>("prospection", "/leads", {
     method: "GET",
     query: {
-      // BUG CORRIGÉ : `/leads` (prospection-service) n'accepte que les
-      // libellés français exacts ("Chaud"/"Tiède"/"Froid", cf.
-      // routes/prospection.js) — envoyer la valeur anglaise brute
-      // ("hot"/"warm"/"cold") faisait échouer la requête en 400 dès qu'un
-      // onglet de température autre que "Tous" était sélectionné.
       classification: params?.temperature ? TEMPERATURE_LABELS[params.temperature] : undefined,
       page: params?.page,
       page_size: params?.pageSize,
@@ -279,9 +192,6 @@ export async function getLeads(params?: {
   };
 }
 
-/**
- * // API CALL : restCall('prospection', `/leads/${leadId}/generate-email`, { method: 'POST' })
- */
 export async function generateProspectionEmail(
   leadId: string,
 ): Promise<{ subject: string; body: string }> {
@@ -296,17 +206,6 @@ export async function generateProspectionEmail(
   };
 }
 
-/**
- * // API CALL : restCall('prospection', `/leads/${leadId}/send-email`, { method: 'POST', body: { subject, body } })
- * Envoie l'e-mail de prospection généré (ou édité) par l'agence à un lead.
- *
- * AJOUTÉ (demande explicite, point 4) : `provider`/`note` sont désormais
- * remontés — `sent: true` ne veut dire "vraiment délivré" que si
- * `provider === "smtp"` (SMTP réel configuré côté prospection-service,
- * cf. services/emailSender.js) ; `provider: "stub"` = envoi simulé, jamais
- * présenté comme un succès. `agence.prospection.tsx` doit distinguer les
- * deux cas dans son toast plutôt que d'afficher systématiquement "envoyé".
- */
 export async function sendProspectionEmail(
   leadId: string,
   payload: { subject: string; body: string },
@@ -330,17 +229,6 @@ export interface ProspectionSettings {
   };
 }
 
-/**
- * // API CALL : frappeCall("prospection.get_scoring_rules_for_agency", {})
- * Lecture seule (CDC §2.6.1 : "Le barème doit rester configurable depuis
- * l'espace Admin plutôt que codé en dur") — l'agence consulte le barème
- * mais ne peut pas le modifier ; seul un Modérateur/Admin le peut, via
- * `prospection.update_scoring_rules` (hors périmètre de ce dashboard
- * Agence/Client). La précédente implémentation appelait
- * `prospection.get_scoring_rules`, qui exige un jeton de service interne
- * (X-Internal-Token) jamais envoyé par le frontend : cet appel échouait
- * systématiquement (401) pour un utilisateur réel.
- */
 export async function getProspectionSettings(): Promise<ProspectionSettings> {
   const raw = await frappeCall<unknown>("prospection.get_scoring_rules_for_agency", {});
   const data = camelizeKeys(raw) as Record<string, unknown>;
@@ -374,19 +262,6 @@ export interface IdentifiedClientProfile {
   reviews: ClientReviewAboutLead[];
 }
 
-/**
- * // API CALL : frappeCall("client.get_client_profile_for_agency", { client })
- * Un lead n'est identifié (cf. `Lead.clientEmail`) que si le visiteur était
- * connecté en tant que client au moment du tracking — on ne tente jamais de
- * deviner une identité à partir du nom/domaine d'entreprise détecté par IP
- * (trop peu fiable pour envoyer un email ou afficher des avis nominatifs).
- *
- * Volontairement AUCUNE coordonnée de contact (email/téléphone) dans la
- * réponse — l'agence voit qui a été détecté (nom, secteur, score de
- * confiance, avis) mais ne peut pas le contacter en dehors de la
- * plateforme ; l'envoi réel de l'e-mail reste géré côté serveur
- * (cf. sendProspectionEmail).
- */
 export async function getClientProfileForAgency(client: string): Promise<IdentifiedClientProfile> {
   const raw = await frappeCall<unknown>("client.get_client_profile_for_agency", { client });
   const data = camelizeKeys(raw) as Record<string, unknown>;
@@ -436,12 +311,6 @@ export function activityActionLabel(action: string): string {
   return ACTIVITY_ACTION_LABELS[action] ?? action;
 }
 
-/**
- * // API CALL : restCall('prospection', `/leads/${leadId}/activity`, { method: 'GET' })
- * Détail chronologique des visites d'un lead (§2.6 : "suivi des mouvements
- * du client sur le profil agence") — combien de temps il a passé sur
- * chaque section, pas seulement un score agrégé.
- */
 export async function getLeadActivity(leadId: string): Promise<LeadActivityEntry[]> {
   const raw = await restCall<unknown>("prospection", `/leads/${leadId}/activity`, {
     method: "GET",

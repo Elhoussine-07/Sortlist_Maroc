@@ -421,7 +421,6 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
   const canGoNext = isStepValid(step, currentBrief);
   const showRecommencer = !ready && hasAnyBriefValue(currentBrief);
 
-  // Get current step data safely
   const currentStepData = step > 0 && step <= SUMMARY_ROWS.length ? SUMMARY_ROWS[step - 1] : null;
 
   if (isLoadingResumedDraft) {

@@ -198,10 +198,6 @@ const AGENCY_TOP_LEVEL_FIELD_MAP: Record<string, string> = {
   billingAddress: "billing_address",
 };
 
-// `languages`/`skills`/`techStack`/`coverage` sont typés `string[]` côté
-// frontend mais stockés comme une simple chaîne "a, b, c" côté backend
-// (`Small Text`/`Data`) — ce sont les SEULS champs qu'il faut joindre en
-// chaîne avant l'envoi.
 const STRING_LIST_FIELDS = new Set(["languages", "skills", "techStack", "coverage"]);
 
 export async function updateAgencyProfile(
@@ -210,17 +206,6 @@ export async function updateAgencyProfile(
   const body: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(payload)) {
     if (value === undefined) continue;
-    // BUG CORRIGÉ : `Array.isArray(value) ? value.join(", ") : value`
-    // s'appliquait auparavant à N'IMPORTE QUEL tableau, y compris
-    // `services`/`portfolio`/`team`/`certifications` — des tableaux
-    // d'OBJETS (lignes de table enfant Frappe), pas de chaînes. Sur ceux-là,
-    // `.join(", ")` produisait littéralement la chaîne
-    // "[object Object], [object Object]" au lieu des lignes réelles :
-    // "Enregistrer les services/le portfolio/l'équipe/les certificats"
-    // envoyait alors une valeur inexploitable, et rien ne s'affichait après
-    // sauvegarde. On ne joint désormais que les champs réellement typés
-    // `string[]` (cf. STRING_LIST_FIELDS) ; les tableaux d'objets partent
-    // tels quels en JSON.
     body[AGENCY_TOP_LEVEL_FIELD_MAP[key] ?? key] =
       Array.isArray(value) && STRING_LIST_FIELDS.has(key) ? value.join(", ") : value;
   }
@@ -288,13 +273,6 @@ export async function submitCollaborationReview(
 export interface ClientDashboard {
   trustScore: { value: number; label: string };
   publishedProjects: { value: number; delta: string };
-  /**
-   * `value` reste `null` tant que `client.get_dashboard` renvoie
-   * `response_rate: null` (échantillon d'Opportunity trop faible sur la
-   * fenêtre glissante, cf. `client.py::_agency_acceptance_rate`) — un
-   * pourcentage calculé sur 1-2 données n'est pas représentatif.
-   * `client.tableau-de-bord.tsx` affiche alors "—" plutôt qu'un chiffre.
-   */
   responseRate: { value: number | null; delta: string };
   activeCollaborations: { value: number };
   recentProjects: Project[];
@@ -409,11 +387,6 @@ export async function updateSettings(payload: Partial<Settings>): Promise<Settin
   return mapSettings(data, payload);
 }
 
-/**
- * // API CALL : frappeCall("client.request_phone_otp", { phone })
- * Envoie un vrai SMS via Twilio si configuré côté backend (site_config.json,
- * cf. client.py::_send_sms) ; repli honnête par e-mail sinon.
- */
 export async function requestPhoneOtp(
   phone: string,
 ): Promise<{ sent: boolean; channel: "sms" | "email" }> {
@@ -425,9 +398,6 @@ export async function requestPhoneOtp(
   };
 }
 
-/**
- * // API CALL : frappeCall("client.verify_phone_otp", { code })
- */
 export async function verifyPhoneOtp(code: string): Promise<{ verified: boolean }> {
   const raw = await frappeCall<unknown>("client.verify_phone_otp", { code });
   const data = camelizeKeys(raw) as Record<string, unknown>;
@@ -440,7 +410,6 @@ export interface ClientReview {
   agencyName: string;
   agencyInitials: string;
   project: string;
-  /** Titre du projet noté (cf. review.py::list_client_reviews) — un avis doit toujours être accompagné du projet concerné. */
   projectTitle: string | null;
   rating: number;
   comment: string;

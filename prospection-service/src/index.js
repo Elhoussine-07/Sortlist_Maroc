@@ -41,7 +41,6 @@ function buildApp() {
     res.status(404).json({ error: "Not found" });
   });
 
-  // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
     logger.error("Unhandled error", { error: err.message, stack: err.stack });
     const statusCode = err.statusCode || 500;

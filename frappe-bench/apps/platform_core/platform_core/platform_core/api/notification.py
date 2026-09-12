@@ -1,16 +1,11 @@
-# Copyright (c) 2026, lahoussine and contributors
-# For license information, please see license.txt
-"""Module 7 — Historique des notifications."""
 
 import frappe
 
 from platform_core.platform_core.auth import current_claims, require_body_arg
 from platform_core.platform_core.doctype.notification.notification import mark_all_read
 
-
 @frappe.whitelist()
 def list_active(agency_context=None):
-	"""Vues actives (Mes Projets / Opportunités) : uniquement les non consultées."""
 	claims = current_claims()
 	filters = {"recipient": claims["sub"], "is_read": 0}
 	if agency_context:
@@ -21,7 +16,6 @@ def list_active(agency_context=None):
 		fields=["name", "category", "title", "body", "link", "reference_doctype", "reference_name", "creation"],
 		order_by="creation desc",
 	)
-
 
 @frappe.whitelist()
 def list_history(category=None, search=None, page=1, page_size=20):
@@ -43,7 +37,6 @@ def list_history(category=None, search=None, page=1, page_size=20):
 		limit_page_length=page_size,
 	)
 
-
 @frappe.whitelist()
 def mark_read(notification=None):
 	notification = require_body_arg(notification, "notification", "Notification manquante")
@@ -52,7 +45,6 @@ def mark_read(notification=None):
 	if doc.recipient != claims["sub"]:
 		frappe.throw("Accès non autorisé", frappe.PermissionError)
 	return doc.mark_read().as_dict()
-
 
 @frappe.whitelist()
 def mark_all_active_read(agency_context=None):

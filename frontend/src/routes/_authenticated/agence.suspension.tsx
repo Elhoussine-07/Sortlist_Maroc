@@ -56,7 +56,6 @@ export const Route = createFileRoute("/_authenticated/agence/suspension")({
   component: AgencySuspensionPage,
 });
 
-// ✅ CORRECTION : Fonction avec fallback par défaut
 type StatusConfig = {
   bg: string;
   text: string;
@@ -65,7 +64,6 @@ type StatusConfig = {
   label: string;
 };
 
-// ✅ STYLES MODERNISÉS POUR LES STATUTS
 const STATUS_STYLES: Record<string, StatusConfig> = {
   Requested: {
     bg: "bg-amber-100",
@@ -126,9 +124,7 @@ const STATUS_STYLES: Record<string, StatusConfig> = {
 };
 
 function getStatusConfig(status: string): StatusConfig {
-  // Chercher dans STATUS_STYLES, sinon utiliser "Requested" comme fallback
   const config = STATUS_STYLES[status] ?? STATUS_STYLES["Requested"];
-  // Retourner avec une assertion de type (garanti non-undefined car fallback existe)
   return config as StatusConfig;
 }
 

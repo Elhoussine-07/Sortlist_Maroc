@@ -17,8 +17,6 @@ import {
 } from "@/services/http";
 import { mapProject } from "@/services/projects.service";
 
-/** Service agences. */
-
 export interface AgencySearchParams {
   query?: string;
   category?: string;
@@ -36,12 +34,6 @@ function initialsFromName(name: string): string {
   return (first + last).toUpperCase();
 }
 
-/**
- * Traduit une agence Frappe (snake_case) vers le type `Agency` (camelCase).
- * // TODO backend: forme exacte des champs non documentée précisément — mapping
- * // best-effort sur les noms les plus probables (name/agency_name, location,
- * // description, rating, reviews_count, matching_score).
- */
 function mapAgency(raw: unknown): Agency {
   const data = camelizeKeys(raw) as Record<string, unknown>;
   const name = String(data["agencyName"] ?? data["name"] ?? "");
@@ -57,11 +49,6 @@ function mapAgency(raw: unknown): Agency {
       data["matchingScore"] !== undefined && data["matchingScore"] !== null
         ? Number(data["matchingScore"])
         : null,
-    // BUG CORRIGÉ : renommé en `teamSizeCount` — `AgencyProfile.teamSize`
-    // (string, ex. "11-50") existait déjà, et réutiliser le même nom ici
-    // (number) provoquait `Agency & Partial<AgencyProfile>` (cf.
-    // getAgencyProfile() ci-dessous) à résoudre le type de la clé en
-    // `never` (intersection number & string).
     teamSizeCount:
       data["teamSize"] !== undefined && data["teamSize"] !== null ? Number(data["teamSize"]) : null,
     avgResponseHours:
@@ -84,10 +71,6 @@ function mapAgency(raw: unknown): Agency {
   };
 }
 
-/**
- * // API CALL : frappeCall("agency.list_agencies", { query, category, location, page, page_size })
- * // (allow_guest côté backend)
- */
 export async function searchAgencies(
   params: AgencySearchParams,
 ): Promise<PaginatedResponse<Agency> & { foundCount: number }> {
@@ -117,24 +100,11 @@ export async function searchAgencies(
   };
 }
 
-/**
- * // API CALL : frappeCall("agency.get_profile", { agency: id }) — allow_guest
- */
 export async function getAgency(id: string): Promise<Agency> {
   const raw = await frappeCall<unknown>("agency.get_profile", { agency: id });
   return mapAgency(raw);
 }
 
-/**
- * // API CALL : restCall('matching', `/${projectId}/shortlist`, { method: 'GET' })
- * // ROUTAGE : `microservices/matching-service/.../MatchingController.java` monte
- * // `@RequestMapping("/api/matching")` et le Gateway route `/api/matching/**` en
- * // passthrough (sans réécriture) — `restCall("matching", path)` préfixe déjà
- * // `/api/matching`, `path` ne doit donc pas le répéter (sinon 404 : le chemin
- * // serait doublé en `/api/matching/api/matching/...`). Corrigé ici — la version
- * // précédente de cette fonction avait le même bug que celui trouvé et corrigé
- * // dans `briefing.service.ts` pour `ia-service`.
- */
 export async function getProjectShortlist(projectId: string): Promise<Agency[]> {
   const raw = await restCall<unknown>("matching", `/${projectId}/shortlist`, {
     method: "GET",
@@ -145,13 +115,6 @@ export async function getProjectShortlist(projectId: string): Promise<Agency[]> 
   return (list ?? []).map((item) => mapAgency(item));
 }
 
-/**
- * // API CALL :
- * //  - si `brief` est fourni : frappeCall("quick_actions.send_multicast", { project: projectId, agencies: JSON.stringify(agencyIds) })
- * //    (Multicast avec formulaire personnalisé)
- * //  - sinon : boucle frappeCall("quick_actions.contact_from_shortlist", { project: projectId, agency: id })
- * //    pour chaque agence (envoi direct depuis la Shortlist)
- */
 export async function contactAgencies(
   projectId: string,
   agencyIds: string[],
@@ -178,9 +141,6 @@ export async function contactAgencies(
   return { sentCount };
 }
 
-/**
- * // API CALL : frappeCall("agency.my_agencies")
- */
 export async function getMyAgencies(): Promise<
   Array<{
     id: string;
@@ -195,10 +155,6 @@ export async function getMyAgencies(): Promise<
   return list.map((item) => {
     const data = camelizeKeys(item) as Record<string, unknown>;
     const name = String(data["agencyName"] ?? data["name"] ?? "");
-    // `agency.my_agencies` (list_agencies_for_user) renvoie
-    // { agency, agency_name, member_role } — pas { id, name, role } comme
-    // le reste de l'API : l'ancien mapping laissait `id` vide, envoyant
-    // `{ agency: "" }` à `auth.switch_agency` (rejeté côté serveur).
     const membership = String(
       data["membership"] ?? data["memberRole"] ?? data["role"] ?? "",
     ).toLowerCase();
@@ -212,12 +168,6 @@ export async function getMyAgencies(): Promise<
   });
 }
 
-/**
- * // API CALL : frappeCall("agency.list_members", {})
- * Membres actifs de l'agence active — utilisé par la section Staff du
- * profil agence (CDC §2.2.4) pour associer un `AgencyTeam.member` à un
- * `AgencyMember` existant plutôt qu'à un nom libre.
- */
 export async function listAgencyMembers(): Promise<
   Array<{ id: string; user: string; role: string }>
 > {
@@ -233,25 +183,12 @@ export async function listAgencyMembers(): Promise<
   });
 }
 
-/**
- * // API CALL : frappeCall("agency.join_request", { agency: id })
- */
 export async function requestToJoinAgency(id: string): Promise<{ requested: boolean }> {
   const raw = await frappeCall<unknown>("agency.join_request", { agency: id });
   const data = camelizeKeys(raw) as Record<string, unknown>;
   return { requested: Boolean(data["requested"] ?? true) };
 }
 
-/**
- * Version "riche" de `getAgency`, pour le profil public complet
- * (`agences.$id.tsx`) : `agency.get_profile` (allow_guest, vérifié en lisant
- * `platform_core/platform_core/api/agency.py`) renvoie `doc.as_dict()` en
- * entier — y compris les tables enfants (`services`/`portfolio`/`team`/
- * `certifications`) que `mapAgency`/`getAgency` (ci-dessus, utilisé par les
- * cartes de résultats de recherche) ignorent volontairement pour rester
- * léger. Fonction additive, ne remplace pas `getAgency`.
- * // API CALL : frappeCall("agency.get_profile", { agency: id }) — allow_guest
- */
 export async function getAgencyProfile(id: string): Promise<Agency & Partial<AgencyProfile>> {
   const raw = await frappeCall<unknown>("agency.get_profile", { agency: id });
   const data = camelizeKeys(raw) as Record<string, unknown>;
@@ -306,18 +243,9 @@ export interface AgencyReview {
   rating: number;
   comment: string;
   publishedAt: string;
-  /** Titre du projet concerné — `review.list_agency_reviews` renvoie déjà `project_title`. */
   projectTitle?: string | null | undefined;
 }
 
-/**
- * // API CALL : frappeCall("review.list_agency_reviews", { agency: id, page, page_size }) — allow_guest
- * // TODO backend: `AgencyReview` (cf. `platform_core/platform_core/api/review.py`)
- * // n'expose ni auteur ni initiales (avis internalisés/anonymisés côté
- * // plateforme, cf. CDC "anti-faux-avis") — `authorName`/`authorInitials`
- * // n'ont donc pas de source réelle : affichés en "Client vérifié" plutôt que
- * // fabriqués.
- */
 export async function listAgencyReviews(
   id: string,
   page = 1,
@@ -343,19 +271,6 @@ export async function listAgencyReviews(
   });
 }
 
-/**
- * Flux Unicast (CDC §1.5.4) : contact direct d'une agence depuis son profil
- * public, avec un formulaire dynamique Projet/Stage/Job. Pas de fonction
- * unique côté backend pour ça : `quick_actions.start_contact` crée un
- * `Project` brouillon (et génère un CDC preview, cf.
- * `platform_core/platform_core/api/quick_actions.py::start_contact`), puis
- * `quick_actions.send_unicast` le poste et crée l'`Opportunity` vers
- * l'agence ciblée. Réservé aux clients connectés
- * (`require_user_type("client")` côté backend) — un appel sans token
- * échouera en 401, intercepté globalement par `services/http.ts`.
- * // API CALL : frappeCall("quick_actions.start_contact", { need_type, ...fields })
- * // API CALL : frappeCall("quick_actions.send_unicast", { project, agency })
- */
 export async function contactAgencyUnicast(
   agencyId: string,
   payload: {
@@ -396,33 +311,18 @@ export async function contactAgencyUnicast(
   };
 }
 
-/**
- * // API CALL : frappeCall("agency.toggle_project_favorite", { project })
- * Bascule le statut favori d'un projet public pour l'agence active — utilisé
- * par le bouton "Enregistrer" de `routes/projets.tsx`.
- */
 export async function toggleProjectFavorite(projectId: string): Promise<{ favorited: boolean }> {
   const raw = await frappeCall<unknown>("agency.toggle_project_favorite", { project: projectId });
   const data = camelizeKeys(raw) as Record<string, unknown>;
   return { favorited: Boolean(data["favorited"] ?? false) };
 }
 
-/**
- * // API CALL : frappeCall("agency.list_favorite_projects")
- */
 export async function listFavoriteProjects(): Promise<Project[]> {
   const raw = await frappeCall<unknown>("agency.list_favorite_projects", {});
   const list = (Array.isArray(raw) ? raw : []) as unknown[];
   return list.map((item) => mapProject(item));
 }
 
-/**
- * // API CALL : frappeCall("client.toggle_favorite", { agency })
- * Bascule le statut favori d'une agence pour le CLIENT connecté — bouton
- * étoile sur le profil public d'une agence (`agences.$id.tsx`), pour que le
- * client puisse la recontacter plus tard sans devoir la rechercher à
- * nouveau (§1.4).
- */
 export async function toggleFavoriteAgency(agencyId: string): Promise<{ favorited: boolean }> {
   const raw = await frappeCall<unknown>("client.toggle_favorite", { agency: agencyId });
   const data = camelizeKeys(raw) as Record<string, unknown>;
@@ -435,9 +335,6 @@ export interface FavoriteAgencyEntry {
   dateAdded: string;
 }
 
-/**
- * // API CALL : frappeCall("client.list_favorites", {})
- */
 export async function listFavoriteAgencies(): Promise<FavoriteAgencyEntry[]> {
   const raw = await frappeCall<unknown>("client.list_favorites", {});
   const list = (Array.isArray(raw) ? raw : []) as unknown[];
@@ -464,12 +361,6 @@ export interface CategoryOption {
   subCategories: SubCategoryOption[];
 }
 
-/**
- * // API CALL : frappeCall("utils.get_categories") — allow_guest
- * Taxonomie catégories/sous-catégories (`ServiceCategory`/`ServiceSubCategory`),
- * réutilisée pour les filtres réels de `routes/projets.tsx` (catégorie/
- * sous-catégorie, auparavant en texte libre faute d'endpoint identifié).
- */
 export async function getCategories(): Promise<CategoryOption[]> {
   const raw = await frappeCall<unknown>("utils.get_categories", {});
   const list = (Array.isArray(raw) ? raw : []) as unknown[];
@@ -494,13 +385,6 @@ export async function getCategories(): Promise<CategoryOption[]> {
   });
 }
 
-/**
- * Une opportunité "récente" telle que renvoyée par `agency.get_dashboard`
- * (`recent_opportunities`) — forme allégée (jointure SQL brute côté backend :
- * `opportunity`/`status`/`matching_score`/`creation`/`project`/`title`/
- * `budget_min`/`budget_max`), différente du type `Opportunity` complet de
- * `opportunities.service.ts` (pas de nom de client, pas d'étape libellée).
- */
 export interface AgencyDashboardOpportunity {
   id: string;
   projectId: string;
@@ -518,13 +402,6 @@ const AGENCY_ACTIVITY_LABELS: Record<string, string> = {
   "Search Impression": "Impression dans les résultats de recherche",
 };
 
-/**
- * `agency.get_dashboard` alimente "Activités récentes" à partir du doctype
- * `AgencyActivity` (suivi analytics : vues de profil / clics site / impressions
- * de recherche — pas un journal d'activité métier générique). Les entrées ne
- * portent pas d'identifiant propre (`name` non exposé par l'endpoint) : on
- * synthétise un id stable à partir de l'index.
- */
 function mapAgencyActivity(raw: unknown, index: number): HistoryEntry {
   const data = camelizeKeys(raw) as Record<string, unknown>;
   const eventType = String(data["eventType"] ?? "");
@@ -543,15 +420,6 @@ export interface AgencyApplication {
   appliedOn: string;
 }
 
-/**
- * Candidatures spontanées d'agences (CDC : bouton "Postuler" depuis
- * "Disponibles" côté agence) en attente de la décision du CLIENT — avant ce
- * correctif, `express_interest` auto-acceptait ces candidatures sans que le
- * client n'ait jamais son mot à dire sur une agence le contactant de sa
- * propre initiative.
- *
- * // API CALL : frappeCall("project.list_agency_applications", { project: projectId })
- */
 export async function listAgencyApplications(projectId: string): Promise<AgencyApplication[]> {
   const raw = await frappeCall<unknown>("project.list_agency_applications", {
     project: projectId,
@@ -568,9 +436,6 @@ export async function listAgencyApplications(projectId: string): Promise<AgencyA
   });
 }
 
-/**
- * // API CALL : frappeCall("project.respond_to_agency_application", { opportunity: id, decision })
- */
 export async function respondToAgencyApplication(
   opportunityId: string,
   decision: "accept" | "refuse",
@@ -592,12 +457,6 @@ export interface AgencyDashboardOverview {
   recentActivity: HistoryEntry[];
 }
 
-/**
- * // API CALL : frappeCall("agency.get_dashboard")
- * Agrégat dédié au tableau de bord Agence en un seul appel — remplace la
- * composition précédente de `agence.tableau-de-bord.tsx` (`profile.service.ts
- * ::getAgencyDashboard` + `getAgencyProjects` juste pour dériver les stats).
- */
 export async function getAgencyDashboardOverview(): Promise<AgencyDashboardOverview> {
   const raw = await frappeCall<unknown>("agency.get_dashboard", {});
   const data = camelizeKeys(raw) as Record<string, unknown>;
@@ -646,11 +505,6 @@ export interface JoinRequestSent {
   rejectionReason?: string;
 }
 
-/**
- * // API CALL : frappeCall("agency.list_join_requests", {})
- * Demandes de rattachement reçues par l'agence active, en attente de
- * décision (`agence.invitations.tsx`, section "Demandes reçues").
- */
 export async function listJoinRequests(): Promise<JoinRequestReceived[]> {
   const raw = await frappeCall<unknown>("agency.list_join_requests", {});
   const list = (Array.isArray(raw) ? raw : []) as unknown[];
@@ -665,12 +519,6 @@ export async function listJoinRequests(): Promise<JoinRequestReceived[]> {
   });
 }
 
-/**
- * // API CALL : frappeCall("agency.my_join_requests", {})
- * Demandes de rattachement envoyées par l'utilisateur courant, tous
- * statuts confondus (`agence.invitations.tsx`, section "Mes demandes
- * envoyées").
- */
 export async function myJoinRequests(): Promise<JoinRequestSent[]> {
   const raw = await frappeCall<unknown>("agency.my_join_requests", {});
   const list = (Array.isArray(raw) ? raw : []) as unknown[];
@@ -688,9 +536,6 @@ export async function myJoinRequests(): Promise<JoinRequestSent[]> {
   });
 }
 
-/**
- * // API CALL : frappeCall("agency.approve_join_request", { request_name })
- */
 export async function approveJoinRequest(requestId: string): Promise<{ status: string }> {
   const raw = await frappeCall<unknown>("agency.approve_join_request", {
     request_name: requestId,
@@ -699,9 +544,6 @@ export async function approveJoinRequest(requestId: string): Promise<{ status: s
   return { status: String(data["status"] ?? "Approved") };
 }
 
-/**
- * // API CALL : frappeCall("agency.reject_join_request", { request_name, reason })
- */
 export async function rejectJoinRequest(
   requestId: string,
   reason?: string,

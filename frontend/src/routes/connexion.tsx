@@ -50,60 +50,29 @@ function LoginPage() {
   const setSession = useAuthStore((state) => state.setSession);
   const navigate = useNavigate();
 
-  // Brouillon en cours repris depuis le backend (bandeau haut de page)
   const [pendingDraft] = useState<{ id: string; title: string } | null>(null);
 
-  // AJOUTÉ : 2FA à la connexion (cf. Paramètres > Double authentification,
-  // `settings.toggle_two_factor`) — ce toggle enregistrait un flag jamais lu
-  // par `auth.login`, la connexion se faisait donc toujours en un seul temps
-  // quel que soit son état. `auth.login` peut désormais répondre
-  // `requires2fa: true` (code envoyé par email) au lieu d'un token direct.
   const [is2faModalOpen, setIs2faModalOpen] = useState(false);
   const [twoFaCode, setTwoFaCode] = useState("");
   const [isVerifying2fa, setIsVerifying2fa] = useState(false);
   const [pending2faEmail, setPending2faEmail] = useState("");
 
   function completeLogin({ token, user, detectedRole, roleKnown }: LoginResponse) {
-    // ------------------------------------------------------------------
-    // Vérification du rôle sélectionné vs rôle réel détecté.
-    //
-    // IMPORTANT : on ne bloque QUE si le backend a explicitement renvoyé
-    // un champ de rôle reconnu (`roleKnown`). Auparavant, quand la réponse
-    // ne contenait aucun champ de rôle reconnaissable, `detectedRole`
-    // retombait silencieusement sur "client" — ce qui bloquait à tort la
-    // connexion des comptes agence de façon intermittente (selon la forme
-    // exacte de la réponse renvoyée par l'endpoint appelé). On fait donc
-    // confiance au choix de l'utilisateur quand le backend ne tranche pas.
-    //
-    // Et surtout : on n'écrit RIEN dans le store tant que cette
-    // vérification n'est pas passée, pour éviter de persister en
-    // localStorage un token/rôle correspondant à une connexion refusée
-    // (c'était la cause des soucis de navigation après un échec).
-    // ------------------------------------------------------------------
-    // Un compte Moderator/Administrator (détecté via auth.py::_user_type,
-    // normalisé en "admin" par normalizeRole) n'a pas de bouton dédié sur
-    // cet écran (seuls Client/Agence sont des parcours d'inscription grand
-    // public) — on fait donc confiance au backend sans jamais bloquer sur
-    // l'incohérence bouton cliqué / rôle détecté dans ce cas précis.
     if (roleKnown && detectedRole !== "admin" && role !== detectedRole) {
       const errorMessage = `Le compte "${email}" est un compte ${
         detectedRole === "agency" ? "Agence" : "Client"
       }. Veuillez sélectionner le bon bouton en haut de l'écran.`;
       setError(errorMessage);
       toast(errorMessage);
-      return; // Rien n'a été écrit dans le store : aucun état résiduel.
+      return;
     }
 
     const finalRole = roleKnown ? detectedRole : role;
     setSession({ token, user, role: finalRole });
 
-    // ------------------------------------------------------------------
-    // Redirection
-    // ------------------------------------------------------------------
     const redirectTarget = new URLSearchParams(window.location.search).get("redirect");
     const briefingStore = useBriefingStore.getState();
 
-    // Si c'est un client qui a un brouillon et demande à postuler
     if (
       redirectTarget === "postuler-un-projet" &&
       finalRole === "client" &&
@@ -114,7 +83,6 @@ function LoginPage() {
       return;
     }
 
-    // Redirection vers le bon tableau de bord
     if (finalRole === "admin") {
       navigate({ to: "/admin/tableau-de-bord" });
     } else if (finalRole === "agency") {
@@ -148,11 +116,6 @@ function LoginPage() {
 
       completeLogin(response);
     } catch (error) {
-      // AJOUTÉ : le message affiché est désormais contrôlé par le frontend
-      // pour le cas identifiants invalides (401), plutôt que de transmettre
-      // tel quel le message brut renvoyé par le backend (`auth.login` répond
-      // "Identifiants invalides" — trop technique/laconique pour l'utilisateur
-      // final, et couplerait l'affichage au libellé exact choisi côté API).
       const message =
         error instanceof ApiError && error.statusCode === 401
           ? "Email ou mot de passe incorrect."

@@ -69,7 +69,6 @@ export const Route = createFileRoute("/_authenticated/agence/prospection")({
 
 type TemperatureType = "hot" | "warm" | "cold";
 
-// STYLES MODERNISÉS POUR LA TEMPÉRATURE
 const TEMPERATURE_STYLES: Record<
   TemperatureType,
   {
@@ -103,17 +102,15 @@ const TEMPERATURE_STYLES: Record<
   },
 };
 
-// Type guard pour vérifier si une température est valide
 function isValidTemperature(temp: string): temp is TemperatureType {
   return temp === "hot" || temp === "warm" || temp === "cold";
 }
 
-// Fonction corrigée qui retourne toujours un objet valide
 function getTemperatureConfig(temperature: string): typeof TEMPERATURE_STYLES.hot {
   if (isValidTemperature(temperature)) {
     return TEMPERATURE_STYLES[temperature];
   }
-  return TEMPERATURE_STYLES.cold; // fallback
+  return TEMPERATURE_STYLES.cold;
 }
 
 function buildColumns(
@@ -179,8 +176,6 @@ function buildColumns(
       header: "Signaux détectés",
       width: "minmax(0,1.6fr)",
       render: (lead) => {
-        // AJOUTÉ (demande explicite) : le badge "+N" ouvre/replie la liste
-        // complète des signaux au lieu de rester purement décoratif.
         const isExpanded = expandedActionIds.has(lead.id);
         const visibleActions = isExpanded ? lead.actions : lead.actions.slice(0, 3);
         const hiddenCount = lead.actions.length - 3;
@@ -279,14 +274,8 @@ function AgencyProspectionPage() {
   const [sortDirection, setSortDirection] = useState<"recent" | "old">("recent");
   const [clientProfileTarget, setClientProfileTarget] = useState<Lead | null>(null);
   const [isClientProfileOpen, setIsClientProfileOpen] = useState(false);
-  // AJOUTÉ : filtres date/heure sur le suivi de prospection (last_seen_at côté
-  // backend) — jamais exposés côté UI jusqu'ici alors que le backend les
-  // acceptait déjà (`from`/`to` sur `/leads`).
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  // AJOUTÉ (demande explicite) : suit quels prospects ont leur liste de
-  // signaux détectés dépliée (badge "+N" cliquable dans la colonne
-  // "Signaux détectés").
   const [expandedActionIds, setExpandedActionIds] = useState<Set<string>>(new Set());
 
   function toggleActionsExpanded(leadId: string) {
@@ -363,12 +352,6 @@ function AgencyProspectionPage() {
       if (!emailTarget) throw new Error("Aucun prospect sélectionné.");
       return sendProspectionEmail(emailTarget.id, { subject: emailSubject, body: emailBody });
     },
-    // AJOUTÉ (demande explicite, point 4) : `sent`/`provider` reflètent
-    // désormais un envoi SMTP réellement confirmé (cf.
-    // prospection.service.ts) — on ne peut plus afficher "envoyé avec
-    // succès" pour un envoi simulé (`provider: "stub"`, aucun SMTP
-    // configuré côté prospection-service). Le brouillon reste affiché dans
-    // ce cas pour laisser l'agence le copier/envoyer manuellement.
     onSuccess: (result) => {
       if (result.sent) {
         toast("E-mail envoyé avec succès", { description: emailTarget?.companyName });

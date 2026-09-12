@@ -1,11 +1,3 @@
-"""Logique métier IA "maison" (sans LLM) : slot-filling du Smart Briefing,
-catégorisation par mots-clés, enrichissement du brief, FAQ du chatbot.
-
-Ce module ne fait aucun appel réseau : il est utilisé aussi bien en mode
-stub (OPENAI_API_KEY absent) qu'en complément du LLM (mode assisté), pour
-garder un comportement déterministe et testable. Cf. cahier des charges
-module 1.2 "Smart Briefing IA" et 3.4 "Assistant conversationnel".
-"""
 
 from __future__ import annotations
 
@@ -13,12 +5,6 @@ import re
 import unicodedata
 from typing import Any, Optional
 
-# --------------------------------------------------------------------------
-# Slot-filling du Smart Briefing
-# --------------------------------------------------------------------------
-
-# Ordre dans lequel les champs manquants sont demandés au client. Une entrée
-# peut couvrir plusieurs champs du brief (ex: "budget" -> budget_min/max).
 SLOT_ORDER: list[str] = ["description", "need_type", "category", "budget", "location", "delivery_delay_days"]
 
 SLOT_FIELDS: dict[str, list[str]] = {
@@ -42,17 +28,7 @@ SLOT_QUESTIONS: dict[str, str] = {
     "delivery_delay_days": "Sous combien de jours souhaitez-vous démarrer / avoir terminé ce projet ?",
 }
 
-
 def next_missing_slot(brief: dict[str, Any]) -> Optional[str]:
-    """Renvoie le premier "slot" du questionnaire dont un champ requis est
-    encore manquant, en respectant SLOT_ORDER. None si le brief est complet.
-
-    `category` n'est PAS un champ `reqd` sur le doctype `Project` (Link vers
-    `ServiceCategory`, cf. project.json) — si le catalogue de catégories est
-    injoignable/vide côté Frappe, ou si le texte du client ne correspond à
-    aucune catégorie connue même après plusieurs tentatives, `_category_skipped`
-    (posé par `routes.py::briefing_turn`) permet de ne pas bloquer
-    indéfiniment le questionnaire sur ce champ optionnel."""
     for slot in SLOT_ORDER:
         if slot == "category" and brief.get("_category_skipped"):
             continue
@@ -60,7 +36,6 @@ def next_missing_slot(brief: dict[str, Any]) -> Optional[str]:
         if any(not brief.get(f) for f in fields):
             return slot
     return None
-
 
 def missing_fields(brief: dict[str, Any]) -> list[str]:
     result: list[str] = []
@@ -72,14 +47,10 @@ def missing_fields(brief: dict[str, Any]) -> list[str]:
                 result.append(field)
     return result
 
-
 def default_question_for_slot(slot: str, brief: dict[str, Any]) -> str:
     return SLOT_QUESTIONS.get(slot, "Pouvez-vous m'en dire plus sur votre besoin ?")
 
-
 def finalize_brief(brief: dict[str, Any]) -> dict[str, Any]:
-    """Complète les champs "de confort" (title, need_type par défaut) une
-    fois le brief prêt, sans écraser ce qui est déjà renseigné."""
     brief = dict(brief)
     if not brief.get("title") and brief.get("description"):
         title = brief["description"].strip()
@@ -87,11 +58,6 @@ def finalize_brief(brief: dict[str, Any]) -> dict[str, Any]:
     if not brief.get("need_type"):
         brief["need_type"] = "Projet"
     return brief
-
-
-# --------------------------------------------------------------------------
-# Normalisation / tokenisation FR (utilitaire partagé)
-# --------------------------------------------------------------------------
 
 _STOPWORDS_FR = {
     "le", "la", "les", "un", "une", "des", "de", "du", "et", "je", "pour", "avec", "sur", "dans",
@@ -101,13 +67,11 @@ _STOPWORDS_FR = {
     "afin", "par", "ou", "où", "donc", "car", "ni", "mais", "not", "the", "for", "with",
 }
 
-
 def _normalize(text: str) -> str:
     text = text.lower().strip()
     text = unicodedata.normalize("NFKD", text)
     text = "".join(c for c in text if not unicodedata.combining(c))
     return text
-
 
 def _tokens(text: str) -> set[str]:
     text = _normalize(text)
@@ -119,24 +83,12 @@ def _tokens(text: str) -> set[str]:
         stems.add(tok[:5] if len(tok) > 5 else tok)
     return stems
 
-
 def _full_tokens(text: str) -> set[str]:
-    """Comme `_tokens`, mais sans troncature à 5 caractères. Utilisé
-    uniquement par `categorize_text` : la troncature de `_tokens` empêchait
-    une réponse courte et légitime ("dev") de matcher un mot plus long
-    ("développement") puisque "dev" != "devel" — corrigé en comparant les
-    tokens complets via `_prefix_overlap` plutôt qu'une égalité stricte."""
     text = _normalize(text)
     raw = re.findall(r"[a-z0-9]+", text)
     return {tok for tok in raw if len(tok) >= 3 and tok not in _STOPWORDS_FR}
 
-
 def _prefix_overlap(a: set[str], b: set[str], min_len: int = 3) -> int:
-    """Nombre de tokens de `a` qui recouvrent un token de `b` par préfixe,
-    dans un sens ou l'autre (ex : "dev" est un préfixe de "developpement",
-    et "developpements" a "developpement" comme préfixe) — bien plus
-    tolérant qu'une égalité stricte pour des réponses courtes en langage
-    naturel, sans pour autant matcher n'importe quoi (min_len=3)."""
     count = 0
     for token_a in a:
         for token_b in b:
@@ -146,17 +98,7 @@ def _prefix_overlap(a: set[str], b: set[str], min_len: int = 3) -> int:
                 break
     return count
 
-
-# --------------------------------------------------------------------------
-# Catégorisation automatique par mots-clés (module 1.2 "Catégorisation automatique")
-# --------------------------------------------------------------------------
-
-
 def categorize_text(text: str, categories: list[dict[str, Any]], threshold: float = 0.12) -> dict[str, Any]:
-    """Score chaque catégorie/sous-catégorie par recouvrement de tokens
-    (comparaison par préfixe, cf. `_prefix_overlap`) avec le texte libre du
-    client. Renvoie le meilleur candidat avec un score de confiance entre 0
-    et 1."""
     text_stems = _full_tokens(text)
     best: dict[str, Any] = {
         "category": None,
@@ -174,7 +116,6 @@ def categorize_text(text: str, categories: list[dict[str, Any]], threshold: floa
         cat_stems = _full_tokens(cat_name)
         sub_categories = cat.get("sub_categories") or []
 
-        # Score "catégorie seule" (pas de sous-catégorie retenue).
         if cat_stems:
             overlap = _prefix_overlap(text_stems, cat_stems)
             score = overlap / max(len(cat_stems), 1)
@@ -196,8 +137,6 @@ def categorize_text(text: str, categories: list[dict[str, Any]], threshold: floa
                 continue
             overlap = _prefix_overlap(text_stems, combined)
             score = overlap / max(len(combined), 1)
-            # bonus : un match direct sur la sous-catégorie est plus précis
-            # qu'un match sur la catégorie seule.
             if sub_stems and (text_stems & sub_stems):
                 score += 0.15
             if score > best_score:
@@ -221,12 +160,6 @@ def categorize_text(text: str, categories: list[dict[str, Any]], threshold: floa
     best["confidence"] = round(best["confidence"], 3)
     return best
 
-
-# --------------------------------------------------------------------------
-# Extraction de champs depuis du texte libre (mode stub)
-# --------------------------------------------------------------------------
-
-
 def infer_need_type(text: str) -> Optional[str]:
     lower = _normalize(text)
     if any(k in lower for k in ("stage", "stagiaire", "alternance", "alternant")):
@@ -237,10 +170,8 @@ def infer_need_type(text: str) -> Optional[str]:
         return "Projet"
     return None
 
-
 _THOUSAND_SPACING_RE = re.compile(r"(?<=\d)[  ](?=\d{3}(?:\D|$))")
 _NUMBER_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(k)?", re.IGNORECASE)
-
 
 def _extract_numbers(text: str) -> list[float]:
     normalized = text
@@ -262,11 +193,7 @@ def _extract_numbers(text: str) -> list[float]:
         values.append(value)
     return values
 
-
 def parse_budget(text: str) -> tuple[Optional[float], Optional[float]]:
-    """Extrait un budget (min, max) depuis du texte libre : "entre 2000 et
-    4000 euros", "environ 3k", "5000€"... Renvoie (None, None) si aucun
-    nombre n'est trouvé."""
     numbers = _extract_numbers(text)
     if not numbers:
         return (None, None)
@@ -274,7 +201,6 @@ def parse_budget(text: str) -> tuple[Optional[float], Optional[float]]:
         return (numbers[0], numbers[0])
     lo, hi = sorted(numbers[:2])
     return (lo, hi)
-
 
 def parse_delay_days(text: str) -> Optional[int]:
     lower = _normalize(text)
@@ -285,21 +211,13 @@ def parse_delay_days(text: str) -> Optional[int]:
             return n * 7
         if "mois" in lower:
             return n * 30
-        return n  # jours par défaut
+        return n
     if any(k in lower for k in ("urgent", "rapide", "au plus vite", "asap")):
         return 7
     if any(k in lower for k in ("pas presse", "flexible", "peu importe")):
         return 30
     return None
 
-
-# --------------------------------------------------------------------------
-# Enrichissement automatique du brief (module 1.2)
-# --------------------------------------------------------------------------
-
-# Table statique de suggestion de budget par mot-clé de catégorie/texte
-# (ordre = priorité de correspondance). Sert de "budget moyen du secteur"
-# quand le client ne l'a pas précisé, cf. cahier des charges 1.2.
 _BUDGET_KEYWORD_TABLE: list[tuple[str, tuple[float, float]]] = [
     ("logo", (300, 1500)),
     ("identite visuelle", (500, 3000)),
@@ -331,14 +249,12 @@ _BUDGET_KEYWORD_TABLE: list[tuple[str, tuple[float, float]]] = [
 
 _DEFAULT_BUDGET_RANGE: tuple[float, float] = (1000, 5000)
 
-
 def suggest_budget(description: str, category_name: Optional[str]) -> tuple[float, float]:
     combined = _normalize(f"{category_name or ''} {description or ''}")
     for keyword, budget_range in _BUDGET_KEYWORD_TABLE:
         if keyword in combined:
             return budget_range
     return _DEFAULT_BUDGET_RANGE
-
 
 def reformulate_description_stub(description: str, category_name: Optional[str]) -> str:
     text = (description or "").strip()
@@ -352,11 +268,6 @@ def reformulate_description_stub(description: str, category_name: Optional[str])
         "contexte du projet) afin de faciliter la mise en relation avec les prestataires "
         "les plus adaptés."
     )
-
-
-# --------------------------------------------------------------------------
-# Chatbot / FAQ (module 3.4)
-# --------------------------------------------------------------------------
 
 FAQ_KNOWLEDGE_BASE: list[dict[str, Any]] = [
     {
@@ -424,7 +335,6 @@ FAQ_KNOWLEDGE_BASE: list[dict[str, Any]] = [
     },
 ]
 
-
 def match_faq(message: str) -> Optional[dict[str, Any]]:
     stems = _tokens(message)
     lower = _normalize(message)
@@ -434,21 +344,13 @@ def match_faq(message: str) -> Optional[dict[str, Any]]:
         score = 0
         for keyword in entry["keywords"]:
             if keyword in lower:
-                # Correspondance littérale (sous-chaîne) : signal fort, y
-                # compris pour une expression à plusieurs mots.
                 score += 2
             elif " " not in keyword:
-                # Repli par recouvrement de stem, réservé aux mots-clés à un
-                # seul mot (une expression multi-mots absente du texte ne
-                # doit pas "fuiter" un match sur l'un de ses mots communs,
-                # ex: "temps" dans "combien de temps" vs une question météo).
                 keyword_stems = _tokens(keyword)
                 score += len(stems & keyword_stems)
         if score > best_score:
             best_score = score
             best_topic = entry
-    # Seuil >= 2 : évite qu'un unique stem générique (score 1) suffise à
-    # classer une question hors périmètre dans une FAQ au hasard.
     if best_score < 2:
         return None
     return best_topic

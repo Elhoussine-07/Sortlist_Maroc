@@ -1,25 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, ChevronDown, Plus, X } from "lucide-react";
 
-/**
- * Sélecteur multiple avec recherche + option "Autre" — utilisé pour les
- * champs "Compétences", "Technologies" et "Langues de travail" de
- * l'inscription agence (auparavant des zones de texte libre séparées par
- * des virgules).
- *
- * - La liste se filtre dès la première lettre tapée (recherche par
- *   sous-chaîne, insensible à la casse).
- * - Si `allowCustom` est vrai (par défaut), une entrée "Autre..." reste
- *   toujours visible en bas de la liste (même sans recherche en cours) :
- *   cliquer dessus ouvre un petit champ dédié pour écrire une valeur libre,
- *   pour les compétences/technologies qui ne seraient pas dans la liste.
- *   Mettre `allowCustom={false}` (cas des langues) désactive entièrement
- *   cette possibilité : seules les valeurs de la liste sont sélectionnables.
- *
- * Le format de données reste une chaîne unique "a, b, c" (pas un tableau)
- * pour rester compatible avec le schéma Zod existant et le code de
- * soumission qui fait déjà `languages.split(",").map(trim)`.
- */
 export function TagSelect({
   label,
   value,
@@ -30,13 +11,11 @@ export function TagSelect({
   allowCustom = true,
 }: {
   label: string;
-  /** Valeurs sélectionnées sous forme de chaîne "a, b, c" (comme l'ancien champ texte libre). */
   value: string;
   onChange: (value: string) => void;
   options: string[];
   placeholder?: string;
   error?: string | undefined;
-  /** Autorise l'ajout d'une valeur hors liste (entrée "Autre..." + saisie libre). Par défaut : oui. */
   allowCustom?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,8 +37,6 @@ export function TagSelect({
 
   const trimmedQuery = query.trim();
 
-  // Filtre par sous-chaîne dès la première lettre tapée (insensible à la
-  // casse), sur les options pas encore sélectionnées.
   const filtered = useMemo(() => {
     const lowerSelected = new Set(selected.map((item) => item.toLowerCase()));
     const pool = options.filter((option) => !lowerSelected.has(option.toLowerCase()));
@@ -164,8 +141,6 @@ export function TagSelect({
       {isOpen ? (
         <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-md border border-border bg-background shadow-lg">
           {isCustomMode ? (
-            // AJOUT : mode "Autre" — champ dédié pour écrire une valeur hors
-            // liste, distinct de la recherche ci-dessus.
             <div className="p-2">
               <button
                 type="button"

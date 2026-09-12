@@ -44,7 +44,6 @@ import type { Project, ProjectStatus } from "@/lib/types";
 import { ApiError } from "@/services/http";
 import { deleteProject, getMyProjects, repostProject } from "@/services/projects.service";
 
-/** Écran 15 — MES PROJETS (espace Client). */
 export const Route = createFileRoute("/_authenticated/client/mes-projets")({
   head: () => ({
     meta: [
@@ -70,10 +69,6 @@ export const Route = createFileRoute("/_authenticated/client/mes-projets")({
   component: ClientProjectsPage,
 });
 
-/* -------------------------------------------------------------------------- */
-/*                              STATUTS                                       */
-/* -------------------------------------------------------------------------- */
-
 const STATUS_TABS: {
   value: "all" | ProjectStatus;
   label: string;
@@ -87,10 +82,6 @@ const STATUS_TABS: {
   { value: "suspended", label: "Suspendus" },
   { value: "rejected", label: "Rejetés" },
 ];
-
-/* -------------------------------------------------------------------------- */
-/*                          STYLES CATÉGORIES                                 */
-/* -------------------------------------------------------------------------- */
 
 type CategoryStyle = {
   icon: LucideIcon;
@@ -112,10 +103,6 @@ const CATEGORY_STYLES: Record<string, CategoryStyle> = {
   "Ressources humaines": { icon: Users2, className: "bg-emerald-500/10 text-emerald-600" },
   "Conseil en stratégie": { icon: Compass, className: "bg-orange-500/10 text-orange-600" },
 };
-
-/* -------------------------------------------------------------------------- */
-/*                           STYLES STATUTS MODERNISÉS                        */
-/* -------------------------------------------------------------------------- */
 
 type StatusConfig = {
   bg: string;
@@ -177,17 +164,10 @@ const STATUS_STYLES: Record<string, StatusConfig> = {
   },
 };
 
-// ✅ CORRECTION : Fonction avec fallback par défaut
 function getStatusConfig(status: string): StatusConfig {
-  // Chercher dans STATUS_STYLES, sinon utiliser "draft" comme fallback
   const config = STATUS_STYLES[status] ?? STATUS_STYLES["draft"];
-  // Retourner avec une assertion de type (garanti non-undefined car fallback existe)
   return config as StatusConfig;
 }
-
-/* -------------------------------------------------------------------------- */
-/*                          FORMATAGE TITRE                                   */
-/* -------------------------------------------------------------------------- */
 
 function formatProjectTitle(raw: string): string {
   const trimmed = raw
@@ -203,10 +183,6 @@ function formatProjectTitle(raw: string): string {
 }
 
 const PAGE_SIZE = 20;
-
-/* -------------------------------------------------------------------------- */
-/*                         PAGE PRINCIPALE                                    */
-/* -------------------------------------------------------------------------- */
 
 function ClientProjectsPage() {
   const projectsQuery = useQuery({
@@ -226,13 +202,6 @@ function ClientProjectsPage() {
     const result: Partial<Record<"all" | ProjectStatus, number>> = { all: allProjects.length };
     for (const project of allProjects) {
       result[project.status] = (result[project.status] ?? 0) + 1;
-      // AJOUTÉ (demande explicite) : un projet refusé par une agence reste
-      // "Postulé" côté statut réel (toujours visible/contactable par
-      // d'autres agences, cf. opportunity.py::recompute_project_status) —
-      // mais doit AUSSI compter/apparaître dans l'onglet "Rejetés", avec le
-      // nom de l'agence qui a refusé (AgencyLink). Les deux onglets à la
-      // fois, jusqu'à ce qu'une agence accepte (passage réel à "En cours",
-      // qui efface `declinedByAgency` côté backend).
       if (project.status !== "rejected" && project.declinedByAgency) {
         result.rejected = (result.rejected ?? 0) + 1;
       }
@@ -403,10 +372,6 @@ function ClientProjectsPage() {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                         MENU ACTIONS PROJET                                */
-/* -------------------------------------------------------------------------- */
-
 function ProjectActionsMenu({
                               canRepost,
                               canDelete,
@@ -470,20 +435,8 @@ function ProjectActionsMenu({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                          BLOC AGENCE (CORRIGÉ)                             */
-/* -------------------------------------------------------------------------- */
-
 function AgencyLink({ project }: { project: Project }) {
-  // AJOUTÉ (demande explicite) : un refus n'entraîne plus jamais le rejet
-  // automatique du projet (il reste "Postulé", visible dans "Disponibles"
-  // pour d'autres agences, cf. opportunity.py::recompute_project_status) —
-  // le client doit néanmoins pouvoir voir QUI a refusé, tant qu'aucune
-  // agence n'a encore gagné le projet.
   if (!project.agencyId) {
-    // AJOUTÉ (demande explicite) : l'agence qui a refusé doit être
-    // cliquable (vers son profil public), comme l'agence gagnante ci-dessous
-    // — ce n'était jusqu'ici qu'un texte statique.
     if (project.declinedByAgencyName && project.declinedByAgency) {
       return (
         <Link
@@ -510,10 +463,6 @@ function AgencyLink({ project }: { project: Project }) {
     </Link>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*                              PROJECT ROW (CORRIGÉ)                         */
-/* -------------------------------------------------------------------------- */
 
 function ProjectRow({
                       project,
@@ -558,18 +507,10 @@ function ProjectRow({
   const categoryStyle = CATEGORY_STYLES[project.category] ?? DEFAULT_CATEGORY_STYLE;
   const CategoryIcon = categoryStyle.icon;
 
-  // AJOUTÉ (demande explicite) : un projet refusé par une agence garde son
-  // vrai statut "Postulé" (toujours contactable, cf. recompute_project_
-  // status) mais apparaît aussi dans l'onglet "Rejetés" (cf. `counts`/
-  // `filteredProjects` ci-dessus) — afficher le badge "Publié" dans une
-  // liste "Rejetés" n'était pas clair. Le badge reflète donc le statut réel
-  // partout SAUF quand on le consulte spécifiquement depuis l'onglet
-  // "Rejetés" pour un projet refusé (où il affiche "Rejeté").
   const displayStatus: ProjectStatus =
     viewedFromTab === "rejected" && project.status !== "rejected" && project.declinedByAgency
       ? "rejected"
       : project.status;
-  // ✅ CORRECTION : Utilisation sécurisée de getStatusConfig
   const statusConfig = getStatusConfig(displayStatus);
   const StatusIcon = statusConfig.icon;
   const title = formatProjectTitle(project.title);

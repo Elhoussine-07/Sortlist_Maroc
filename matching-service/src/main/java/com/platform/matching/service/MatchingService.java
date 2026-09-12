@@ -12,11 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Orchestre le cycle complet : lecture du contexte projet cote Frappe,
- * calcul des scores (ScoringService), puis persistance optionnelle de la
- * shortlist calculee (save_shortlist).
- */
 @Service
 public class MatchingService {
 
@@ -33,11 +28,6 @@ public class MatchingService {
         this.matchingProperties = matchingProperties;
     }
 
-    /**
-     * Recalcule la shortlist d'un projet. Si {@code persist} est vrai, le
-     * resultat est renvoye a Frappe via {@code save_shortlist} (persiste
-     * dans {@code Project.shortlist_ia}) avant d'etre retourne a l'appelant.
-     */
     public ShortlistResponse computeShortlist(String projectId, boolean persist) {
         ProjectContext context = frappeClient.getProjectContext(projectId);
 

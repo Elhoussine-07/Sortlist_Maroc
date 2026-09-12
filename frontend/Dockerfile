@@ -2,11 +2,9 @@ FROM node:22-slim
 
 WORKDIR /app
 
-# Installer les dépendances
 COPY package.json package-lock.json* ./
 RUN npm install --include=dev
 
-# Copier le code source
 COPY . .
 
 ARG VITE_GATEWAY_URL=http://localhost:8080
@@ -16,5 +14,4 @@ ENV VITE_NOTIFICATIONS_URL=$VITE_NOTIFICATIONS_URL
 
 EXPOSE 3000
 
-# Démarrer en mode développement
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

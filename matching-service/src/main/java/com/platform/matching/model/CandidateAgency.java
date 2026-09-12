@@ -4,12 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
-/**
- * Agence candidate telle que renvoyee par
- * {@code platform_core.api.matching.get_project_context} (champ
- * {@code candidate_agencies}). {@code remoteWork} arrive en 0/1 (DocType
- * "Check" cote Frappe), d'ou {@link #isRemoteWork()}.
- */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record CandidateAgency(
         String name,
