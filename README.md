@@ -1,91 +1,107 @@
-### Plateforme B2B — orchestration multi-repo
+# Sortlist Maroc
 
-Plateforme de mise en relation entreprises & prestataires (cf. le cahier des
-charges fonctionnel), organisée en 3 dépôts + microservices. **Le service de
-recherche (search-service / Elasticsearch) est volontairement hors périmètre
-pour l'instant** — la recherche publique retombe temporairement sur un stub
-SQL simple côté Frappe (`platform_core.platform_core.api.search`), documenté
-dans `docs/INTEGRATION.md §1`.
+Plateforme B2B de mise en relation entre **clients** et **agences** (recherche,
+matching, gestion de projets, prospection et notifications), organisée en
+monorepo : un front-end React, une API Gateway, un back-office métier bâti
+sur **Frappe**, et quatre microservices spécialisés.
 
-### Structure attendue sur disque
+## Architecture en un coup d'œil
 
-Ce dépôt orchestre deux dépôts frères via `docker-compose.yml` — **les trois
-doivent être clonés (ou dézippés) côte à côte, sous le même dossier parent,
-avec exactement ces noms de dossier** :
+```mermaid
+flowchart TB
+    browser["Navigateur"] --> front["Front-end SPA<br/>React 19 / TanStack"]
+    front -->|"HTTPS / WebSocket"| gw["API Gateway<br/>Spring Cloud Gateway"]
 
-```
-<dossier parent>/
-├── microservices/            CE DÉPÔT — api-gateway, microservices, docker-compose (ici)
-├── platform_core/            app Frappe (cœur métier, source de vérité)
-└── frontend/                 React / TanStack Start — interface utilisateur (3000)
-```
+    gw --> prospection["prospection-service<br/>Node.js"]
+    gw --> matching["matching-service<br/>Spring Boot"]
+    gw --> core["platform_core<br/>Frappe"]
+    gw --> ia["ia-service<br/>FastAPI"]
+    gw --> notif["notifications-service<br/>Socket.IO"]
 
-`docker-compose.yml` référence `../platform_core` (bind mount de la source de
-l'app, service `frappe` — commenté par défaut, cf. plus bas) et construit
-l'image frontend depuis `../frontend` (`build.context`) — sans ce layout,
-`docker compose build`/`up` échoue à trouver ces dossiers.
+    matching -. lecture .-> core
+    ia -. lecture .-> core
 
-```
-microservices/ (ce dépôt)
-├── api-gateway/              Spring Cloud Gateway — point d'entrée unique (8080)
-├── matching-service/         Spring Boot — scoring & prédiction de succès (8081)
-├── ia-service/                FastAPI — Smart Briefing, catégorisation, chatbot (8083)
-├── prospection-service/       Node.js — détection IP, scoring de leads (8084)
-├── notifications-service/     Node.js + Socket.IO — relais temps réel (8085)
-├── infrastructure/            Dockerfile Frappe, nginx, scripts
-└── docs/INTEGRATION.md        contrat d'intégration entre tous les services — À LIRE EN PREMIER
+    prospection --> pg1[("PostgreSQL - prospection")]
+    matching --> pg2[("PostgreSQL - matching")]
+    core --> mariadb[("MariaDB")]
+    ia -.-> llm[["LLM externe<br/>OpenAI / Ollama"]]
+    notif --> redis[("Redis")]
+    notif -.-> rabbit[("RabbitMQ")]
 ```
 
-### Démarrage rapide (toute la plateforme)
+Le front-end ne communique **jamais** directement avec Frappe ou avec les
+microservices : tout transite par l'API Gateway, qui centralise le routage et
+l'authentification (JWT partagé, double validation Gateway + Frappe).
+
+## Organisation du dépôt
+
+| Répertoire | Rôle | Stack |
+|---|---|---|
+| `frontend/` | Interface utilisateur SPA | React 19, TanStack Start, Vite, TailwindCSS |
+| `api-gateway/` | Point d'entrée unique et routage | Java 21, Spring Boot, Spring Cloud Gateway |
+| `frappe-bench/` | Cœur métier (app `platform_core`) | Python, Frappe Framework, MariaDB |
+| `matching-service/` | Scoring et mise en relation projets/agences | Java 21, Spring Boot, PostgreSQL |
+| `ia-service/` | Chatbot, NLP, extraction de compétences | Python, FastAPI, OpenAI SDK / Ollama |
+| `prospection-service/` | Détection de leads et prospection | Node.js, Express, PostgreSQL, SMTP |
+| `notifications-service/` | Notifications temps réel | Node.js, Socket.IO, Redis, RabbitMQ |
+| `infrastructure/` | Dockerfiles, Nginx, scripts SQL | Docker |
+| `docs/` | Contrat d'intégration entre services | Markdown |
+| `docker-compose.yml` | Orchestration locale de l'ensemble | Docker Compose |
+
+Chaque service dispose de son propre `README.md` avec ses détails
+d'exécution et ses variables d'environnement. Le contrat commun (routage,
+JWT, table des ports) est documenté dans
+[`docs/INTEGRATION.md`](docs/INTEGRATION.md).
+
+## Prérequis
+
+- Docker et Docker Compose
+- Java 21 + Maven (pour développer `api-gateway` / `matching-service` hors conteneur)
+- Node.js 18+ (pour `frontend`, `prospection-service`, `notifications-service`)
+- Python 3.11+ (pour `ia-service`)
+- Un bench Frappe existant (voir `frappe-bench/`) pour l'app `platform_core`
+
+## Démarrage rapide (Docker Compose)
 
 ```bash
-# 1. Cloner/dézipper les 3 dépôts côte à côte, avec ces noms exacts (cf. structure ci-dessus)
-git clone <url>/microservices.git
-git clone <url>/platform_core.git
-git clone <url>/frontend.git
+git clone <url-du-depot>
+cd Sortlist_Maroc
 
-# 2. Configurer les secrets
-cd microservices
-cp .env.example .env   # ajuster les secrets si besoin (valeurs par défaut = dev uniquement)
+# copier et adapter les variables d'environnement si nécessaire
+cp .env.example .env   # si le fichier existe pour le service concerné
 
-# 3. Build + démarrage
-docker compose build
-docker compose up -d
+docker compose up -d --build
 ```
 
-Ou directement : `./infrastructure/scripts/setup.sh`
+Services exposés une fois démarrés :
 
-Le premier démarrage du conteneur `frappe` est plus long : il installe l'app
-`platform_core` et crée le site (`entrypoint.sh`). Suivre la progression avec
-`docker compose logs -f frappe`.
+| Service | URL locale |
+|---|---|
+| Frontend | http://localhost:3000 |
+| API Gateway | http://localhost:8080 |
+| Frappe (`platform_core`) | http://localhost:8000 |
+| matching-service | http://localhost:8081 |
+| ia-service | http://localhost:8083 |
+| prospection-service | http://localhost:8084 |
+| notifications-service | http://localhost:8085 |
+| MailHog (emails en dev) | http://localhost:8025 |
+| RabbitMQ management | http://localhost:15672 |
 
-### Accès une fois démarré
+> En développement, Frappe peut tourner hors conteneur : la Gateway et les
+> microservices retombent automatiquement sur une adresse locale
+> (`host.docker.internal`) si le conteneur Frappe n'est pas joignable — voir
+> [`docs/FRAPPE_FALLBACK.md`](docs/FRAPPE_FALLBACK.md).
 
-| Service | URL | Notes |
-|---|---|---|
-| Frontend | http://localhost:3000 | interface utilisateur |
-| API Gateway | http://localhost:8080 | point d'entrée du frontend, seul service que le frontend appelle directement (+ notifications-service pour Socket.IO) |
-| Frappe (accès direct/admin) | http://localhost:8000 | Desk admin : `Administrator` / mot de passe `FRAPPE_ADMIN_PASSWORD` (`.env`) |
-| Notifications (Socket.IO) | http://localhost:8085 | appelé directement par le frontend, hors Gateway |
-| RabbitMQ admin | http://localhost:15672 | identifiants `RABBITMQ_USER` / `RABBITMQ_PASSWORD` |
-| Matching / IA / Prospection | 8081 / 8083 / 8084 | usage interne uniquement, non exposés au frontend |
+## Authentification
 
-### Variables d'environnement
+Connexion principale sans mot de passe par **OTP envoyé par e-mail** :
+Frappe émet un JWT (HS256, secret partagé) que le front-end transmet ensuite
+dans l'en-tête `Authorization: Bearer <jwt>`. L'API Gateway valide une
+première fois le jeton et injecte l'identité de l'utilisateur
+(`X-User-Email`, `X-User-Type`, `X-Agency-Id`) ; Frappe revalide le même
+jeton à la réception, pour une défense en profondeur. Détails complets dans
+`docs/INTEGRATION.md` (§3).
 
-Voir `.env.example` (racine de ce dépôt) pour la liste complète avec
-description ; les valeurs par défaut fonctionnent telles quelles pour un
-premier lancement local. À ajuster avant tout déploiement non local :
-`JWT_SECRET`, `INTERNAL_SERVICE_TOKEN`, `DB_ROOT_PASSWORD`,
-`FRAPPE_ADMIN_PASSWORD`, `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (si le
-paiement est activé).
+## Licence
 
-### Contrat d'intégration
-
-`docs/INTEGRATION.md` documente en détail : la table des ports/bases de
-données, l'authentification JWT partagée, le jeton de service interne, les
-routes du Gateway, et le format exact des appels service-à-service. À lire
-avant toute modification touchant plusieurs services.
-
-### License
-
-mit
+Distribué sous licence MIT — voir [`license.txt`](license.txt).
