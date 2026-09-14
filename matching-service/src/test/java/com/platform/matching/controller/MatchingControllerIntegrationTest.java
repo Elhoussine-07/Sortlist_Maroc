@@ -1,11 +1,13 @@
 package com.platform.matching.controller;
 
 import com.platform.matching.client.FrappeClient;
+import com.platform.matching.client.IaClient;
 import com.platform.matching.model.AgencyServiceDto;
 import com.platform.matching.model.CandidateAgency;
 import com.platform.matching.model.ProjectContext;
 import com.platform.matching.model.ProjectRequest;
 import com.platform.matching.model.ShortlistEntry;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +18,12 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -29,8 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Test d'integration : demarre le contexte Spring complet (controller reel +
- * MatchingService reel + ScoringService reel), seul FrappeClient est
- * remplace par un mock pour ne pas dependre d'un serveur Frappe reel.
+ * MatchingService reel + ScoringService reel), seuls FrappeClient et IaClient
+ * sont remplaces par des mocks pour ne pas dependre de Frappe ni d'ia-service reels.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -42,8 +46,16 @@ class MatchingControllerIntegrationTest {
     @MockBean
     private FrappeClient frappeClient;
 
+    @MockBean
+    private IaClient iaClient;
+
     @Value("${frappe.internal-token}")
     private String internalToken;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(iaClient.scoreSkillMatches(any(), any())).thenReturn(Map.of());
+    }
 
     private ProjectContext sampleContext() {
         ProjectRequest project = new ProjectRequest(

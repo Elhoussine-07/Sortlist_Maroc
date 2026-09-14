@@ -7,6 +7,7 @@ import com.platform.matching.model.ProjectRequest;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -101,6 +102,39 @@ class ScoringServiceTest {
 
         assertEquals(focusedScore, diversifiedScore, 0.01,
                 "Une agence qui propose le service demande ne doit pas etre penalisee pour proposer aussi d'autres services sans rapport.");
+    }
+
+    @Test
+    void semanticSkillScoreIsBlendedWithKeywordScoreWhenProvided() {
+        AgencyServiceDto webService = new AgencyServiceDto("Developpement web", "React, Node.js", "React, Node, PostgreSQL");
+        CandidateAgency webAgency = agency(null, null, true, null, null, null, List.of(webService), 0);
+        ProjectRequest project = projectIn(null, "Developpement web", "Site vitrine React");
+
+        double keywordOnlyScore = scoringService.score(project, 50.0, List.of(webAgency), 5)
+                .get(0).scoreBreakdown().get("skills");
+
+        double blendedScore = scoringService.score(project, 50.0, List.of(webAgency), 5, Map.of("AG-1", 80.0))
+                .get(0).scoreBreakdown().get("skills");
+
+        assertEquals(keywordOnlyScore * 0.4 + 80.0 * 0.6, blendedScore, 0.01,
+                "Quand ia-service fournit un score semantique pour l'agence, le score de "
+                        + "competences doit combiner mots-cles (40%) et semantique (60%).");
+    }
+
+    @Test
+    void missingSemanticScoreFallsBackToKeywordScoreOnly() {
+        AgencyServiceDto webService = new AgencyServiceDto("Developpement web", "React, Node.js", "React, Node, PostgreSQL");
+        CandidateAgency webAgency = agency(null, null, true, null, null, null, List.of(webService), 0);
+        ProjectRequest project = projectIn(null, "Developpement web", "Site vitrine React");
+
+        double keywordOnlyScore = scoringService.score(project, 50.0, List.of(webAgency), 5)
+                .get(0).scoreBreakdown().get("skills");
+        double withEmptySemanticMap = scoringService.score(project, 50.0, List.of(webAgency), 5, Map.of())
+                .get(0).scoreBreakdown().get("skills");
+
+        assertEquals(keywordOnlyScore, withEmptySemanticMap, 0.01,
+                "Sans score semantique disponible pour cette agence, le score de competences "
+                        + "doit rester identique au calcul par mots-cles seul (comportement inchange).");
     }
 
     @Test

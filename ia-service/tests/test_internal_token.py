@@ -66,3 +66,20 @@ def test_briefing_enrich_requires_internal_token():
 def test_briefing_confirm_requires_internal_token():
     response = client.post("/api/ia/briefing/confirm", json={"brief": {}, "client": "a@b.com"})
     assert response.status_code == 401
+
+
+def test_matching_skill_scores_requires_internal_token():
+    response = client.post(
+        "/api/ia/matching/skill-scores",
+        json={"need_text": "site web", "candidates": []},
+    )
+    assert response.status_code == 401
+
+
+def test_matching_skill_scores_accepts_valid_internal_token():
+    response = client.post(
+        "/api/ia/matching/skill-scores",
+        json={"need_text": "site web", "candidates": []},
+        headers=VALID_HEADERS,
+    )
+    assert response.status_code == 200

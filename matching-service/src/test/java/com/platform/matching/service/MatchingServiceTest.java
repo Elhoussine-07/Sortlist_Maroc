@@ -1,6 +1,7 @@
 package com.platform.matching.service;
 
 import com.platform.matching.client.FrappeClient;
+import com.platform.matching.client.IaClient;
 import com.platform.matching.config.MatchingProperties;
 import com.platform.matching.model.CandidateAgency;
 import com.platform.matching.model.ProjectContext;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -28,7 +30,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Tests unitaires purs (Mockito, sans contexte Spring) de MatchingService :
- * seule l'interaction avec FrappeClient est mockee, ScoringService reste reel.
+ * seules les interactions avec FrappeClient et IaClient sont mockees,
+ * ScoringService reste reel.
  */
 @ExtendWith(MockitoExtension.class)
 class MatchingServiceTest {
@@ -36,11 +39,15 @@ class MatchingServiceTest {
     @Mock
     private FrappeClient frappeClient;
 
+    @Mock
+    private IaClient iaClient;
+
     private MatchingService matchingService;
 
     @BeforeEach
     void setUp() {
-        matchingService = new MatchingService(frappeClient, new ScoringService(), new MatchingProperties(10));
+        when(iaClient.scoreSkillMatches(any(), any())).thenReturn(Map.of());
+        matchingService = new MatchingService(frappeClient, iaClient, new ScoringService(), new MatchingProperties(10));
     }
 
     private ProjectContext contextWithTwoAgencies() {
@@ -95,6 +102,27 @@ class MatchingServiceTest {
         assertEquals("AG-GOOD", entries.get(0).agency(),
                 "L'agence la mieux notee doit occuper le premier rang de la shortlist persistee.");
         assertTrue(entries.get(0).score() >= entries.get(1).score());
+    }
+
+    @Test
+    void computeShortlistUsesSemanticSkillScoreFromIaClient() {
+        ProjectRequest project = new ProjectRequest(
+                "PRJ-SEM", "CLI-1", "Boutique en ligne", "Je cherche une boutique en ligne moderne",
+                "Developpement web", "E-commerce", 20000.0, 50000.0, 30, null
+        );
+        CandidateAgency agency = new CandidateAgency(
+                "AG-SEM", "Agence Semantique", null, null, 1, null, null, 5, 2018, null, List.of(), 0
+        );
+        when(frappeClient.getProjectContext("PRJ-SEM"))
+                .thenReturn(new ProjectContext(project, 50.0, List.of(agency)));
+        when(iaClient.scoreSkillMatches(anyString(), any())).thenReturn(Map.of("AG-SEM", 90.0));
+
+        ShortlistResponse response = matchingService.computeShortlist("PRJ-SEM", false);
+
+        double skillsScore = response.shortlist().get(0).scoreBreakdown().get("skills");
+        assertTrue(skillsScore > 50.0,
+                "Un score semantique eleve fourni par ia-service doit se refleter dans le score de competences "
+                        + "(ici, aucun mot-cle ne recoupe puisque l'agence n'a aucun service renseigne).");
     }
 
     @Test

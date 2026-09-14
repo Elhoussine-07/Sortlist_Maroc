@@ -15,6 +15,9 @@ frappe:
   url-local: ${FRAPPE_URL_LOCAL:http://host.docker.internal:8000}
   internal-token: ${INTERNAL_SERVICE_TOKEN:dev-insecure-internal-token}
 
+ia:
+  url: ${IA_SERVICE_URL:http://ia-service:8083}
+
 matching:
   shortlist-size: ${MATCHING_SHORTLIST_SIZE:10}
 

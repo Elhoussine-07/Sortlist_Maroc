@@ -9,7 +9,14 @@ public class WebConfig {
 
     @Bean
     public RestClient frappeRestClient(RestClient.Builder restClientBuilder, FrappeProperties frappeProperties) {
-        
+
+        return restClientBuilder
+                .defaultHeader("X-Internal-Token", frappeProperties.internalToken())
+                .build();
+    }
+
+    @Bean
+    public RestClient iaRestClient(RestClient.Builder restClientBuilder, FrappeProperties frappeProperties) {
         return restClientBuilder
                 .defaultHeader("X-Internal-Token", frappeProperties.internalToken())
                 .build();

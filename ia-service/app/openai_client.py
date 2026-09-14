@@ -8,6 +8,7 @@ from typing import Any, Optional
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "ollama")
 OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_EMBEDDING_MODEL = os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
 is_configured = bool(OPENAI_API_KEY)
 
@@ -34,6 +35,19 @@ def _chat(messages: list[dict[str, str]], *, json_mode: bool = False, temperatur
             kwargs["response_format"] = {"type": "json_object"}
         completion = _client.chat.completions.create(**kwargs)
         return completion.choices[0].message.content
+    except Exception:
+        return None
+
+def get_embedding(text: str) -> Optional[list[float]]:
+    """Vecteur d'embedding pour un texte, ou None si non configure/echec. Utilise pour
+    la similarite semantique (score de competences base sur le sens plutot que sur les
+    mots exacts). Comme _chat, avale silencieusement toute erreur (modele d'embedding
+    non supporte par le fournisseur configure, service injoignable, etc.)."""
+    if not _client or not text or not text.strip():
+        return None
+    try:
+        response = _client.embeddings.create(model=OPENAI_EMBEDDING_MODEL, input=text)
+        return response.data[0].embedding
     except Exception:
         return None
 

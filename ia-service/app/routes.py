@@ -6,7 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from app import frappe_client, nlp_service, openai_client
+from app import frappe_client, nlp_service, openai_client, skill_matching
 from app.frappe_client import FrappeClientError
 from app.security import require_internal_token
 from app.models import (
@@ -20,6 +20,9 @@ from app.models import (
     ConfirmResponse,
     EnrichRequest,
     EnrichResponse,
+    SkillMatchRequest,
+    SkillMatchResponse,
+    SkillMatchResult,
 )
 
 logger = logging.getLogger("ia-service")
@@ -223,6 +226,12 @@ async def _chatbot_handler(payload: ChatbotRequest) -> ChatbotResponse:
 @router.post("/chatbot", response_model=ChatbotResponse, dependencies=[Depends(require_internal_token)])
 async def chatbot(payload: ChatbotRequest):
     return await _chatbot_handler(payload)
+
+@router.post("/matching/skill-scores", response_model=SkillMatchResponse, dependencies=[Depends(require_internal_token)])
+async def matching_skill_scores(payload: SkillMatchRequest):
+    candidates = [c.model_dump() for c in payload.candidates]
+    raw_scores = skill_matching.score_skill_matches(payload.need_text, candidates)
+    return SkillMatchResponse(scores={agency: SkillMatchResult(**data) for agency, data in raw_scores.items()})
 
 @router.post("/chatbot/public", response_model=ChatbotResponse)
 async def chatbot_public(payload: ChatbotRequest):

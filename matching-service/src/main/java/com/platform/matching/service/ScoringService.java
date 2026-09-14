@@ -37,6 +37,9 @@ public class ScoringService {
 
     private static final double COMFORTABLE_REVENUE_RATIO = 5.0;
 
+    public static final double SKILLS_KEYWORD_WEIGHT = 0.4;
+    public static final double SKILLS_SEMANTIC_WEIGHT = 0.6;
+
     private static final Set<String> STOPWORDS = Set.of(
             "de", "des", "du", "la", "le", "les", "un", "une", "et", "en",
             "pour", "avec", "dans", "sur", "au", "aux", "a", "ou", "que",
@@ -46,16 +49,30 @@ public class ScoringService {
 
     public List<AgencyScore> score(ProjectRequest project, double clientTrustScore,
                                    List<CandidateAgency> candidates, int limit) {
+        return score(project, clientTrustScore, candidates, limit, Map.of());
+    }
+
+    /**
+     * @param semanticSkillScores score 0-100 par identifiant d'agence, calcule par
+     *                            ia-service (similarite d'embeddings entre le besoin et
+     *                            les services de l'agence). Absent ou vide -> le score de
+     *                            competences retombe entierement sur la correspondance de
+     *                            mots-cles (comportement inchange).
+     */
+    public List<AgencyScore> score(ProjectRequest project, double clientTrustScore,
+                                   List<CandidateAgency> candidates, int limit,
+                                   Map<String, Double> semanticSkillScores) {
         return candidates.stream()
-                .map(candidate -> scoreCandidate(project, clientTrustScore, candidate))
+                .map(candidate -> scoreCandidate(project, clientTrustScore, candidate, semanticSkillScores))
                 .sorted(Comparator.comparingDouble(AgencyScore::matchingScore).reversed())
                 .limit(Math.max(limit, 0))
                 .collect(Collectors.toList());
     }
 
-    private AgencyScore scoreCandidate(ProjectRequest project, double clientTrustScore, CandidateAgency agency) {
+    private AgencyScore scoreCandidate(ProjectRequest project, double clientTrustScore, CandidateAgency agency,
+                                        Map<String, Double> semanticSkillScores) {
         double locationScore = scoreLocation(project, agency);
-        double skillsScore = scoreSkills(project, agency);
+        double skillsScore = scoreSkills(project, agency, semanticSkillScores.get(agency.name()));
         double budgetScore = scoreBudgetFit(project, agency);
         double ratingScore = scoreRating(agency);
         double pqiScore = scorePqi(agency);
@@ -110,7 +127,21 @@ public class ScoringService {
         return 20.0;
     }
 
-    private double scoreSkills(ProjectRequest project, CandidateAgency agency) {
+    private double scoreSkills(ProjectRequest project, CandidateAgency agency, Double semanticScore) {
+        double keywordScore = scoreSkillsByKeyword(project, agency);
+        if (semanticScore == null) {
+            return keywordScore;
+        }
+        return keywordScore * SKILLS_KEYWORD_WEIGHT + clamp(semanticScore) * SKILLS_SEMANTIC_WEIGHT;
+    }
+
+    /**
+     * Correspondance de mots-cles (categorie/sous-categorie/description du projet vs
+     * service_name/skills/tech_stack de l'agence) : rapide, toujours disponible, mais ne
+     * comprend pas les synonymes ("boutique en ligne" != "e-commerce"). Sert de repli
+     * quand ia-service n'a pas fourni de score semantique pour cette agence.
+     */
+    private double scoreSkillsByKeyword(ProjectRequest project, CandidateAgency agency) {
         Set<String> coreTokens = tokenize(join(project.category(), project.subCategory()));
         Set<String> extraTokens = tokenize(project.description());
 

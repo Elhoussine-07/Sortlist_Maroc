@@ -61,6 +61,22 @@ class ChatbotResponse(BaseModel):
     matched_topic: Optional[str] = None
     provider: str
 
+class SkillMatchCandidate(BaseModel):
+    agency: str
+    services: list[dict[str, Any]] = Field(default_factory=list)
+
+class SkillMatchRequest(BaseModel):
+    need_text: str
+    candidates: list[SkillMatchCandidate] = Field(default_factory=list)
+
+class SkillMatchResult(BaseModel):
+    score: float
+    provider: str
+    matched_service: Optional[str] = None
+
+class SkillMatchResponse(BaseModel):
+    scores: dict[str, SkillMatchResult]
+
 class SubCategory(BaseModel):
     name: str
     sub_category_name: str
