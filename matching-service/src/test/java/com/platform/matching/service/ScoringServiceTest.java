@@ -82,6 +82,28 @@ class ScoringServiceTest {
     }
 
     @Test
+    void skillsScoreIsNotPenalizedByAgencyOfferingManyOtherUnrelatedServices() {
+        AgencyServiceDto webService = new AgencyServiceDto("Developpement web", "React, Node.js", "React, Node, PostgreSQL");
+        AgencyServiceDto marketingService = new AgencyServiceDto("Marketing digital", "SEO, SEA", "Google Ads, Analytics");
+        AgencyServiceDto designService = new AgencyServiceDto("Design graphique", "Identite visuelle", "Photoshop, Illustrator");
+        AgencyServiceDto videoService = new AgencyServiceDto("Production video", "Montage, Motion design", "Premiere, After Effects");
+
+        CandidateAgency focusedAgency = agency(null, null, true, null, null, null, List.of(webService), 0);
+        CandidateAgency diversifiedAgency = agency(null, null, true, null, null, null,
+                List.of(webService, marketingService, designService, videoService), 0);
+
+        ProjectRequest project = projectIn(null, "Developpement web", "Site vitrine React");
+
+        double focusedScore = scoringService.score(project, 50.0, List.of(focusedAgency), 5)
+                .get(0).scoreBreakdown().get("skills");
+        double diversifiedScore = scoringService.score(project, 50.0, List.of(diversifiedAgency), 5)
+                .get(0).scoreBreakdown().get("skills");
+
+        assertEquals(focusedScore, diversifiedScore, 0.01,
+                "Une agence qui propose le service demande ne doit pas etre penalisee pour proposer aussi d'autres services sans rapport.");
+    }
+
+    @Test
     void budgetFitIsFullWhenAgencyRevenueComfortablyExceedsBudget() {
         CandidateAgency comfortableAgency = agency(null, null, true, null, null, 1_000_000.0, List.of(), 0);
         ProjectRequest project = projectIn(null, null, null);
