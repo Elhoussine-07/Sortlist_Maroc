@@ -91,3 +91,30 @@ class TestAuthOtpFlowIntegration(FrappeTestCase):
 	def test_verify_otp_without_prior_request_raises_validation_error(self):
 		with self.assertRaises(frappe.ValidationError):
 			verify_otp(email=self.email, code="123456")
+
+	def test_request_otp_is_rate_limited_after_max_requests_per_hour(self):
+		frappe.flags.mute_emails = True
+		try:
+			for _ in range(5):
+				result = request_otp(email=self.email)
+				self.assertTrue(result["sent"])
+
+			with self.assertRaises(frappe.ValidationError):
+				request_otp(email=self.email)
+		finally:
+			frappe.flags.mute_emails = False
+
+	def test_verify_otp_locks_out_after_max_wrong_attempts(self):
+		frappe.flags.mute_emails = True
+		try:
+			request_otp(email=self.email)
+		finally:
+			frappe.flags.mute_emails = False
+
+		for _ in range(5):
+			with self.assertRaises(frappe.ValidationError):
+				verify_otp(email=self.email, code="000000")
+
+		correct_code = frappe.cache().get_value(f"otp:{self.email}")
+		with self.assertRaises(frappe.ValidationError):
+			verify_otp(email=self.email, code=correct_code)

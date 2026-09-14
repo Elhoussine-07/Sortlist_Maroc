@@ -9,6 +9,7 @@ const emailGenerator = require("../services/emailGenerator");
 const emailSender = require("../services/emailSender");
 const crmSync = require("../services/crmSync");
 const frappeClient = require("../services/frappeClient");
+const requireInternalToken = require("../middleware/requireInternalToken");
 
 const router = express.Router();
 
@@ -239,6 +240,7 @@ router.post(
 
 router.get(
     "/leads",
+    requireInternalToken,
     asyncHandler(async (req, res) => {
         const agencyId = req.headers["x-agency-id"];
         if (!agencyId) {
@@ -297,6 +299,7 @@ router.get(
 
 router.get(
     "/leads/:id/activity",
+    requireInternalToken,
     asyncHandler(async (req, res) => {
         const agencyId = req.headers["x-agency-id"];
         if (!agencyId) {
@@ -327,6 +330,7 @@ router.get(
 
 router.post(
     "/leads/:id/generate-email",
+    requireInternalToken,
     asyncHandler(async (req, res) => {
         const agencyId = req.headers["x-agency-id"];
         if (!agencyId) {
@@ -367,6 +371,7 @@ function resolveRecipientEmail(lead) {
 
 router.post(
     "/leads/:id/send-email",
+    requireInternalToken,
     asyncHandler(async (req, res) => {
         const agencyId = req.headers["x-agency-id"];
         if (!agencyId) {
@@ -447,6 +452,7 @@ router.post(
 
 router.get(
     "/campaigns",
+    requireInternalToken,
     asyncHandler(async (req, res) => {
         const agencyId = req.headers["x-agency-id"];
         if (!agencyId) {
@@ -478,6 +484,7 @@ router.get(
 
 router.post(
     "/campaigns",
+    requireInternalToken,
     asyncHandler(async (req, res) => {
         const agencyId = req.headers["x-agency-id"];
         if (!agencyId) {
@@ -502,6 +509,7 @@ router.post(
 
 router.post(
     "/leads/:id/crm-export",
+    requireInternalToken,
     asyncHandler(async (req, res) => {
         const agencyId = req.headers["x-agency-id"];
         if (!agencyId) {

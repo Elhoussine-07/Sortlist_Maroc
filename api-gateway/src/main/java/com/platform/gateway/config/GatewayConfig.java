@@ -44,6 +44,7 @@ public class GatewayConfig {
                         .uri(iaUrl))
                 .route("prospection-service", r -> r
                         .path("/api/prospection/**")
+                        .filters(f -> f.setRequestHeader("X-Internal-Token", internalServiceToken))
                         .uri(prospectionUrl))
 
                 .route("notifications-ws", r -> r

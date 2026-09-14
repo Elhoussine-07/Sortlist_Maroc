@@ -13,6 +13,22 @@ PWRESET_TTL_SECONDS = 5 * 60
 PENDING_AGENCY_REGISTRATION_TTL_SECONDS = OTP_TTL_SECONDS
 LOGIN_2FA_TTL_SECONDS = 5 * 60
 
+OTP_REQUEST_MAX_PER_WINDOW = 5
+OTP_REQUEST_WINDOW_SECONDS = 60 * 60
+OTP_VERIFY_MAX_ATTEMPTS = 5
+OTP_VERIFY_LOCKOUT_SECONDS = 15 * 60
+
+def _too_many_attempts(cache_key, max_attempts, window_seconds):
+	"""Compteur simple base sur frappe.cache() (deja utilise pour stocker le
+	code OTP lui-meme) : incremente a chaque appel, expire apres window_seconds.
+	Retourne True (et n'incremente pas plus) des que max_attempts est atteint."""
+	raw = frappe.cache().get_value(cache_key)
+	count = int(raw) if raw else 0
+	if count >= max_attempts:
+		return True
+	frappe.cache().set_value(cache_key, count + 1, expires_in_sec=window_seconds)
+	return False
+
 def _user_type(email):
 	roles = set(frappe.get_roles(email))
 	if "System Manager" in roles or "Moderator" in roles:
@@ -48,6 +64,10 @@ def _build_token(email):
 def request_otp(email=None):
 	email = require_body_arg(email, "email", _("Email manquant"))
 	email = email.strip().lower()
+
+	if _too_many_attempts(f"otp_requests:{email}", OTP_REQUEST_MAX_PER_WINDOW, OTP_REQUEST_WINDOW_SECONDS):
+		frappe.throw(_("Trop de demandes de code, réessayez dans une heure"))
+
 	code = f"{random.randint(0, 999999):06d}"
 	frappe.cache().set_value(f"otp:{email}", code, expires_in_sec=OTP_TTL_SECONDS)
 
@@ -64,11 +84,16 @@ def verify_otp(email=None, code=None):
 	email = require_body_arg(email, "email", _("Email manquant"))
 	code = require_body_arg(code, "code", _("Code manquant"))
 	email = email.strip().lower()
+
+	if _too_many_attempts(f"otp_verify_attempts:{email}", OTP_VERIFY_MAX_ATTEMPTS, OTP_VERIFY_LOCKOUT_SECONDS):
+		frappe.throw(_("Trop de tentatives, réessayez plus tard"))
+
 	cached = frappe.cache().get_value(f"otp:{email}")
 	if not cached or str(cached) != str(code).strip():
 		frappe.throw(_("Code invalide ou expiré"))
 
 	frappe.cache().delete_value(f"otp:{email}")
+	frappe.cache().delete_value(f"otp_verify_attempts:{email}")
 
 	pending_raw = frappe.cache().get_value(f"pending_agency_registration:{email}")
 	if pending_raw:
