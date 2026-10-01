@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Bookmark,
@@ -8,18 +9,19 @@ import {
   Send,
   Tag,
   Star,
-  ExternalLink,
   Briefcase,
   ChevronRight,
-  Sparkles,
+  CircleCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { getPublicProject, type PublicProjectDetail } from "@/services/projects.service";
 import { toggleProjectFavorite, listFavoriteProjects } from "@/services/agencies.service";
+import { expressInterest } from "@/services/opportunities.service";
 import { ApiError } from "@/services/http";
 import { EmptyState } from "@/components/common/EmptyState";
+import { useAuthStore } from "@/store/auth.store";
 
 export const Route = createFileRoute("/projets_/$id")({
   head: ({ params }) => ({
@@ -36,10 +38,36 @@ export const Route = createFileRoute("/projets_/$id")({
 
 function ProjectDetailPage() {
   const { id } = useParams({ from: "/projets_/$id" });
+  const navigate = useNavigate();
+  const token = useAuthStore((state) => state.token);
+  const role = useAuthStore((state) => state.role);
   const [project, setProject] = useState<PublicProjectDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPendingFavorite, setIsPendingFavorite] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+
+  const applyMutation = useMutation({
+    mutationFn: expressInterest,
+    onSuccess: () => {
+      setHasApplied(true);
+      toast("Candidature envoyée", {
+        description: "Ce projet apparaît désormais dans vos offres — envoyez votre devis.",
+      });
+    },
+    onError: (error: unknown) => {
+      toast(error instanceof ApiError ? error.message : "Impossible de postuler à ce projet.");
+    },
+  });
+
+  function handleApply() {
+    if (!token || role !== "agency") {
+      toast("Connectez-vous avec un compte agence pour postuler à ce projet.");
+      navigate({ to: "/connexion" });
+      return;
+    }
+    applyMutation.mutate(id);
+  }
 
   useEffect(() => {
     setIsLoading(true);
@@ -56,6 +84,11 @@ function ProjectDetailPage() {
   }, [id]);
 
   const handleToggleFavorite = () => {
+    if (!token || role !== "agency") {
+      toast("Connectez-vous avec un compte agence pour enregistrer ce projet.");
+      navigate({ to: "/connexion" });
+      return;
+    }
     setIsPendingFavorite(true);
     toggleProjectFavorite(id)
       .then(({ favorited }) => {
@@ -298,9 +331,20 @@ function ProjectDetailPage() {
               <div className="mt-4 space-y-3">
                 <button
                   type="button"
-                  className="w-full rounded-xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-[14px] font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
+                  onClick={handleApply}
+                  disabled={applyMutation.isPending || hasApplied}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 px-4 py-3 text-[14px] font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100"
                 >
-                  Postuler au projet
+                  {hasApplied ? (
+                    <>
+                      <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
+                      Candidature envoyée
+                    </>
+                  ) : applyMutation.isPending ? (
+                    "Envoi en cours..."
+                  ) : (
+                    "Postuler au projet"
+                  )}
                 </button>
                 <button
                   type="button"

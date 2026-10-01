@@ -357,6 +357,9 @@ def express_interest(project=None):
 	if project_doc.status != "Posted":
 		frappe.throw(_("Ce projet n'est plus disponible"))
 
+	if frappe.db.exists("Opportunity", {"project": project, "agency": claims["agency_id"]}):
+		frappe.throw(_("Vous avez déjà postulé à ce projet"))
+
 	opportunity = create_from_project(project, claims["agency_id"], source="Disponibles")
 
 	client_user = (
@@ -376,6 +379,8 @@ def express_interest(project=None):
 			reference_name=project,
 			channel="Both",
 		)
+
+	return {"id": opportunity.name}
 
 	return opportunity.as_dict()
 
