@@ -10,4 +10,4 @@ COPY src ./src
 ENV PORT=8084
 EXPOSE 8084
 
-CMD ["node", "src/index.js"]
+CMD ["sh", "-c", "node src/models/migrate.js && node src/index.js"]
