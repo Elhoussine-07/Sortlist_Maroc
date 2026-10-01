@@ -95,6 +95,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
+      redis:
+        condition: service_healthy
       matching-service:
         condition: service_healthy
       ia-service:
@@ -114,6 +116,10 @@ services:
       PROSPECTION_URL: http://prospection-service:8084
       NOTIFICATIONS_URL: http://notifications-service:8085
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
     ports:
       - "8080:8080"
     healthcheck:

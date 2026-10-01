@@ -1,6 +1,10 @@
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
       globalcors:
@@ -40,6 +44,10 @@ jwt:
 
 internal:
   service-token: ${INTERNAL_SERVICE_TOKEN:dev-insecure-internal-token}
+
+rate-limit:
+  max-requests: ${RATE_LIMIT_MAX_REQUESTS:100}
+  window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
 
 frontend:
   url: ${FRONTEND_URL:http://localhost:3000}
