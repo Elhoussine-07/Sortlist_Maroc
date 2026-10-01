@@ -71,6 +71,7 @@ def _escalate_to_suspension_request():
 				title=f"Validation requise : absence de réponse client — « {project.title} »",
 				body="Le client n'a pas répondu au devis dans les délais. Confirmez le passage en Suspendu.",
 				link=f"/moderation/suspensions?project={project.name}",
+				action_required=True,
 			)
 
 def _escalate_expired_suspensions_to_rejected():

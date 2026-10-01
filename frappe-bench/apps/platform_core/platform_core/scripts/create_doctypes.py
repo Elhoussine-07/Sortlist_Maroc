@@ -81,13 +81,7 @@ def execute():
             f("validation_regex", "Regex de validation", "Data", reqd=1),
             
             f("example_format", "Exemple de format", "Data"),
-            
-            f("registry_api_url", "URL API de vérification", "Data"),
-            
-            f("registry_api_key", "Clé API du registre", "Password", permlevel=1),
-            
-            f("registry_check_enabled", "Vérification externe activée", "Check", default=0),
-            
+
             f("is_active", "Règle active", "Check", default=1),
         ],
         permissions=[

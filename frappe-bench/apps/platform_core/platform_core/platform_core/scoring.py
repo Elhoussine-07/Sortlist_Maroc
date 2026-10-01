@@ -104,11 +104,24 @@ _SCORERS = [
 	("Sécurité du compte", _score_account_security),
 ]
 
+BASE_CRITERION_SCALE = 20
+
+def _criterion_weights():
+	rows = frappe.get_all("PQICriterion", fields=["label", "weight"])
+	return {row.label: row.weight for row in rows if row.weight is not None}
+
 def compute_pqi(agency):
+	weights = _criterion_weights()
 	details = []
 	total = 0
 	for criterion_name, scorer in _SCORERS:
-		points, reason = scorer(agency)
+		raw_points, reason = scorer(agency)
+		weight = weights.get(criterion_name, BASE_CRITERION_SCALE)
+		# Chaque _score_X calcule une penalite sur une base de 20 ; on la
+		# ramene en proportion (0-1) puis on l'applique au poids reellement
+		# configure pour ce critere (PQICriterion.weight), pour que modifier
+		# ce poids ait un effet reel sur le score sans toucher au code.
+		points = round((raw_points / BASE_CRITERION_SCALE) * weight, 2)
 		total += points
 		details.append({
 			"criterion": criterion_name,
@@ -116,7 +129,7 @@ def compute_pqi(agency):
 			"penalty_reason": reason,
 			"ai_recommendation": _recommendation(criterion_name, reason),
 		})
-	return total, details
+	return round(total, 2), details
 
 def _recommendation(criterion_name, reason):
 	if not reason:

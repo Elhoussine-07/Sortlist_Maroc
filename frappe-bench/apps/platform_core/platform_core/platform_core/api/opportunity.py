@@ -331,8 +331,11 @@ def list_public_projects(budget_min=None, budget_max=None, sub_category=None, ca
 	results = frappe.db.sql(
 		f"""
 		select p.name as project, p.title, p.need_type, p.budget_min, p.budget_max, p.location,
-		       p.sub_category, p.category, p.status, p.cover_image, p.creation as project_created_on
+		       p.sub_category, p.category, p.status, p.cover_image, p.creation as project_created_on,
+		       c.company_name as client_company_name, c.sector as client_sector,
+		       c.country as client_country, c.trust_score as client_trust_score
 		from `tabProject` p
+		left join `tabClientProfile` c on c.name = p.client
 		where {" and ".join(conditions)}
 		order by p.creation desc
 		limit %(limit)s offset %(offset)s
@@ -616,6 +619,7 @@ def respond_to_suspension(suspension=None, message=None, evidence_ids=None):
 			link=f"/admin/litiges?id={doc.name}",
 			reference_doctype="ProjectSuspension",
 			reference_name=doc.name,
+			action_required=True,
 		)
 
 	return {"id": suspension, "status": "responded"}

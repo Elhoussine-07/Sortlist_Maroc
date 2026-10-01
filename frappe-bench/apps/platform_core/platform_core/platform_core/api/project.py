@@ -272,6 +272,7 @@ def confirm_completion(project=None):
 			title=f"Validation finale requise — « {doc.title} »",
 			body="Le client a confirmé la fin du projet. Validez le passage définitif au statut Terminé.",
 			link=f"/moderation/completions/{project}",
+			action_required=True,
 		)
 	return doc.as_dict()
 

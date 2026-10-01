@@ -34,6 +34,21 @@ def submit_agency_review(project=None, rating=None, quality_score=None, deadline
 		"status": "Pending",
 	})
 	review.insert(ignore_permissions=True)
+
+	from platform_core.platform_core.notify import notify
+
+	for moderator in frappe.get_all("Has Role", filters={"role": "Moderator", "parenttype": "User"}, pluck="parent"):
+		notify(
+			recipient=moderator,
+			category="Autre",
+			title="Nouvel avis à modérer",
+			body=f"Un avis client a été soumis pour l'agence {opportunity_agency} et attend modération.",
+			link=f"/moderation/avis?id={review.name}",
+			reference_doctype="AgencyReview",
+			reference_name=review.name,
+			action_required=True,
+		)
+
 	return review.as_dict()
 
 @frappe.whitelist(allow_guest=True)

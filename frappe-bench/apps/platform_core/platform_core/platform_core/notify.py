@@ -19,6 +19,7 @@ def notify(
 	reference_doctype=None,
 	reference_name=None,
 	channel="Both",
+	action_required=False,
 ):
 	doc = frappe.get_doc({
 		"doctype": "Notification",
@@ -32,6 +33,7 @@ def notify(
 		"reference_name": reference_name,
 		"channel": channel,
 		"is_read": 0,
+		"action_required": 1 if action_required else 0,
 	})
 	doc.insert(ignore_permissions=True)
 	return doc

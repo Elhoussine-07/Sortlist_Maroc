@@ -150,6 +150,7 @@ class ProjectSuspension(Document):
                         reference_doctype="ProjectSuspension",
                         reference_name=self.name,
                         channel="Both",
+                        action_required=True,
                     )
 
     def record_agency_litige_response(self, message):
@@ -180,6 +181,7 @@ class ProjectSuspension(Document):
                 link=f"/admin/litiges?id={self.name}",
                 reference_doctype="ProjectSuspension",
                 reference_name=self.name,
+                action_required=True,
             )
         return self
 
@@ -519,6 +521,7 @@ def request_suspension(project, requested_by, justification, category="Suspensio
             title=f"Nouvelle demande de suspension ({category}) — projet {project}",
             body=justification,
             link=f"/moderation/suspensions/{doc.name}",
+            action_required=True,
         )
 
     return doc
