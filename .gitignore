@@ -1,3 +1,4 @@
 .env
 *.zip
 frappe-bench/logs/*.log
+node_modules/
