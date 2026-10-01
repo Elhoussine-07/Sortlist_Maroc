@@ -18,10 +18,6 @@ class VisitorLog(Document):
             if not frappe.db.exists("AgencyProfile", self.agency):
                 frappe.throw(f"L'agence {self.agency} n'existe pas.")
 
-        if self.lead:
-            if not frappe.db.exists("DetectedLead", self.lead):
-                frappe.throw(f"Le lead {self.lead} n'existe pas.")
-
     def _validate_data(self):
         if not self.ip_hash:
             frappe.throw("L'empreinte IP (ip_hash) est obligatoire.")

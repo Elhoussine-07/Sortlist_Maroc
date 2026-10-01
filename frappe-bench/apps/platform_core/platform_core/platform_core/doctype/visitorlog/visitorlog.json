@@ -7,7 +7,6 @@
  "field_order": [
   "agency",
   "ip_hash",
-  "lead",
   "company_name",
   "company_domain",
   "action",
@@ -36,12 +35,6 @@
    "label": "Empreinte IP (hash)",
    "permlevel": 1,
    "reqd": 1
-  },
-  {
-   "fieldname": "lead",
-   "fieldtype": "Link",
-   "label": "Lead consolid\u00e9",
-   "options": "DetectedLead"
   },
   {
    "fieldname": "company_name",
@@ -76,12 +69,12 @@
   {
    "fieldname": "page_url",
    "fieldtype": "Data",
-   "label": "Page visit\u00e9e"
+   "label": "Page visitée"
   },
   {
    "fieldname": "referrer",
    "fieldtype": "Data",
-   "label": "R\u00e9f\u00e9rent"
+   "label": "Référent"
   },
   {
    "fieldname": "user_agent",
@@ -98,7 +91,7 @@
    "default": "0",
    "fieldname": "points_awarded",
    "fieldtype": "Int",
-   "label": "Points attribu\u00e9s",
+   "label": "Points attribués",
    "permlevel": 1,
    "read_only": 1
   },
@@ -106,7 +99,7 @@
    "default": "0",
    "fieldname": "bonus_awarded",
    "fieldtype": "Int",
-   "label": "Bonus attribu\u00e9",
+   "label": "Bonus attribué",
    "permlevel": 1,
    "read_only": 1
   }
