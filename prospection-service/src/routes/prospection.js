@@ -9,6 +9,7 @@ const emailGenerator = require("../services/emailGenerator");
 const emailSender = require("../services/emailSender");
 const crmSync = require("../services/crmSync");
 const frappeClient = require("../services/frappeClient");
+const eventPublisher = require("../services/eventPublisher");
 const requireInternalToken = require("../middleware/requireInternalToken");
 
 const router = express.Router();
@@ -145,6 +146,12 @@ router.post(
 
         const classification = await scoreCalculator.classify(rawScore);
 
+        const priorLeadResult = await db.query(
+            `select classification from leads where agency = $1 and session_id = $2`,
+            [agency, sessionId]
+        );
+        const priorClassification = priorLeadResult.rows[0]?.classification || null;
+
         const companyName = body.company_name || resolution.company_name;
         const companyDomain = body.company_domain || resolution.company_domain;
         const visitorLocation = resolution.raw
@@ -227,6 +234,17 @@ router.post(
             .catch((err) => {
                 logger.warn("log_visitor mirror to Frappe failed (non-fatal)", { error: err.message, agency, sessionId });
             });
+
+        if (classification === "Chaud" && priorClassification !== "Chaud") {
+            frappeClient
+                .getAgencyOwnerEmail(agency)
+                .then((recipientEmail) =>
+                    eventPublisher.publishLeadHot({ recipientEmail, agency, companyName, score: cumulativeScore })
+                )
+                .catch((err) => {
+                    logger.warn("Failed to publish lead.hot event (non-fatal)", { error: err.message, agency, sessionId });
+                });
+        }
 
         return res.json({
             classification,

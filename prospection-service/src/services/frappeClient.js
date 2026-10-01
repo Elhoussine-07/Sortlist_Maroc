@@ -122,6 +122,13 @@ async function getAgencyDirectory() {
   return callFrappe("platform_core.platform_core.api.prospection.get_agency_directory");
 }
 
+async function getAgencyOwnerEmail(agency) {
+  const result = await callFrappe(
+    `platform_core.platform_core.api.prospection.get_agency_owner_email?agency=${encodeURIComponent(agency)}`
+  );
+  return result && result.email ? result.email : null;
+}
+
 async function logVisitor({ agency, action, visitor_ip, company_name, company_domain, session_id }) {
   return callFrappe("platform_core.platform_core.api.prospection.log_visitor", {
     httpMethod: "POST",

@@ -54,6 +54,14 @@ def get_agency_directory():
 	)
 
 @frappe.whitelist(allow_guest=True)
+def get_agency_owner_email(agency):
+	require_internal_token()
+	from platform_core.platform_core.doctype.agencymember.agencymember import get_agency_owner_email as _lookup
+
+	email = _lookup(agency)
+	return {"email": email}
+
+@frappe.whitelist(allow_guest=True)
 def log_visitor():
 	require_internal_token()
 	payload = frappe.parse_json(frappe.request.data) if frappe.request.data else frappe.local.form_dict

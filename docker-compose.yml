@@ -191,12 +191,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@postgres:5432/prospection
       FRAPPE_URL: ${FRAPPE_URL:-}
       FRAPPE_URL_CONTAINER: ${FRAPPE_URL_CONTAINER:-http://frappe:8000}
       FRAPPE_URL_LOCAL: ${FRAPPE_URL_LOCAL:-http://host.docker.internal:8000}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       SMTP_HOST: smtp.sendgrid.net
       SMTP_PORT: 587
@@ -221,14 +224,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      redis:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     environment:
       JWT_SECRET: ${JWT_SECRET:-dev-insecure-secret-change-me}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-dev-insecure-internal-token}
-      REDIS_URL: redis://redis:6379
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     ports:
