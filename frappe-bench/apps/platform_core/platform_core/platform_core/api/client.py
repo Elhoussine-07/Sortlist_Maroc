@@ -167,7 +167,11 @@ def list_favorites():
 		return []
 	favorites = frappe.get_all("FavoriteAgency", filters={"client": client_name}, fields=["agency", "date_added"])
 	for fav in favorites:
-		fav["agency_name"] = frappe.db.get_value("AgencyProfile", fav.agency, "agency_name")
+		agency_profile = frappe.db.get_value(
+			"AgencyProfile", fav.agency, ["agency_name", "logo"], as_dict=True
+		)
+		fav["agency_name"] = agency_profile.agency_name if agency_profile else None
+		fav["logo"] = agency_profile.logo if agency_profile else None
 	return favorites
 
 @frappe.whitelist()

@@ -286,10 +286,18 @@ function ClientFavoriteAgenciesPage() {
                       <div
                         className={`flex items-start gap-4 ${viewMode === "grid" ? "w-full" : ""}`}
                       >
-                        {/* Avatar avec gradient */}
-                        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-[18px] font-bold text-primary transition-all group-hover:scale-105 group-hover:shadow-md">
-                          {initialsOf(favorite.agencyName || favorite.agency)}
-                        </div>
+                        {/* Avatar */}
+                        {favorite.logo ? (
+                          <img
+                            src={favorite.logo}
+                            alt={favorite.agencyName || favorite.agency}
+                            className="h-14 w-14 shrink-0 rounded-xl object-cover shadow-sm transition-all group-hover:scale-105 group-hover:shadow-md"
+                          />
+                        ) : (
+                          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-[18px] font-bold text-primary transition-all group-hover:scale-105 group-hover:shadow-md">
+                            {initialsOf(favorite.agencyName || favorite.agency)}
+                          </div>
+                        )}
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">

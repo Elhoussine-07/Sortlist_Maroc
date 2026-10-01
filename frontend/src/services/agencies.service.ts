@@ -333,6 +333,7 @@ export interface FavoriteAgencyEntry {
   agency: string;
   agencyName: string;
   dateAdded: string;
+  logo: string | undefined;
 }
 
 export async function listFavoriteAgencies(): Promise<FavoriteAgencyEntry[]> {
@@ -344,6 +345,7 @@ export async function listFavoriteAgencies(): Promise<FavoriteAgencyEntry[]> {
       agency: String(data["agency"] ?? ""),
       agencyName: String(data["agencyName"] ?? ""),
       dateAdded: String(data["dateAdded"] ?? ""),
+      logo: resolveFileUrl(data["logo"] as string | null | undefined),
     };
   });
 }
