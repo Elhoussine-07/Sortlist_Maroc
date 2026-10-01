@@ -13,6 +13,7 @@
   "invoice_due_days",
   "invoice_payment_deadline_hours",
   "auto_debit_notice_hours",
+  "enforce_offer_suspension",
   "lead_hot_threshold",
   "lead_warm_min",
   "lead_warm_max",
@@ -71,6 +72,13 @@
    "fieldtype": "Int",
    "label": "Pr\u00e9avis auto- pr\u00e9l\u00e8vement (h)",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "D\u00e9sactiv\u00e9 par d\u00e9faut (phase de d\u00e9veloppement/tests) pour ne pas interrompre les sc\u00e9narios de test r\u00e9p\u00e9t\u00e9s sur les offres. \u00c0 activer en production : les agences en facture tr\u00e8s en retard verront alors leurs nouvelles offres suspendues automatiquement.",
+   "fieldname": "enforce_offer_suspension",
+   "fieldtype": "Check",
+   "label": "Suspendre les offres des agences en impay\u00e9 prolong\u00e9"
   },
   {
    "default": "40",

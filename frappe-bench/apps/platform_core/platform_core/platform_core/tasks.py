@@ -11,6 +11,7 @@ def process_quote_deadlines():
 	_send_first_reminders()
 	_escalate_to_suspension_request()
 	_escalate_expired_suspensions_to_rejected()
+	_escalate_expired_litige_notices()
 
 def _send_first_reminders():
 	settings = _settings()
@@ -101,6 +102,39 @@ def _escalate_expired_suspensions_to_rejected():
 			channel="Both",
 		)
 
+def _escalate_expired_litige_notices():
+	now = now_datetime()
+	overdue = frappe.get_all(
+		"ProjectSuspension",
+		filters={
+			"category": "Litige",
+			"requested_by": "Client",
+			"litige_notice_status": "Pending",
+			"agency_notice_deadline": ["<=", now],
+		},
+		fields=["name", "project"],
+	)
+	for row in overdue:
+		doc = frappe.get_doc("ProjectSuspension", row.name)
+		doc.litige_notice_status = "Expired"
+		doc.save(ignore_permissions=True)
+		doc._apply_client_litige_rejection()
+
+		project = frappe.get_doc("Project", row.project)
+		client_user = frappe.db.get_value("ClientProfile", project.client, "user") if project.client else None
+		if client_user:
+			notify(
+				recipient=client_user,
+				category="Litige",
+				title=f"Projet « {project.title} » rejeté — agence non intéressée",
+				body="L'agence n'a pas répondu dans les délais à votre signalement. "
+				"Le projet est passé au statut Rejeté.",
+				link=f"/client/mes-projets/{project.name}",
+				reference_doctype="ProjectSuspension",
+				reference_name=row.name,
+				channel="Both",
+			)
+
 def process_invoice_reminders():
 	settings = _settings()
 	today = frappe.utils.today()
@@ -132,8 +166,43 @@ def process_invoice_reminders():
 	)
 	for row in very_late:
 		frappe.db.set_value("Invoice", row.name, "status", "Overdue")
+		if settings.enforce_offer_suspension:
+			frappe.db.set_value("AgencyProfile", row.agency, "offers_suspended", 1)
+
+def suspend_projects_for_unpaid_commission():
+	from platform_core.platform_core.doctype.projectsuspension.projectsuspension import (
+		suspend_for_unpaid_invoice,
+	)
+
+	overdue = frappe.get_all(
+		"Invoice",
+		filters={"status": "Pending", "payment_deadline": ["<=", now_datetime()]},
+		fields=["name", "project"],
+	)
+	for row in overdue:
+		if frappe.db.get_value("Project", row.project, "status") != "In Progress":
+			continue
+		suspend_for_unpaid_invoice(row.name)
 
 def recompute_pqi_alerts():
 	for agency in frappe.get_all("AgencyProfile", pluck="name"):
 		frappe.get_doc("AgencyProfile", agency).refresh_pqi()
+	frappe.db.commit()
+
+def complete_overdue_projects():
+	today = frappe.utils.today()
+	overdue = frappe.get_all(
+		"Project",
+		filters={"status": "In Progress", "expected_end_date": ["<=", today]},
+		fields=["name"],
+	)
+	for row in overdue:
+		project = frappe.get_doc("Project", row.name)
+		project.complete()
+
+		opportunity_name = frappe.db.get_value(
+			"Opportunity", {"project": row.name, "status": "Gagnée"}, "name"
+		)
+		if opportunity_name:
+			frappe.get_doc("Opportunity", opportunity_name).mark_completed()
 	frappe.db.commit()

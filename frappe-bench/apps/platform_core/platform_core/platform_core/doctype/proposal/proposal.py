@@ -21,6 +21,14 @@ class Proposal(Document):
         if "Agency" not in user_roles and "Administrator" not in user_roles:
             frappe.throw("Seules les Agences et Administrateurs peuvent soumettre une offre.")
 
+        if "Administrator" not in user_roles and frappe.db.get_value(
+            "AgencyProfile", self.agency, "offers_suspended"
+        ):
+            frappe.throw(
+                "Vos offres sont suspendues suite à une facture de commission impayée. "
+                "Régularisez votre situation de facturation pour pouvoir soumettre une nouvelle offre."
+            )
+
         project_status = frappe.db.get_value("Project", self.project, "status")
         if project_status != "Posted":
             frappe.throw("Le projet doit être au statut Posted pour envoyer une offre.")

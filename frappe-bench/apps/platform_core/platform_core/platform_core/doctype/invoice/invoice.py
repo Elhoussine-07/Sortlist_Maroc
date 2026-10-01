@@ -86,6 +86,17 @@ class Invoice(Document):
         frappe.db.set_value(self.doctype, self.name, "payment_date", nowdate())
 
         self._update_associated_payment()
+        self._lift_offer_suspension_if_regularized()
+
+    def _lift_offer_suspension_if_regularized(self):
+        if not frappe.db.get_value("AgencyProfile", self.agency, "offers_suspended"):
+            return
+
+        still_overdue = frappe.db.exists(
+            "Invoice", {"agency": self.agency, "status": ["in", ["Pending", "Overdue"]]}
+        )
+        if not still_overdue:
+            frappe.db.set_value("AgencyProfile", self.agency, "offers_suspended", 0)
 
     def _handle_overdue(self):
         self._notify_agency(
