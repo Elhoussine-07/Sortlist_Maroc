@@ -64,13 +64,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-
-const ProjetsIdRoute = ProjetsIdRouteImport.update({
-  id: '/projets_/$id',
-  path: '/projets/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -173,6 +166,11 @@ const AgencesIdRoute = AgencesIdRouteImport.update({
 const FonctionnalitesSlugRoute = FonctionnalitesSlugRouteImport.update({
   id: '/fonctionnalites/$slug',
   path: '/fonctionnalites/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjetsIdRoute = ProjetsIdRouteImport.update({
+  id: '/projets_/$id',
+  path: '/projets/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminAvisRoute = AuthenticatedAdminAvisRouteImport.update({
@@ -1049,27 +1047,27 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgenceFacturationRoute: AuthenticatedAgenceFacturationRoute,
   AuthenticatedAgenceInvitationsRoute: AuthenticatedAgenceInvitationsRoute,
   AuthenticatedAgenceMesProspectionsRoute:
-  AuthenticatedAgenceMesProspectionsRoute,
+    AuthenticatedAgenceMesProspectionsRoute,
   AuthenticatedAgenceNotificationsRoute: AuthenticatedAgenceNotificationsRoute,
   AuthenticatedAgenceOpportunitesRoute: AuthenticatedAgenceOpportunitesRoute,
   AuthenticatedAgenceParametresRoute: AuthenticatedAgenceParametresRoute,
   AuthenticatedAgenceProfilRoute: AuthenticatedAgenceProfilRoute,
   AuthenticatedAgenceProjetsEnCoursRoute:
-  AuthenticatedAgenceProjetsEnCoursRoute,
+    AuthenticatedAgenceProjetsEnCoursRoute,
   AuthenticatedAgenceProspectionRoute: AuthenticatedAgenceProspectionRoute,
   AuthenticatedAgenceSuspensionRoute: AuthenticatedAgenceSuspensionRoute,
   AuthenticatedAgenceTableauDeBordRoute: AuthenticatedAgenceTableauDeBordRoute,
   AuthenticatedAgenceWorkflowRoute: AuthenticatedAgenceWorkflowRoute,
   AuthenticatedClientAgencesFavoritesRoute:
-  AuthenticatedClientAgencesFavoritesRoute,
+    AuthenticatedClientAgencesFavoritesRoute,
   AuthenticatedClientCollaborationsRoute:
-  AuthenticatedClientCollaborationsRoute,
+    AuthenticatedClientCollaborationsRoute,
   AuthenticatedClientMesProjetsRoute: AuthenticatedClientMesProjetsRoute,
   AuthenticatedClientMonProfilRoute: AuthenticatedClientMonProfilRoute,
   AuthenticatedClientNotificationsRoute: AuthenticatedClientNotificationsRoute,
   AuthenticatedClientParametresRoute: AuthenticatedClientParametresRoute,
   AuthenticatedClientPostulerUnProjetRoute:
-  AuthenticatedClientPostulerUnProjetRoute,
+    AuthenticatedClientPostulerUnProjetRoute,
   AuthenticatedClientTableauDeBordRoute: AuthenticatedClientTableauDeBordRoute,
   AuthenticatedClientMesProjetsIdRoute: AuthenticatedClientMesProjetsIdRoute,
 }

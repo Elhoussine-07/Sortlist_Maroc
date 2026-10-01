@@ -122,8 +122,8 @@ public class ScoringService {
             return NEUTRAL_SCORE;
         }
 
-        double coreOverlap = coreTokens.isEmpty() ? -1 : jaccard(coreTokens, agencyTokens) * 100;
-        double extraOverlap = extraTokens.isEmpty() ? -1 : jaccard(extraTokens, agencyTokens) * 100;
+        double coreOverlap = coreTokens.isEmpty() ? -1 : containment(coreTokens, agencyTokens) * 100;
+        double extraOverlap = extraTokens.isEmpty() ? -1 : containment(extraTokens, agencyTokens) * 100;
 
         if (coreOverlap >= 0 && extraOverlap >= 0) {
             return coreOverlap * 0.7 + extraOverlap * 0.3;
@@ -225,13 +225,19 @@ public class ScoringService {
                 .collect(Collectors.toSet());
     }
 
-    private static double jaccard(Set<String> a, Set<String> b) {
-        if (a.isEmpty() || b.isEmpty()) {
+    /**
+     * Proportion des mots-cles requis (ex: ceux du besoin) que l'agence couvre
+     * effectivement. Volontairement asymetrique (contrairement a Jaccard) :
+     * le score ne depend que de required, pas de la taille totale du
+     * catalogue de services de l'agence -- une agence proposant le bon
+     * service ne doit pas etre penalisee pour en proposer aussi d'autres.
+     */
+    private static double containment(Set<String> required, Set<String> offered) {
+        if (required.isEmpty() || offered.isEmpty()) {
             return 0.0;
         }
-        long intersection = a.stream().filter(b::contains).count();
-        int unionSize = a.size() + b.size() - (int) intersection;
-        return unionSize == 0 ? 0.0 : (double) intersection / unionSize;
+        long matched = required.stream().filter(offered::contains).count();
+        return (double) matched / required.size();
     }
 
     private static double clamp(double value) {

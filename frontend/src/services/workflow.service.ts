@@ -18,7 +18,7 @@ export interface WorkflowStage {
 
 const STEP_LABELS: Record<WorkflowStep, string> = {
   received: "Reçues",
-  reviewed: "Étudiées",
+  reviewed: "En étude",
   quote_sent: "Devis envoyé",
   awaiting_client: "En attente client",
   won: "Gagnées",
