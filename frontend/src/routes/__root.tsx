@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { applyDomPreferences, useThemeStore } from "../store/theme.store";
+import { useRealtimeNotifications } from "../hooks/useRealtimeNotifications";
 
 function useApplyThemePreferences() {
   useEffect(() => {
@@ -151,6 +152,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useApplyThemePreferences();
+  useRealtimeNotifications();
 
   return (
     <QueryClientProvider client={queryClient}>

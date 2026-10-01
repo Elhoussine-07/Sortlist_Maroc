@@ -133,19 +133,23 @@ def pay_invoice(invoice=None):
 @frappe.whitelist(allow_guest=True)
 def stripe_webhook():
 	webhook_secret = frappe.conf.get("stripe_webhook_secret") or os.environ.get("STRIPE_WEBHOOK_SECRET")
+	if not webhook_secret:
+		# Aucun repli non signe : sans secret configure pour cet environnement
+		# (test ou production -- Stripe fournit un secret de test dedie pour
+		# le developpement local), le point d'entree refuse la requete plutot
+		# que d'accepter un corps JSON dont l'authenticite n'est pas verifiee.
+		frappe.throw("Webhook Stripe non configuré pour cet environnement", frappe.AuthenticationError)
+
 	signature = frappe.get_request_header("Stripe-Signature")
+	if not signature:
+		frappe.throw("Signature Stripe manquante", frappe.AuthenticationError)
 
-	if webhook_secret:
-		if not signature:
-			frappe.throw("Signature Stripe manquante", frappe.AuthenticationError)
-		import stripe
+	import stripe
 
-		try:
-			event = stripe.Webhook.construct_event(frappe.request.data, signature, webhook_secret)
-		except Exception:
-			frappe.throw("Signature Stripe invalide", frappe.AuthenticationError)
-	else:
-		event = frappe.parse_json(frappe.request.data)
+	try:
+		event = stripe.Webhook.construct_event(frappe.request.data, signature, webhook_secret)
+	except Exception:
+		frappe.throw("Signature Stripe invalide", frappe.AuthenticationError)
 
 	event_type = event.get("type") if isinstance(event, dict) else event["type"]
 	frappe.logger().info(f"Stripe webhook received: {event_type}")
