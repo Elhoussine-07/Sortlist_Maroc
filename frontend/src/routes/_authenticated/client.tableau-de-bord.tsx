@@ -399,17 +399,18 @@ function StatCard({
   );
 }
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; bg: string; text: string; border: string; icon: LucideIcon }
-> = {
-  draft: {
-    label: "Brouillon",
-    bg: "bg-slate-100",
-    text: "text-slate-700",
-    border: "border-slate-200",
-    icon: Clock,
-  },
+type StatusConfig = { label: string; bg: string; text: string; border: string; icon: LucideIcon };
+
+const DEFAULT_STATUS_CONFIG: StatusConfig = {
+  label: "Brouillon",
+  bg: "bg-slate-100",
+  text: "text-slate-700",
+  border: "border-slate-200",
+  icon: Clock,
+};
+
+const STATUS_CONFIG: Record<string, StatusConfig> = {
+  draft: DEFAULT_STATUS_CONFIG,
   published: {
     label: "Publié",
     bg: "bg-emerald-100",
@@ -479,7 +480,7 @@ function ProjectRow({ project }: { project: Project }) {
   const canRepost = project.status === "published";
   const canDelete = project.status === "draft" || project.status === "published";
 
-  const statusConfig = STATUS_CONFIG[project.status] || STATUS_CONFIG.draft;
+  const statusConfig = STATUS_CONFIG[project.status] ?? DEFAULT_STATUS_CONFIG;
   const StatusIcon = statusConfig.icon;
 
   return (

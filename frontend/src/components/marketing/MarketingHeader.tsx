@@ -55,19 +55,18 @@ export function MarketingHeader({
               >
                 Fonctionnalités
               </Link>
-              {}
-              <span
-                title="Page à venir"
-                className="cursor-not-allowed text-[14.5px] font-medium text-muted-foreground/50"
+              <Link
+                to="/comment-ca-marche"
+                className="text-[14.5px] font-medium text-foreground/80 transition-colors hover:text-foreground"
               >
                 Comment ça marche
-              </span>
-              <span
-                title="Page à venir"
-                className="cursor-not-allowed text-[14.5px] font-medium text-muted-foreground/50"
+              </Link>
+              <Link
+                to="/a-propos"
+                className="text-[14.5px] font-medium text-foreground/80 transition-colors hover:text-foreground"
               >
                 À propos
-              </span>
+              </Link>
             </nav>
 
             <div className="ml-auto flex items-center gap-2">
@@ -96,6 +95,36 @@ export function MarketingHeader({
               >
                 <CircleUserRound className="h-[22px] w-[22px]" strokeWidth={1.5} />
               </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Menu"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+                  >
+                    <Menu className="h-[22px] w-[22px]" strokeWidth={1.5} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link to="/fonctionnalites/$slug" params={{ slug: "matching-intelligent" }}>
+                      Fonctionnalités
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/comment-ca-marche">Comment ça marche</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/a-propos">À propos</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/agences">Trouvez l'agence idéale</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/projets">Trouvez le projet idéal</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </>
         ) : (

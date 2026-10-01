@@ -1,11 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Check, Globe, Headphones, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu.tsx";
+import { Headphones } from "lucide-react";
 
 export function Footer() {
   return (
@@ -18,32 +12,6 @@ export function Footer() {
               Une nouvelle manière de connecter les entreprises et de créer des opportunités B2B
               durables.
             </p>
-            <div className="mt-5 flex items-center gap-3">
-              <span
-                title="Page à venir"
-                className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-full border border-foreground/30 text-foreground"
-              >
-                <Linkedin className="h-4 w-4" strokeWidth={1.6} />
-              </span>
-              <span
-                title="Page à venir"
-                className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-full border border-foreground/30 text-foreground"
-              >
-                <Twitter className="h-4 w-4" strokeWidth={1.6} />
-              </span>
-              <span
-                title="Page à venir"
-                className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-full border border-foreground/30 text-foreground"
-              >
-                <Instagram className="h-4 w-4" strokeWidth={1.6} />
-              </span>
-              <span
-                title="Page à venir"
-                className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-full border border-foreground/30 text-foreground"
-              >
-                <Youtube className="h-4 w-4" strokeWidth={1.6} />
-              </span>
-            </div>
           </div>
 
           <div>
@@ -196,23 +164,14 @@ export function Footer() {
           <div>
             <p className="text-[13px] font-bold">Restez informé</p>
             <p className="mt-2 text-[12.5px] leading-[1.5] text-foreground/60">
-              Recevez nos dernières actualités, ressources et conseils B2B.
+              Pour toute actualité ou question, notre équipe reste joignable directement par e-mail.
             </p>
-            <div className="mt-3 flex max-w-[360px] items-center gap-2">
-              <input
-                type="email"
-                disabled
-                placeholder="Votre adresse e-mail"
-                title="Newsletter à venir"
-                className="h-10 w-full cursor-not-allowed rounded-md border border-foreground/30 bg-foreground/10 px-3 text-[13px] text-foreground/60 placeholder:text-foreground/40"
-              />
-              <span
-                title="Newsletter à venir"
-                className="flex h-10 shrink-0 cursor-not-allowed items-center justify-center rounded-md bg-foreground/15 px-4 text-[12.5px] font-semibold text-foreground/70"
-              >
-                S'abonner
-              </span>
-            </div>
+            <a
+              href="mailto:contact@sortlistpro.com"
+              className="mt-3 inline-block text-[12.5px] font-semibold text-foreground underline underline-offset-2 hover:opacity-80"
+            >
+              contact@sortlistpro.com
+            </a>
           </div>
 
           <div className="flex items-start gap-3 sm:border-l sm:border-foreground/20 sm:pl-8">
@@ -258,24 +217,6 @@ export function Footer() {
             >
               Conditions d'utilisation
             </Link>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 rounded-md border border-foreground/30 px-2.5 py-1.5 text-[12.5px] text-foreground transition-colors hover:bg-foreground/10"
-                >
-                  <Globe className="h-3.5 w-3.5" strokeWidth={1.6} />
-                  Français (FR)
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem className="flex items-center justify-between">
-                  Français
-                  <Check className="h-3.5 w-3.5" strokeWidth={1.8} />
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </div>

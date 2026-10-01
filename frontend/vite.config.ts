@@ -44,7 +44,13 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       ],
     },
     optimizeDeps: {
-      include: ["react", "react-dom", "react-dom/client", "react/jsx-runtime", "react/jsx-dev-runtime"],
+      include: [
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+      ],
       ignoreOutdatedRequests: true,
     },
     server: {
@@ -55,7 +61,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   };
 
   if (command === "build" && mode === "development") {
-    config.environments = { client: { define: { "process.env.NODE_ENV": JSON.stringify("development") } } };
+    config.environments = {
+      client: { define: { "process.env.NODE_ENV": JSON.stringify("development") } },
+    };
   }
 
   return config;

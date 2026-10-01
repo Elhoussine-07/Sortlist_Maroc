@@ -5,13 +5,8 @@ import {
   LayoutGrid,
   List,
   Search,
-  Filter,
   Calendar,
   ExternalLink,
-  Building2,
-  MapPin,
-  Briefcase,
-  Clock,
   Heart,
   PlusCircle,
   X,
@@ -68,35 +63,11 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
-function getCategoryColor(category?: string): string {
-  const colors: Record<string, string> = {
-    Design: "bg-purple-100 text-purple-700",
-    Marketing: "bg-blue-100 text-blue-700",
-    Développement: "bg-green-100 text-green-700",
-    Stratégie: "bg-orange-100 text-orange-700",
-    Communication: "bg-pink-100 text-pink-700",
-  };
-  return colors[category || ""] || "bg-gray-100 text-gray-700";
-}
-
-function getCategoryIcon(category?: string) {
-  const icons: Record<string, any> = {
-    Design: Briefcase,
-    Marketing: Building2,
-    Développement: MapPin,
-    Stratégie: Clock,
-    Communication: ExternalLink,
-  };
-  return icons[category || ""] || Building2;
-}
-
 function ClientFavoriteAgenciesPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"date" | "name">("date");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const favoritesQuery = useQuery({
     queryKey: ["client", "favorite-agencies"],
@@ -105,23 +76,12 @@ function ClientFavoriteAgenciesPage() {
   const favorites = favoritesQuery.data ?? [];
   const isLoading = favoritesQuery.isPending;
 
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    favorites.forEach((fav) => {
-      if (fav.category) cats.add(fav.category);
-    });
-    return Array.from(cats);
-  }, [favorites]);
-
   const filteredAndSortedFavorites = useMemo(() => {
     const result = favorites.filter((fav) => {
-      const matchesSearch =
+      return (
         fav.agencyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fav.agency?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        filterCategory === "all" ||
-        fav.category === filterCategory;
-      return matchesSearch && matchesCategory;
+        fav.agency?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     });
 
     result.sort((a, b) => {
@@ -134,7 +94,7 @@ function ClientFavoriteAgenciesPage() {
     });
 
     return result;
-  }, [favorites, searchTerm, filterCategory, sortBy]);
+  }, [favorites, searchTerm, sortBy]);
 
   const removeMutation = useMutation({
     mutationFn: (agencyId: string) => toggleFavoriteAgency(agencyId),
@@ -184,7 +144,7 @@ function ClientFavoriteAgenciesPage() {
 
         {/* Statistiques */}
         {favorites.length > 0 && (
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-border bg-background p-4 transition-all hover:border-primary/20 hover:shadow-sm">
               <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
                 Total favoris
@@ -200,12 +160,6 @@ function ClientFavoriteAgenciesPage() {
                   ? formatDate(favorites[0].dateAdded)
                   : "-"}
               </p>
-            </div>
-            <div className="rounded-xl border border-border bg-background p-4 transition-all hover:border-primary/20 hover:shadow-sm">
-              <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
-                Catégories
-              </p>
-              <p className="mt-1.5 text-[14px] font-medium">{categories.length || 0} différentes</p>
             </div>
             <div className="rounded-xl border border-border bg-background p-4 transition-all hover:border-primary/20 hover:shadow-sm">
               <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
@@ -261,61 +215,6 @@ function ClientFavoriteAgenciesPage() {
                   </button>
                 )}
               </div>
-
-              {categories.length > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={() => setIsFilterOpen(!isFilterOpen)}
-                    className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[14px] transition-all ${
-                      filterCategory !== "all"
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border hover:border-primary/30"
-                    }`}
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      {filterCategory !== "all" ? filterCategory : "Filtrer"}
-                    </span>
-                  </button>
-
-                  {isFilterOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setIsFilterOpen(false)}
-                        aria-hidden
-                      />
-                      <div className="absolute left-0 z-20 mt-1.5 min-w-[180px] rounded-xl border border-border bg-background p-1 shadow-lg">
-                        <button
-                          onClick={() => {
-                            setFilterCategory("all");
-                            setIsFilterOpen(false);
-                          }}
-                          className={`w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-accent ${
-                            filterCategory === "all" ? "bg-accent font-semibold" : ""
-                          }`}
-                        >
-                          Toutes les catégories
-                        </button>
-                        {categories.map((cat) => (
-                          <button
-                            key={cat}
-                            onClick={() => {
-                              setFilterCategory(cat);
-                              setIsFilterOpen(false);
-                            }}
-                            className={`w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-accent ${
-                              filterCategory === cat ? "bg-accent font-semibold" : ""
-                            }`}
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -358,10 +257,7 @@ function ClientFavoriteAgenciesPage() {
                 Aucune agence ne correspond à vos critères de recherche.
               </p>
               <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setFilterCategory("all");
-                }}
+                onClick={() => setSearchTerm("")}
                 className="mt-4 rounded-xl border border-border px-5 py-2.5 text-[14px] font-semibold transition-colors hover:bg-accent"
               >
                 Réinitialiser les filtres
@@ -376,10 +272,6 @@ function ClientFavoriteAgenciesPage() {
               }
             >
               {filteredAndSortedFavorites.map((favorite) => {
-                const category = (favorite as any).category as string | undefined;
-                const CategoryIcon = getCategoryIcon(category);
-                const categoryColor = getCategoryColor(category);
-
                 return (
                   <li
                     key={favorite.agency}
@@ -388,15 +280,6 @@ function ClientFavoriteAgenciesPage() {
                       ${viewMode === "list" ? "flex items-start gap-5" : ""}
                     `}
                   >
-                    {/* Badge catégorie en haut à droite */}
-                    {category && (
-                      <div
-                        className={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-medium ${categoryColor}`}
-                      >
-                        {category}
-                      </div>
-                    )}
-
                     <div
                       className={`flex min-w-0 flex-1 ${viewMode === "grid" ? "flex-col" : "items-start gap-5"}`}
                     >
@@ -406,9 +289,6 @@ function ClientFavoriteAgenciesPage() {
                         {/* Avatar avec gradient */}
                         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-[18px] font-bold text-primary transition-all group-hover:scale-105 group-hover:shadow-md">
                           {initialsOf(favorite.agencyName || favorite.agency)}
-                          <div className="absolute -bottom-0.5 -right-0.5 rounded-full bg-primary/10 p-0.5">
-                            <CategoryIcon className="h-3 w-3 text-primary/60" />
-                          </div>
                         </div>
 
                         <div className="min-w-0 flex-1">
@@ -421,11 +301,6 @@ function ClientFavoriteAgenciesPage() {
                               >
                                 {favorite.agencyName || favorite.agency}
                               </Link>
-                              {category && (
-                                <p className="mt-0.5 text-[12px] text-muted-foreground/70">
-                                  {category}
-                                </p>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -480,7 +355,7 @@ function ClientFavoriteAgenciesPage() {
               {filteredAndSortedFavorites.length} agence
               {filteredAndSortedFavorites.length > 1 ? "s" : ""} favorite
               {filteredAndSortedFavorites.length > 1 ? "s" : ""} au total
-              {searchTerm || filterCategory !== "all" ? " (filtrés)" : ""}
+              {searchTerm ? " (filtrés)" : ""}
             </p>
             <div className="flex items-center gap-1 text-[12px] text-muted-foreground/50">
               <Heart className="h-3 w-3" fill="currentColor" />

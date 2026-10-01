@@ -17,12 +17,16 @@ import { Route as AideRouteImport } from './routes/aide'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as CarrieresRouteImport } from './routes/carrieres'
 import { Route as CommentCaMarcheRouteImport } from './routes/comment-ca-marche'
+import { Route as ConditionsUtilisationRouteImport } from './routes/conditions-utilisation'
+import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
 import { Route as ConnexionRouteImport } from './routes/connexion'
 import { Route as DevenirPartenaireRouteImport } from './routes/devenir-partenaire'
 import { Route as EtudesRouteImport } from './routes/etudes'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as GuidesRouteImport } from './routes/guides'
 import { Route as InscriptionAgenceRouteImport } from './routes/inscription-agence'
 import { Route as InscriptionClientRouteImport } from './routes/inscription-client'
+import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as PostulerUnProjetRouteImport } from './routes/postuler-un-projet'
 import { Route as PresseRouteImport } from './routes/presse'
 import { Route as ProjetsRouteImport } from './routes/projets'
@@ -98,6 +102,16 @@ const CommentCaMarcheRoute = CommentCaMarcheRouteImport.update({
   path: '/comment-ca-marche',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConditionsUtilisationRoute = ConditionsUtilisationRouteImport.update({
+  id: '/conditions-utilisation',
+  path: '/conditions-utilisation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
+  id: '/confidentialite',
+  path: '/confidentialite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConnexionRoute = ConnexionRouteImport.update({
   id: '/connexion',
   path: '/connexion',
@@ -113,6 +127,11 @@ const EtudesRoute = EtudesRouteImport.update({
   path: '/etudes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuidesRoute = GuidesRouteImport.update({
   id: '/guides',
   path: '/guides',
@@ -126,6 +145,11 @@ const InscriptionAgenceRoute = InscriptionAgenceRouteImport.update({
 const InscriptionClientRoute = InscriptionClientRouteImport.update({
   id: '/inscription-client',
   path: '/inscription-client',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
+  id: '/mentions-legales',
+  path: '/mentions-legales',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PostulerUnProjetRoute = PostulerUnProjetRouteImport.update({
@@ -337,12 +361,16 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRoute
   '/carrieres': typeof CarrieresRoute
   '/comment-ca-marche': typeof CommentCaMarcheRoute
+  '/conditions-utilisation': typeof ConditionsUtilisationRoute
+  '/confidentialite': typeof ConfidentialiteRoute
   '/connexion': typeof ConnexionRoute
   '/devenir-partenaire': typeof DevenirPartenaireRoute
   '/etudes': typeof EtudesRoute
+  '/faq': typeof FaqRoute
   '/guides': typeof GuidesRoute
   '/inscription-agence': typeof InscriptionAgenceRoute
   '/inscription-client': typeof InscriptionClientRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/postuler-un-projet': typeof PostulerUnProjetRoute
   '/presse': typeof PresseRoute
   '/projets': typeof ProjetsRoute
@@ -387,12 +415,16 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogRoute
   '/carrieres': typeof CarrieresRoute
   '/comment-ca-marche': typeof CommentCaMarcheRoute
+  '/conditions-utilisation': typeof ConditionsUtilisationRoute
+  '/confidentialite': typeof ConfidentialiteRoute
   '/connexion': typeof ConnexionRoute
   '/devenir-partenaire': typeof DevenirPartenaireRoute
   '/etudes': typeof EtudesRoute
+  '/faq': typeof FaqRoute
   '/guides': typeof GuidesRoute
   '/inscription-agence': typeof InscriptionAgenceRoute
   '/inscription-client': typeof InscriptionClientRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/postuler-un-projet': typeof PostulerUnProjetRoute
   '/presse': typeof PresseRoute
   '/projets': typeof ProjetsRoute
@@ -439,12 +471,16 @@ export interface FileRoutesById {
   '/blog': typeof BlogRoute
   '/carrieres': typeof CarrieresRoute
   '/comment-ca-marche': typeof CommentCaMarcheRoute
+  '/conditions-utilisation': typeof ConditionsUtilisationRoute
+  '/confidentialite': typeof ConfidentialiteRoute
   '/connexion': typeof ConnexionRoute
   '/devenir-partenaire': typeof DevenirPartenaireRoute
   '/etudes': typeof EtudesRoute
+  '/faq': typeof FaqRoute
   '/guides': typeof GuidesRoute
   '/inscription-agence': typeof InscriptionAgenceRoute
   '/inscription-client': typeof InscriptionClientRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/postuler-un-projet': typeof PostulerUnProjetRoute
   '/presse': typeof PresseRoute
   '/projets': typeof ProjetsRoute
@@ -491,12 +527,16 @@ export interface FileRouteTypes {
     | '/blog'
     | '/carrieres'
     | '/comment-ca-marche'
+    | '/conditions-utilisation'
+    | '/confidentialite'
     | '/connexion'
     | '/devenir-partenaire'
     | '/etudes'
+    | '/faq'
     | '/guides'
     | '/inscription-agence'
     | '/inscription-client'
+    | '/mentions-legales'
     | '/postuler-un-projet'
     | '/presse'
     | '/projets'
@@ -541,12 +581,16 @@ export interface FileRouteTypes {
     | '/blog'
     | '/carrieres'
     | '/comment-ca-marche'
+    | '/conditions-utilisation'
+    | '/confidentialite'
     | '/connexion'
     | '/devenir-partenaire'
     | '/etudes'
+    | '/faq'
     | '/guides'
     | '/inscription-agence'
     | '/inscription-client'
+    | '/mentions-legales'
     | '/postuler-un-projet'
     | '/presse'
     | '/projets'
@@ -592,12 +636,16 @@ export interface FileRouteTypes {
     | '/blog'
     | '/carrieres'
     | '/comment-ca-marche'
+    | '/conditions-utilisation'
+    | '/confidentialite'
     | '/connexion'
     | '/devenir-partenaire'
     | '/etudes'
+    | '/faq'
     | '/guides'
     | '/inscription-agence'
     | '/inscription-client'
+    | '/mentions-legales'
     | '/postuler-un-projet'
     | '/presse'
     | '/projets'
@@ -644,12 +692,16 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRoute
   CarrieresRoute: typeof CarrieresRoute
   CommentCaMarcheRoute: typeof CommentCaMarcheRoute
+  ConditionsUtilisationRoute: typeof ConditionsUtilisationRoute
+  ConfidentialiteRoute: typeof ConfidentialiteRoute
   ConnexionRoute: typeof ConnexionRoute
   DevenirPartenaireRoute: typeof DevenirPartenaireRoute
   EtudesRoute: typeof EtudesRoute
+  FaqRoute: typeof FaqRoute
   GuidesRoute: typeof GuidesRoute
   InscriptionAgenceRoute: typeof InscriptionAgenceRoute
   InscriptionClientRoute: typeof InscriptionClientRoute
+  MentionsLegalesRoute: typeof MentionsLegalesRoute
   PostulerUnProjetRoute: typeof PostulerUnProjetRoute
   PresseRoute: typeof PresseRoute
   ProjetsRoute: typeof ProjetsRoute
@@ -719,6 +771,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommentCaMarcheRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conditions-utilisation': {
+      id: '/conditions-utilisation'
+      path: '/conditions-utilisation'
+      fullPath: '/conditions-utilisation'
+      preLoaderRoute: typeof ConditionsUtilisationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confidentialite': {
+      id: '/confidentialite'
+      path: '/confidentialite'
+      fullPath: '/confidentialite'
+      preLoaderRoute: typeof ConfidentialiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/connexion': {
       id: '/connexion'
       path: '/connexion'
@@ -740,6 +806,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EtudesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guides': {
       id: '/guides'
       path: '/guides'
@@ -759,6 +832,13 @@ declare module '@tanstack/react-router' {
       path: '/inscription-client'
       fullPath: '/inscription-client'
       preLoaderRoute: typeof InscriptionClientRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mentions-legales': {
+      id: '/mentions-legales'
+      path: '/mentions-legales'
+      fullPath: '/mentions-legales'
+      preLoaderRoute: typeof MentionsLegalesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/postuler-un-projet': {
@@ -1084,12 +1164,16 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRoute,
   CarrieresRoute: CarrieresRoute,
   CommentCaMarcheRoute: CommentCaMarcheRoute,
+  ConditionsUtilisationRoute: ConditionsUtilisationRoute,
+  ConfidentialiteRoute: ConfidentialiteRoute,
   ConnexionRoute: ConnexionRoute,
   DevenirPartenaireRoute: DevenirPartenaireRoute,
   EtudesRoute: EtudesRoute,
+  FaqRoute: FaqRoute,
   GuidesRoute: GuidesRoute,
   InscriptionAgenceRoute: InscriptionAgenceRoute,
   InscriptionClientRoute: InscriptionClientRoute,
+  MentionsLegalesRoute: MentionsLegalesRoute,
   PostulerUnProjetRoute: PostulerUnProjetRoute,
   PresseRoute: PresseRoute,
   ProjetsRoute: ProjetsRoute,

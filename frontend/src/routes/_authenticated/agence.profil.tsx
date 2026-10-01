@@ -151,16 +151,19 @@ function certificationsToPayload(items: AgencyCertificationItem[]) {
     }));
 }
 
+const GRADIENT_OPTIONS = [
+  "from-violet-500/20 to-purple-500/10",
+  "from-blue-500/20 to-cyan-500/10",
+  "from-emerald-500/20 to-teal-500/10",
+  "from-rose-500/20 to-pink-500/10",
+  "from-amber-500/20 to-orange-500/10",
+  "from-indigo-500/20 to-blue-500/10",
+] as const;
+
 function getRandomGradient(): string {
-  const gradients = [
-    "from-violet-500/20 to-purple-500/10",
-    "from-blue-500/20 to-cyan-500/10",
-    "from-emerald-500/20 to-teal-500/10",
-    "from-rose-500/20 to-pink-500/10",
-    "from-amber-500/20 to-orange-500/10",
-    "from-indigo-500/20 to-blue-500/10",
-  ];
-  return gradients[Math.floor(Math.random() * gradients.length)];
+  return (
+    GRADIENT_OPTIONS[Math.floor(Math.random() * GRADIENT_OPTIONS.length)] ?? GRADIENT_OPTIONS[0]
+  );
 }
 
 function CollapsedItemCard({
@@ -181,7 +184,7 @@ function CollapsedItemCard({
   badge?: string | undefined;
 }) {
   const [isHovered, setIsHovered] = useState(false);
-  const gradientClass = getRandomGradient();
+  const [gradientClass] = useState(getRandomGradient);
 
   return (
     <div
@@ -675,9 +678,7 @@ function AgencyProfilePage() {
                       Enregistrement...
                     </>
                   ) : (
-                    <>
-                      Enregistrer les modifications
-                    </>
+                    <>Enregistrer les modifications</>
                   )}
                 </button>
               </div>

@@ -143,10 +143,26 @@ export function FormSkeleton({ fields = 4 }: { fields?: number }) {
   );
 }
 
-export function StatusBadge({ label }: { label: string }) {
+const STATUS_BADGE_VARIANTS = {
+  default: { border: "border-border", dot: "bg-primary" },
+  success: { border: "border-emerald-200", dot: "bg-emerald-500" },
+  warning: { border: "border-amber-200", dot: "bg-amber-500" },
+  danger: { border: "border-red-200", dot: "bg-red-500" },
+} as const;
+
+export function StatusBadge({
+  label,
+  variant = "default",
+}: {
+  label: string;
+  variant?: keyof typeof STATUS_BADGE_VARIANTS;
+}) {
+  const styles = STATUS_BADGE_VARIANTS[variant];
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[13px] font-semibold">
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border ${styles.border} px-2.5 py-1 text-[13px] font-semibold`}
+    >
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${styles.dot}`} />
       {label}
     </span>
   );

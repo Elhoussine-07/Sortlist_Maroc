@@ -116,17 +116,18 @@ const CATEGORY_STYLES: Record<string, CategoryStyle> = {
   },
 };
 
-const STATUS_STYLES: Record<
-  string,
-  { bg: string; text: string; border: string; icon: typeof Clock; label: string }
-> = {
-  draft: {
-    bg: "bg-slate-100",
-    text: "text-slate-700",
-    border: "border-slate-200",
-    icon: Clock,
-    label: "Brouillon",
-  },
+type StatusStyle = { bg: string; text: string; border: string; icon: typeof Clock; label: string };
+
+const DEFAULT_STATUS_STYLE: StatusStyle = {
+  bg: "bg-slate-100",
+  text: "text-slate-700",
+  border: "border-slate-200",
+  icon: Clock,
+  label: "Brouillon",
+};
+
+const STATUS_STYLES: Record<string, StatusStyle> = {
+  draft: DEFAULT_STATUS_STYLE,
   published: {
     bg: "bg-emerald-100",
     text: "text-emerald-700",
@@ -253,7 +254,7 @@ const PROJECT_COLUMNS: Column<Project>[] = [
     key: "status",
     header: "Statut",
     render: (project) => {
-      const statusConfig = STATUS_STYLES[project.status] || STATUS_STYLES.draft;
+      const statusConfig = STATUS_STYLES[project.status] ?? DEFAULT_STATUS_STYLE;
       const StatusIcon = statusConfig.icon;
       return (
         <span

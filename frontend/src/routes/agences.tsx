@@ -567,7 +567,11 @@ function Pagination({
 }) {
   const pages = totalPages ?? 1;
 
-  const visible = Array.from({ length: Math.min(5, pages) }, (_, i) => i + 1);
+  const windowSize = Math.min(5, pages);
+  let start = Math.max(1, page - Math.floor(windowSize / 2));
+  const end = Math.min(pages, start + windowSize - 1);
+  start = Math.max(1, end - windowSize + 1);
+  const visible = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
     <nav aria-label="Pagination" className="mt-12 flex flex-wrap items-center justify-center gap-3">
@@ -580,6 +584,19 @@ function Pagination({
         <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
         Précédent
       </button>
+
+      {start > 1 ? (
+        <>
+          <button
+            type="button"
+            onClick={() => onChange(1)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[13.5px] transition-colors hover:bg-accent"
+          >
+            1
+          </button>
+          <span className="text-[13.5px] text-muted-foreground">...</span>
+        </>
+      ) : null}
 
       {visible.map((p) => (
         <button
@@ -597,7 +614,7 @@ function Pagination({
         </button>
       ))}
 
-      {pages > 5 ? (
+      {end < pages ? (
         <>
           <span className="text-[13.5px] text-muted-foreground">...</span>
 

@@ -10,15 +10,10 @@ import {
   Send,
   Tag,
   Users,
-  Wallet,
   Eye,
-  Building2,
   ChevronRight,
-  Calendar,
-  Euro,
-  Globe,
-  Briefcase,
   Sparkles,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -54,11 +49,17 @@ export const Route = createFileRoute("/projets")({
   component: SearchProjectsPage,
 });
 
+const SORT_OPTIONS: Array<{ value: NonNullable<ProjectSearchParams["sort"]>; label: string }> = [
+  { value: "recent", label: "Plus récents" },
+  { value: "relevance", label: "Plus pertinents" },
+];
+
 function SearchProjectsPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [budget, setBudget] = useState("");
+  const [sort, setSort] = useState<NonNullable<ProjectSearchParams["sort"]>>("recent");
   const [page, setPage] = useState(1);
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -119,7 +120,7 @@ function SearchProjectsPage() {
         ...(category ? { category } : {}),
         ...(subCategory ? { subCategory } : {}),
         ...(budget ? { budget } : {}),
-        sort: "recent",
+        sort,
         page,
       };
       searchProjects(params)
@@ -137,15 +138,27 @@ function SearchProjectsPage() {
         .finally(() => setIsLoading(false));
     }, 350);
     return () => clearTimeout(timer);
-  }, [query, category, subCategory, budget, page]);
+  }, [query, category, subCategory, budget, sort, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [query, category, subCategory, budget]);
+  }, [query, category, subCategory, budget, sort]);
 
   useEffect(() => {
     setSubCategory("");
   }, [category]);
+
+  function resetFilters() {
+    setQuery("");
+    setCategory("");
+    setSubCategory("");
+    setBudget("");
+    setSort("recent");
+  }
+
+  const hasAnyActiveFilter = Boolean(
+    query || category || subCategory || budget || sort !== "recent",
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,15 +200,69 @@ function SearchProjectsPage() {
           />
         </div>
 
+        {hasAnyActiveFilter ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {query ? <FilterPill label={`"${query}"`} onRemove={() => setQuery("")} /> : null}
+            {category ? (
+              <FilterPill
+                label={categories.find((item) => item.id === category)?.name ?? category}
+                onRemove={() => setCategory("")}
+              />
+            ) : null}
+            {subCategory ? (
+              <FilterPill
+                label={
+                  subCategoryOptions.find((item) => item.id === subCategory)?.name ?? subCategory
+                }
+                onRemove={() => setSubCategory("")}
+              />
+            ) : null}
+            {budget ? (
+              <FilterPill label={`Budget : ${budget}`} onRemove={() => setBudget("")} />
+            ) : null}
+            {sort !== "recent" ? (
+              <FilterPill
+                label={"Tri : " + (SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "")}
+                onRemove={() => setSort("recent")}
+              />
+            ) : null}
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="ml-1 text-[12.5px] font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              Tout réinitialiser
+            </button>
+          </div>
+        ) : null}
+
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             {availableCount ?? 0} projets disponibles
           </p>
-          <span className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground">
-            Plus récents
-            <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
-          </span>
+          <label className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground">
+            Trier par
+            <span className="relative flex items-center">
+              <select
+                value={sort}
+                onChange={(event) =>
+                  setSort(event.target.value as NonNullable<ProjectSearchParams["sort"]>)
+                }
+                className="appearance-none bg-transparent pr-5 text-foreground outline-none"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-0 h-3.5 w-3.5"
+                strokeWidth={1.8}
+              />
+            </span>
+          </label>
         </div>
 
         <section className="mt-6">
@@ -227,17 +294,9 @@ function SearchProjectsPage() {
 
                     <div className="flex flex-col gap-4 sm:flex-row">
                       <div className="h-[110px] w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-pink-400 to-fuchsia-600 sm:h-auto sm:w-[140px]">
-                        {project.category === "Conseil & stratégie" ? (
-                          <img
-                            src="/categories/conseil-strategie.png"
-                            alt={project.category}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-white">
-                            <Tag className="h-8 w-8" strokeWidth={1.6} />
-                          </div>
-                        )}
+                        <div className="flex h-full w-full items-center justify-center text-white">
+                          <Tag className="h-8 w-8" strokeWidth={1.6} />
+                        </div>
                       </div>
 
                       <div className="flex-1">
@@ -426,6 +485,19 @@ function FilterInput({
   );
 }
 
+function FilterPill({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/15"
+    >
+      {label}
+      <X className="h-3 w-3" strokeWidth={2.2} />
+    </button>
+  );
+}
+
 function Pagination({
   page,
   totalPages,
@@ -436,7 +508,11 @@ function Pagination({
   onChange: (page: number) => void;
 }) {
   const pages = totalPages ?? 1;
-  const visible = Array.from({ length: Math.min(5, pages) }, (_, i) => i + 1);
+  const windowSize = Math.min(5, pages);
+  let start = Math.max(1, page - Math.floor(windowSize / 2));
+  const end = Math.min(pages, start + windowSize - 1);
+  start = Math.max(1, end - windowSize + 1);
+  const visible = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
     <nav aria-label="Pagination" className="mt-12 flex flex-wrap items-center justify-center gap-3">
@@ -450,6 +526,18 @@ function Pagination({
         Précédent
       </button>
 
+      {start > 1 ? (
+        <>
+          <button
+            type="button"
+            onClick={() => onChange(1)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[13.5px] transition-colors hover:bg-accent"
+          >
+            1
+          </button>
+          <span className="text-[13.5px] text-muted-foreground">...</span>
+        </>
+      ) : null}
       {visible.map((p) => (
         <button
           key={p}
@@ -465,7 +553,7 @@ function Pagination({
           {p}
         </button>
       ))}
-      {pages > 5 ? (
+      {end < pages ? (
         <>
           <span className="text-[13.5px] text-muted-foreground">...</span>
           <button
