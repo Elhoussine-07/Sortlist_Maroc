@@ -23,7 +23,7 @@ import {
   CircleDot,
   Eye,
 } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/layout/DashboardShell";
@@ -184,23 +184,13 @@ function ClientDashboardPage() {
                 <EmptyState message="Pas encore d'activité à afficher sur cette période." />
               </div>
             ) : (
-              <div className="mt-4 h-[220px]">
+              <div className="mt-4 h-[220px] text-primary">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
+                  <BarChart
                     data={activityChart}
                     margin={{ left: -20, right: 10, top: 10, bottom: 0 }}
                   >
-                    <defs>
-                      <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      vertical={false}
-                      stroke="hsl(var(--border))"
-                      strokeDasharray="3 3"
-                    />
+                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
                     <XAxis
                       dataKey="date"
                       tickFormatter={(value: string) =>
@@ -209,12 +199,13 @@ function ClientDashboardPage() {
                           month: "short",
                         })
                       }
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                       axisLine={false}
                       tickLine={false}
                       minTickGap={24}
                     />
                     <Tooltip
+                      cursor={{ fill: "var(--accent)" }}
                       formatter={(value: number) => [
                         `${value} activité${value > 1 ? "s" : ""}`,
                         "",
@@ -227,18 +218,17 @@ function ClientDashboardPage() {
                       }
                       contentStyle={{
                         borderRadius: 8,
-                        borderColor: "hsl(var(--border))",
+                        borderColor: "var(--border)",
                         fontSize: 12.5,
                       }}
                     />
-                    <Area
-                      type="monotone"
+                    <Bar
                       dataKey="count"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      fill="url(#activityFill)"
+                      fill="currentColor"
+                      radius={[3, 3, 0, 0]}
+                      maxBarSize={18}
                     />
-                  </AreaChart>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
