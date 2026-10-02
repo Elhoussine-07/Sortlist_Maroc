@@ -360,14 +360,17 @@ function ClientProjectDetailPage() {
         </Link>
 
         {/* En-tête */}
-        <section className="mt-5 rounded-lg border border-border p-6">
+        <section className="relative mt-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-transparent p-6 sm:p-8">
+          <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-primary/5 blur-2xl" />
+          <div className="pointer-events-none absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-primary/5 blur-2xl" />
+
           {isLoading ? (
             <StackSkeleton count={2} />
           ) : project === null ? (
             <EmptyState message="Projet introuvable." />
           ) : (
-            <div className="flex flex-wrap items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="relative flex flex-wrap items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 text-white shadow-lg shadow-primary/20">
                 <FileText className="h-[22px] w-[22px]" strokeWidth={1.7} />
               </div>
               <div className="min-w-0 flex-1">
@@ -379,17 +382,17 @@ function ClientProjectDetailPage() {
                   {project.category}
                   {project.subCategory ? ` · ${project.subCategory}` : ""} — ID {project.reference}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3 text-[13.5px] text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Wallet className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-[13px] font-medium shadow-sm">
+                    <Wallet className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.8} />
                     {formatBudget(project.budgetMin, project.budgetMax)}
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+                  <span className="flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-[13px] font-medium shadow-sm">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.8} />
                     {project.location || "Non renseignée"}
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+                  <span className="flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-[13px] font-medium shadow-sm">
+                    <CalendarDays className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.8} />
                     {project.deadline || "Délai non renseigné"}
                   </span>
                 </div>
@@ -665,19 +668,30 @@ function ClientProjectDetailPage() {
                     {shortlist.map((agency) => {
                       const isContacted = contactedAgencyIds.includes(agency.id);
                       return (
-                        <article key={agency.id} className="rounded-lg border border-border p-4">
+                        <article
+                          key={agency.id}
+                          className="rounded-xl border border-border p-4 transition-all hover:border-primary/30 hover:shadow-md"
+                        >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-[15px] font-bold">{agency.name}</p>
-                              {agency.location ? (
-                                <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                                  <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-                                  {agency.location}
-                                </p>
-                              ) : null}
+                            <div className="flex min-w-0 items-start gap-3">
+                              <span
+                                style={{ backgroundImage: seedGradient(agency.id) }}
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[12px] font-bold text-white"
+                              >
+                                {initialsOf(agency.name)}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="truncate text-[15px] font-bold">{agency.name}</p>
+                                {agency.location ? (
+                                  <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                                    <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+                                    {agency.location}
+                                  </p>
+                                ) : null}
+                              </div>
                             </div>
                             {agency.matchingScore !== null ? (
-                              <span className="flex shrink-0 items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[12.5px] font-semibold">
+                              <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[12.5px] font-semibold text-primary">
                                 <Star className="h-3 w-3 fill-current" strokeWidth={0} />
                                 {agency.matchingScore}%
                               </span>
