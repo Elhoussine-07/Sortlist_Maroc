@@ -1,5 +1,5 @@
 import type { Collaboration, CollaborationProjectReview, PaginatedResponse } from "@/lib/types";
-import { camelizeKeys, frappeCall } from "@/services/http";
+import { camelizeKeys, frappeCall, resolveFileUrl } from "@/services/http";
 
 export interface CollaborationSearchParams {
   query?: string;
@@ -55,16 +55,20 @@ export function mapCollaboration(raw: unknown): Collaboration {
   const review = (data["review"] ?? null) as Record<string, unknown> | null;
   const reviewComment = review ? String(review["comment"] ?? "") : "";
   const budgetRaw = data["budget"];
+  const budgetValue = budgetRaw !== undefined && budgetRaw !== null ? Number(budgetRaw) : null;
 
   return {
     id: String(data["agency"] ?? data["id"] ?? data["name"] ?? ""),
     agencyInitials: String(data["agencyInitials"] ?? initials),
     agencyName,
     agencyTagline: String(data["agencyTagline"] ?? data["slogan"] ?? ""),
+    agencyLogo: resolveFileUrl(data["agencyLogo"] as string | null | undefined),
     ratingReceived: Number(data["ratingReceived"] ?? 0),
     finishedProjects: String(data["finishedProjectsCount"] ?? projects.length),
     period: String(data["period"] ?? ""),
-    budget: budgetRaw !== undefined && budgetRaw !== null ? `${Number(budgetRaw)} €` : "",
+    periodEndRaw: (data["periodEnd"] as string | null | undefined) ?? null,
+    budget: budgetValue !== null ? `${budgetValue} €` : "",
+    budgetValue,
     publicReview: reviewComment,
     reviewLength: reviewComment.length,
     yourRating: Number(review?.["rating"] ?? 0),
@@ -87,53 +91,6 @@ export async function getCollaborations(
     pageSize,
     total: items.length,
     totalPages: 1,
-  };
-}
-
-export async function getCollaboration(id: string): Promise<Collaboration> {
-  const detail = await getCollaborationDetail(id);
-  const agency = detail.agency;
-  const agencyName = String(agency["agencyName"] ?? agency["name"] ?? "");
-  const initials = agencyName
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-
-  return {
-    id,
-    agencyInitials: String(agency["agencyInitials"] ?? initials),
-    agencyName,
-    agencyTagline: String(agency["slogan"] ?? agency["agencyTagline"] ?? ""),
-    ratingReceived: Number(agency["rating"] ?? 0),
-    finishedProjects: String(detail.projects.length),
-    period: String(agency["period"] ?? ""),
-    budget: String(agency["budget"] ?? ""),
-    publicReview: detail.review?.comment ?? "",
-    reviewLength: detail.review?.comment.length ?? 0,
-    yourRating: detail.review?.rating ?? 0,
-    projects: [],
-  };
-}
-
-export interface CollaborationDetail {
-  agency: Record<string, unknown>;
-  projects: unknown[];
-  review: { rating: number; comment: string } | null;
-}
-
-export async function getCollaborationDetail(id: string): Promise<CollaborationDetail> {
-  const raw = await frappeCall<unknown>("client.get_collaboration", { collaboration_id: id });
-  const data = camelizeKeys(raw) as Record<string, unknown>;
-  const review = data["review"] as Record<string, unknown> | null;
-  return {
-    agency: (data["agency"] ?? {}) as Record<string, unknown>,
-    projects: Array.isArray(data["projects"]) ? (data["projects"] as unknown[]) : [],
-    review: review
-      ? { rating: Number(review["rating"] ?? 0), comment: String(review["comment"] ?? "") }
-      : null,
   };
 }
 

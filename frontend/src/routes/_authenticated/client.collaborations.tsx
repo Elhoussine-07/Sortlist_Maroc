@@ -54,6 +54,12 @@ const RATING_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "1", label: "1 étoile et +" },
 ];
 
+const SORT_OPTIONS: Array<{ value: "recent" | "rating" | "budget"; label: string }> = [
+  { value: "recent", label: "Plus récentes" },
+  { value: "rating", label: "Mieux notées" },
+  { value: "budget", label: "Budget le plus élevé" },
+];
+
 function ClientCollaborationsPage() {
   const queryClient = useQueryClient();
 
@@ -73,6 +79,7 @@ function ClientCollaborationsPage() {
   const [agencyFilter, setAgencyFilter] = useState("");
   const [periodFilter, setPeriodFilter] = useState("");
   const [ratingFilter, setRatingFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "rating" | "budget">("recent");
 
   const agencyOptions = useMemo(
     () => allCollaborations.map((c) => ({ value: c.id, label: c.agencyName })),
@@ -117,10 +124,22 @@ function ClientCollaborationsPage() {
     });
   }, [allCollaborations, activeTab, query, agencyFilter, periodFilter, ratingFilter]);
 
-  const total = filteredCollaborations.length;
+  const sortedCollaborations = useMemo(() => {
+    const result = [...filteredCollaborations];
+    result.sort((a, b) => {
+      if (sortBy === "rating") return b.ratingReceived - a.ratingReceived;
+      if (sortBy === "budget") return (b.budgetValue ?? 0) - (a.budgetValue ?? 0);
+      const dateA = a.periodEndRaw ? new Date(a.periodEndRaw).getTime() : 0;
+      const dateB = b.periodEndRaw ? new Date(b.periodEndRaw).getTime() : 0;
+      return dateB - dateA;
+    });
+    return result;
+  }, [filteredCollaborations, sortBy]);
+
+  const total = sortedCollaborations.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const collaborations = filteredCollaborations.slice(
+  const collaborations = sortedCollaborations.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
@@ -242,15 +261,28 @@ function ClientCollaborationsPage() {
         {/* Compteur + tri */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">{total} collaborations</p>
-          <button
-            type="button"
-            disabled
-            title="Tri indisponible : le backend n'expose pas de date brute pour les collaborations, seulement une période déjà formatée."
-            className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground opacity-60"
-          >
-            Trier par : Plus récentes
-            <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
-          </button>
+          <label className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground">
+            Trier par
+            <span className="relative flex items-center">
+              <select
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(event.target.value as "recent" | "rating" | "budget")
+                }
+                className="appearance-none bg-transparent pr-5 text-foreground outline-none"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-0 h-3.5 w-3.5"
+                strokeWidth={1.8}
+              />
+            </span>
+          </label>
         </div>
 
         {/* Tableau */}
@@ -343,9 +375,20 @@ function ClientCollaborationsPage() {
             ? `Agence : ${reviewTarget.collaboration.agencyName} — Projet : ${reviewTarget.project.title || reviewTarget.project.id}`
             : ""
         }
-        confirmLabel={reviewMutation.isPending ? "Envoi…" : "Envoyer l'avis"}
+        confirmLabel={
+          reviewTarget?.project.reviewed
+            ? "Fermer"
+            : reviewMutation.isPending
+              ? "Envoi…"
+              : "Envoyer l'avis"
+        }
+        singleAction={Boolean(reviewTarget?.project.reviewed)}
         onConfirm={() => {
           if (!reviewTarget) return;
+          if (reviewTarget.project.reviewed) {
+            setReviewTarget(null);
+            return;
+          }
           reviewMutation.mutate({
             id: reviewTarget.project.id,
             rating: reviewRating,
@@ -361,9 +404,10 @@ function ClientCollaborationsPage() {
                 <button
                   key={value}
                   type="button"
+                  disabled={reviewTarget?.project.reviewed}
                   onClick={() => setReviewRating(value)}
                   aria-label={`${value} étoile${value > 1 ? "s" : ""}`}
-                  className="text-foreground transition-opacity hover:opacity-70"
+                  className="text-foreground transition-opacity hover:opacity-70 disabled:cursor-default disabled:hover:opacity-100"
                 >
                   <Star
                     className="h-5 w-5"
@@ -379,6 +423,7 @@ function ClientCollaborationsPage() {
             rows={4}
             value={reviewComment}
             onChange={(event) => setReviewComment(event.target.value)}
+            readOnly={reviewTarget?.project.reviewed}
           />
         </div>
       </ActionModal>
@@ -407,9 +452,17 @@ function CollaborationRow({
   return (
     <div className="grid grid-cols-1 gap-3 px-5 py-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] lg:items-center lg:gap-4">
       <div className="flex min-w-0 items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-[13px] font-bold">
-          {collaboration.agencyInitials}
-        </span>
+        {collaboration.agencyLogo ? (
+          <img
+            src={collaboration.agencyLogo}
+            alt={collaboration.agencyName}
+            className="h-9 w-9 shrink-0 rounded-md object-cover"
+          />
+        ) : (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border text-[13px] font-bold">
+            {collaboration.agencyInitials}
+          </span>
+        )}
         <div className="min-w-0">
           <p className="truncate text-[13.5px] font-bold">{collaboration.agencyName}</p>
           <p className="truncate text-[13px] text-muted-foreground">

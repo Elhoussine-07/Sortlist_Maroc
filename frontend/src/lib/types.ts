@@ -1,4 +1,3 @@
-
 export type UserRole = "client" | "agency" | "admin";
 
 export interface User {
@@ -272,10 +271,13 @@ export interface Collaboration {
   agencyInitials: string;
   agencyName: string;
   agencyTagline: string;
+  agencyLogo: string | undefined;
   ratingReceived: number;
   finishedProjects: string;
   period: string;
+  periodEndRaw: string | null;
   budget: string;
+  budgetValue: number | null;
   publicReview: string;
   reviewLength: number;
   yourRating: number;

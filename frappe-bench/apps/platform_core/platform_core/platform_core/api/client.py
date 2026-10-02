@@ -77,6 +77,16 @@ def verify_identity():
 		"trust_score": updated.trust_score if updated else doc.trust_score,
 	}
 
+def _format_date(value):
+	return value.strftime("%d/%m/%Y") if value else None
+
+def _format_period(start, end):
+	formatted_start = _format_date(start)
+	formatted_end = _format_date(end)
+	if not formatted_start and not formatted_end:
+		return ""
+	return f"{formatted_start or '?'} → {formatted_end or '?'}"
+
 @frappe.whitelist()
 def list_collaborations():
 	claims = require_user_type("client")
@@ -119,6 +129,7 @@ def list_collaborations():
 		entry = by_agency.setdefault(row.agency, {
 			"agency": row.agency,
 			"agency_name": frappe.db.get_value("AgencyProfile", row.agency, "agency_name"),
+			"agency_logo": frappe.db.get_value("AgencyProfile", row.agency, "logo"),
 			"projects": [],
 		})
 		received = received_review_by_project.get(row.project)
@@ -129,7 +140,7 @@ def list_collaborations():
 			"budget_max": row.budget_max,
 			"start_date": row.start_date,
 			"expected_end_date": row.expected_end_date,
-			"period": f"{row.start_date} → {row.expected_end_date}",
+			"period": _format_period(row.start_date, row.expected_end_date),
 			"review": given_review_by_project.get(row.project),
 			"rating_received": received.rating if received else None,
 		})
@@ -140,9 +151,8 @@ def list_collaborations():
 
 		start_dates = [p["start_date"] for p in projects if p["start_date"]]
 		end_dates = [p["expected_end_date"] for p in projects if p["expected_end_date"]]
-		entry["period"] = (
-			f"{min(start_dates)} → {max(end_dates)}" if start_dates and end_dates else ""
-		)
+		entry["period"] = _format_period(min(start_dates) if start_dates else None, max(end_dates) if end_dates else None)
+		entry["period_end"] = max(end_dates).isoformat() if end_dates else None
 
 		budgets = [
 			p["budget_max"] or p["budget_min"] for p in projects if p["budget_max"] or p["budget_min"]
