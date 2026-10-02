@@ -6,6 +6,8 @@ import java.util.Map;
 public record AgencyScore(
         String agency,
         String agencyName,
+        String location,
+        String logo,
         double matchingScore,
         double successPrediction,
         List<String> factors,

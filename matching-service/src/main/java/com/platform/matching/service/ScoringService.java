@@ -98,6 +98,8 @@ public class ScoringService {
         return new AgencyScore(
                 agency.name(),
                 agency.agencyName(),
+                agency.location(),
+                agency.logo(),
                 clamp(matchingScore),
                 clamp(round1(successPrediction)),
                 factors,

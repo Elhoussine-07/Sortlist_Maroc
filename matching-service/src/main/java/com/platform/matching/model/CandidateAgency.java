@@ -17,7 +17,8 @@ public record CandidateAgency(
         Integer yearFounded,
         Double annualRevenue,
         List<AgencyServiceDto> services,
-        Integer completedProjects
+        Integer completedProjects,
+        String logo
 ) {
     public boolean isRemoteWork() {
         return remoteWork != null && remoteWork != 0;

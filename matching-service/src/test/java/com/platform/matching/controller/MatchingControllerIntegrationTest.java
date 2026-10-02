@@ -66,11 +66,11 @@ class MatchingControllerIntegrationTest {
                 "AG-STRONG", "Agence Forte", "Casablanca", null, 0,
                 5.0, 90, 15, 2015, 1_000_000.0,
                 List.of(new AgencyServiceDto("Developpement web", "React", "React, Node")),
-                12
+                12, null
         );
         CandidateAgency weakAgency = new CandidateAgency(
                 "AG-WEAK", "Agence Faible", "Marrakech", null, 0,
-                1.0, 10, 2, 2023, 500.0, List.of(), 0
+                1.0, 10, 2, 2023, 500.0, List.of(), 0, null
         );
         return new ProjectContext(project, 70.0, List.of(weakAgency, strongAgency));
     }

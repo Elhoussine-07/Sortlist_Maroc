@@ -28,7 +28,7 @@ class ScoringServiceTest {
                                     List<AgencyServiceDto> services, int completedProjects) {
         return new CandidateAgency(
                 "AG-1", "Agence Test", location, coverage, remoteWork ? 1 : 0,
-                rating, pqiScore, 10, 2015, annualRevenue, services, completedProjects
+                rating, pqiScore, 10, 2015, annualRevenue, services, completedProjects, null
         );
     }
 

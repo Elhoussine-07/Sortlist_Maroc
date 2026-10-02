@@ -674,12 +674,20 @@ function ClientProjectDetailPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex min-w-0 items-start gap-3">
-                              <span
-                                style={{ backgroundImage: seedGradient(agency.id) }}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[12px] font-bold text-white"
-                              >
-                                {initialsOf(agency.name)}
-                              </span>
+                              {agency.logo ? (
+                                <img
+                                  src={agency.logo}
+                                  alt={agency.name}
+                                  className="h-10 w-10 shrink-0 rounded-xl object-cover"
+                                />
+                              ) : (
+                                <span
+                                  style={{ backgroundImage: seedGradient(agency.id) }}
+                                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[12px] font-bold text-white"
+                                >
+                                  {initialsOf(agency.name)}
+                                </span>
+                              )}
                               <div className="min-w-0">
                                 <p className="truncate text-[15px] font-bold">{agency.name}</p>
                                 {agency.location ? (

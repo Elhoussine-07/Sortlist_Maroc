@@ -57,11 +57,11 @@ class MatchingServiceTest {
         );
         CandidateAgency good = new CandidateAgency(
                 "AG-GOOD", "Bonne Agence", "Rabat", null, 0, 4.5, 80, 12, 2016,
-                2_000_000.0, List.of(), 6
+                2_000_000.0, List.of(), 6, null
         );
         CandidateAgency bad = new CandidateAgency(
                 "AG-BAD", "Agence Moyenne", "Tanger", null, 0, 2.0, 30, 3, 2022,
-                50_000.0, List.of(), 0
+                50_000.0, List.of(), 0, null
         );
         return new ProjectContext(project, 40.0, List.of(bad, good));
     }
@@ -111,7 +111,7 @@ class MatchingServiceTest {
                 "Developpement web", "E-commerce", 20000.0, 50000.0, 30, null
         );
         CandidateAgency agency = new CandidateAgency(
-                "AG-SEM", "Agence Semantique", null, null, 1, null, null, 5, 2018, null, List.of(), 0
+                "AG-SEM", "Agence Semantique", null, null, 1, null, null, 5, 2018, null, List.of(), 0, null
         );
         when(frappeClient.getProjectContext("PRJ-SEM"))
                 .thenReturn(new ProjectContext(project, 50.0, List.of(agency)));

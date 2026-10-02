@@ -17,7 +17,7 @@ def get_project_context(project):
 	candidates = frappe.get_all(
 		"AgencyProfile",
 		fields=["name", "agency_name", "location", "coverage", "remote_work", "rating",
-		        "pqi_score", "team_size", "year_founded", "annual_revenue"],
+		        "pqi_score", "team_size", "year_founded", "annual_revenue", "logo"],
 	)
 	for candidate in candidates:
 		candidate["services"] = frappe.get_all(
