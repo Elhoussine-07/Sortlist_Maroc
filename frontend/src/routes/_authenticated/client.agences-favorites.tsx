@@ -7,7 +7,6 @@ import {
   Search,
   Calendar,
   ExternalLink,
-  Heart,
   PlusCircle,
   X,
 } from "lucide-react";
@@ -121,7 +120,7 @@ function ClientFavoriteAgenciesPage() {
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/20">
-                  <Heart className="h-6 w-6 text-white" fill="white" />
+                  <Star className="h-6 w-6 text-white" fill="white" strokeWidth={1.5} />
                 </div>
                 <div>
                   <h1 className="text-[26px] font-bold tracking-tight">Agences favorites</h1>
@@ -237,7 +236,7 @@ function ClientFavoriteAgenciesPage() {
           ) : favorites.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-background/50 p-16 text-center">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                <Heart className="h-10 w-10 text-primary/40" />
+                <Star className="h-10 w-10 text-primary/40" strokeWidth={1.5} />
               </div>
               <h3 className="mt-4 text-xl font-semibold">Aucune agence favorite</h3>
               <p className="mt-2 max-w-md text-[14px] text-muted-foreground">
@@ -366,7 +365,7 @@ function ClientFavoriteAgenciesPage() {
               {searchTerm ? " (filtrés)" : ""}
             </p>
             <div className="flex items-center gap-1 text-[12px] text-muted-foreground/50">
-              <Heart className="h-3 w-3" fill="currentColor" />
+              <Star className="h-3 w-3" fill="currentColor" strokeWidth={1.5} />
               <span>Mis à jour</span>
             </div>
           </div>
