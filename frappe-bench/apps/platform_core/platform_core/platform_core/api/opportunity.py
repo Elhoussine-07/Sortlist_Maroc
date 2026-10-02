@@ -346,6 +346,32 @@ def list_public_projects(budget_min=None, budget_max=None, sub_category=None, ca
 	return {"results": results, "total": count, "page": page, "page_size": page_size}
 
 @frappe.whitelist()
+def download_public_project_cdc(project=None):
+	project = get_body_arg("project", project)
+	if not project:
+		frappe.throw(_("Projet manquant"))
+
+	require_active_agency()
+
+	doc = frappe.get_doc("Project", project)
+	if doc.status != "Posted" or not doc.client:
+		frappe.throw(_("Ce projet n'est plus disponible"), frappe.PermissionError)
+
+	if not doc.cdc_file:
+		from platform_core.platform_core.cdc import generate_cdc
+
+		generate_cdc(doc.name)
+		doc.reload()
+
+	if not doc.cdc_file:
+		frappe.throw(_("Aucun CDC disponible pour ce projet"))
+
+	file_doc = frappe.get_doc("File", {"file_url": doc.cdc_file})
+	frappe.local.response.filename = file_doc.file_name
+	frappe.local.response.filecontent = file_doc.get_content()
+	frappe.local.response.type = "download"
+
+@frappe.whitelist()
 def express_interest(project=None):
 	if not project:
 		project = get_body_arg("project")

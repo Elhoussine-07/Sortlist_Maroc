@@ -5,6 +5,7 @@ import {
   Bookmark,
   Building2,
   Clock,
+  Download,
   MapPin,
   Send,
   Tag,
@@ -16,7 +17,11 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
-import { getPublicProject, type PublicProjectDetail } from "@/services/projects.service";
+import {
+  downloadPublicProjectCdc,
+  getPublicProject,
+  type PublicProjectDetail,
+} from "@/services/projects.service";
 import { toggleProjectFavorite, listFavoriteProjects } from "@/services/agencies.service";
 import { expressInterest } from "@/services/opportunities.service";
 import { ApiError } from "@/services/http";
@@ -46,6 +51,7 @@ function ProjectDetailPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isPendingFavorite, setIsPendingFavorite] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
+  const [isDownloadingCdc, setIsDownloadingCdc] = useState(false);
 
   const applyMutation = useMutation({
     mutationFn: expressInterest,
@@ -67,6 +73,30 @@ function ProjectDetailPage() {
       return;
     }
     applyMutation.mutate(id);
+  }
+
+  async function handleDownloadCdc() {
+    if (!token || role !== "agency") {
+      toast("Connectez-vous avec un compte agence pour télécharger le cahier des charges.");
+      navigate({ to: "/connexion" });
+      return;
+    }
+    setIsDownloadingCdc(true);
+    try {
+      const blob = await downloadPublicProjectCdc(id);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `CDC-${id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      toast(error instanceof ApiError ? error.message : "Impossible de télécharger le CDC.");
+    } finally {
+      setIsDownloadingCdc(false);
+    }
   }
 
   useEffect(() => {
@@ -184,8 +214,8 @@ function ProjectDetailPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-fuchsia-100 px-2.5 py-1 text-[11px] font-medium text-fuchsia-700">
-                  <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-600" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                   Publié
                 </span>
                 <span className="text-[12px] text-muted-foreground">
@@ -358,6 +388,15 @@ function ProjectDetailPage() {
                     fill={isFavorite ? "currentColor" : "none"}
                   />
                   {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadCdc}
+                  disabled={isDownloadingCdc}
+                  className="w-full rounded-xl border border-border px-4 py-3 text-[14px] font-semibold transition-all hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Download className="inline h-4 w-4 mr-2" strokeWidth={1.8} />
+                  {isDownloadingCdc ? "Téléchargement..." : "Télécharger le CDC"}
                 </button>
               </div>
             </div>

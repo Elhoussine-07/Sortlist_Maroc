@@ -172,6 +172,7 @@ export interface PublicProjectDetail {
   clientLogo: string | null;
   clientSector: string;
   clientTrustScore: number | null;
+  cdcFile: string | null;
 }
 
 export async function getPublicProject(id: string): Promise<PublicProjectDetail> {
@@ -209,6 +210,7 @@ export async function getPublicProject(id: string): Promise<PublicProjectDetail>
       data["clientTrustScore"] !== undefined && data["clientTrustScore"] !== null
         ? Number(data["clientTrustScore"])
         : null,
+    cdcFile: (data["cdcFile"] as string | undefined) || null,
   };
 }
 
@@ -305,6 +307,11 @@ export async function deleteProject(id: string): Promise<Project> {
 
 export async function downloadProjectCdc(id: string): Promise<Blob> {
   const url = `${GATEWAY_URL}/api/method/platform_core.platform_core.api.project.download_cdc`;
+  return fetchBlob(url, undefined, { project: id });
+}
+
+export async function downloadPublicProjectCdc(id: string): Promise<Blob> {
+  const url = `${GATEWAY_URL}/api/method/platform_core.platform_core.api.opportunity.download_public_project_cdc`;
   return fetchBlob(url, undefined, { project: id });
 }
 

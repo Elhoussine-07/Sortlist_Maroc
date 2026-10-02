@@ -176,6 +176,20 @@ def get_project(project=None):
 	)
 	data["agency_project_amount"] = accepted[0].amount if accepted else None
 
+	if doc.client:
+		client_profile = frappe.db.get_value(
+			"ClientProfile",
+			doc.client,
+			["company_name", "country", "sector", "logo", "trust_score"],
+			as_dict=True,
+		)
+		if client_profile:
+			data["client_company_name"] = client_profile.company_name
+			data["client_country"] = client_profile.country
+			data["client_sector"] = client_profile.sector
+			data["client_logo"] = client_profile.logo
+			data["client_trust_score"] = client_profile.trust_score
+
 	return data
 
 @frappe.whitelist()
