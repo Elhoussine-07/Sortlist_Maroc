@@ -1,7 +1,7 @@
 
 import frappe
 
-from platform_core.platform_core.auth import require_internal_token
+from platform_core.platform_core.auth import get_body_dict, require_internal_token
 
 @frappe.whitelist(allow_guest=True)
 def get_project_context(project):
@@ -38,7 +38,7 @@ def get_project_context(project):
 @frappe.whitelist(allow_guest=True)
 def save_shortlist():
 	require_internal_token()
-	payload = frappe.parse_json(frappe.request.data) if frappe.request.data else frappe.local.form_dict
+	payload = get_body_dict()
 
 	project = payload.get("project")
 	shortlist = payload.get("shortlist", [])

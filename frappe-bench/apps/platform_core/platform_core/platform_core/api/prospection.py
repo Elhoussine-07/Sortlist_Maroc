@@ -2,7 +2,12 @@
 import frappe
 from frappe import _
 
-from platform_core.platform_core.auth import require_active_agency, require_internal_token, require_user_type
+from platform_core.platform_core.auth import (
+	get_body_dict,
+	require_active_agency,
+	require_internal_token,
+	require_user_type,
+)
 
 ACTION_CODE_TO_LABEL = {
 	"profile_view": "Consultation du profil",
@@ -64,7 +69,7 @@ def get_agency_owner_email(agency):
 @frappe.whitelist(allow_guest=True)
 def get_client_profile_summaries():
 	require_internal_token()
-	payload = frappe.parse_json(frappe.request.data) if frappe.request.data else frappe.local.form_dict
+	payload = get_body_dict()
 	emails = payload.get("emails") or []
 	if not emails:
 		return []
@@ -77,7 +82,7 @@ def get_client_profile_summaries():
 @frappe.whitelist(allow_guest=True)
 def log_visitor():
 	require_internal_token()
-	payload = frappe.parse_json(frappe.request.data) if frappe.request.data else frappe.local.form_dict
+	payload = get_body_dict()
 
 	from platform_core.platform_core.doctype.visitorlog.visitorlog import log_action
 
