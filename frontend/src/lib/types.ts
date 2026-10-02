@@ -165,6 +165,8 @@ export interface Project {
   interestedAgenciesCount?: number | undefined;
   budgetFlexible?: boolean | undefined;
   coverImage?: string | null | undefined;
+  clientCompanyName?: string | undefined;
+  clientLogo?: string | null | undefined;
 }
 
 export interface Agency {

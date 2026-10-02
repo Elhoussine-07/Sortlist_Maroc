@@ -118,6 +118,8 @@ export function mapProject(raw: unknown): Project {
         ? Number(data["interestedAgenciesCount"])
         : undefined,
     budgetFlexible: Boolean(data["budgetFlexible"]),
+    clientCompanyName: (data["clientCompanyName"] as string | undefined) ?? undefined,
+    clientLogo: resolveFileUrl(data["clientLogo"] as string | null | undefined) ?? null,
   };
 }
 

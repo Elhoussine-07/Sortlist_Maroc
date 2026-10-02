@@ -3,14 +3,13 @@ import {
   ArrowLeft,
   ArrowRight,
   Bookmark,
+  Building2,
   ChevronDown,
   Clock,
   MapPin,
   Search,
   Send,
-  Tag,
   Users,
-  Eye,
   ChevronRight,
   Sparkles,
   X,
@@ -267,150 +266,130 @@ function SearchProjectsPage() {
 
         <section className="mt-6">
           {isLoading ? (
-            <CardGridSkeleton count={8} />
+            <CardGridSkeleton count={9} />
           ) : projects.length === 0 ? (
             <EmptyState message="Aucun projet à afficher." />
           ) : (
-            <div className="flex flex-col gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => {
                 const publishedDate = new Date(project.lastActivity);
                 const projectId = project.id;
+                const isFavorite = favoriteIds.has(project.id);
 
                 return (
                   <Link
                     key={project.id}
                     to={`/projets/$id`}
                     params={{ id: projectId }}
-                    className="group relative block rounded-2xl border border-border bg-background p-5 transition-all hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5"
+                    className="group relative flex flex-col rounded-2xl border border-border bg-background p-5 transition-all hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5"
                   >
-                    {/* Indicateur de clic */}
-                    <div className="absolute right-4 top-4 opacity-0 transition-opacity group-hover:opacity-100">
-                      <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
-                        <Eye className="h-3.5 w-3.5" />
-                        Voir le projet
-                        <ChevronRight className="h-3.5 w-3.5" />
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        {project.clientLogo ? (
+                          <img
+                            src={project.clientLogo}
+                            alt={project.clientCompanyName || project.title}
+                            className="h-11 w-11 shrink-0 rounded-xl border border-border object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
+                            <Building2 className="h-5 w-5" strokeWidth={1.7} />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-[12.5px] font-semibold text-foreground">
+                            {project.clientCompanyName || "Entreprise"}
+                          </p>
+                          <span className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground">
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                            {project.statusLabel}
+                          </span>
+                        </div>
                       </div>
+                      <button
+                        onClick={(e) => handleToggleFavorite(project.id, e)}
+                        type="button"
+                        disabled={pendingFavoriteId === project.id}
+                        aria-label={isFavorite ? "Retirer des favoris" : "Enregistrer le projet"}
+                        aria-pressed={isFavorite}
+                        className="shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Bookmark
+                          className="h-[18px] w-[18px]"
+                          strokeWidth={1.8}
+                          fill={isFavorite ? "currentColor" : "none"}
+                        />
+                      </button>
                     </div>
 
-                    <div className="flex flex-col gap-4 sm:flex-row">
-                      <div className="h-[110px] w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-pink-400 to-fuchsia-600 sm:h-auto sm:w-[140px]">
-                        <div className="flex h-full w-full items-center justify-center text-white">
-                          <Tag className="h-8 w-8" strokeWidth={1.6} />
-                        </div>
-                      </div>
+                    <h2 className="mt-4 text-[15px] font-bold leading-snug transition-colors group-hover:text-primary">
+                      {project.title}
+                    </h2>
+                    {project.objective ? (
+                      <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.5] text-muted-foreground">
+                        {project.objective}
+                      </p>
+                    ) : null}
 
-                      <div className="flex-1">
-                        <span className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
-                          <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-600" />
-                          {project.statusLabel}
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        {project.location}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        {publishedDate.toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                      {project.urgency ? (
+                        <span className="flex items-center gap-1.5">
+                          <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
+                          {project.urgency}
                         </span>
-                        <h2 className="mt-1.5 text-[15px] font-bold leading-snug group-hover:text-primary transition-colors">
-                          {project.title}
-                        </h2>
-                        {project.objective ? (
-                          <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.5] text-muted-foreground">
-                            {project.objective}
-                          </p>
-                        ) : null}
-                        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-muted-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            {project.location}
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            Publié le{" "}
-                            {publishedDate.toLocaleDateString("fr-FR", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })}
-                          </span>
-                          {project.urgency ? (
-                            <span className="flex items-center gap-1.5">
-                              <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
-                              {project.urgency}
-                            </span>
-                          ) : null}
-                        </div>
-                        {project.interestedAgenciesCount ? (
-                          <p className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
-                            <Users className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            {project.interestedAgenciesCount} agences ont déjà montré leur intérêt
-                          </p>
-                        ) : null}
-                        {project.features && project.features.length > 0 ? (
-                          <div className="mt-2.5">
-                            <p className="text-[11.5px] font-semibold text-foreground">
-                              Compétences recherchées
-                            </p>
-                            <div className="mt-1.5 flex flex-wrap gap-1.5">
-                              {project.features.slice(0, 5).map((skill) => (
-                                <span
-                                  key={skill}
-                                  className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-foreground/80"
-                                >
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
+                      ) : null}
+                    </div>
 
-                      <div className="flex shrink-0 flex-col items-start gap-2 sm:w-[180px] sm:items-end sm:text-right">
-                        <div className="flex w-full items-center justify-between gap-2 sm:flex-col sm:items-end">
-                          <p className="text-[11px] text-muted-foreground">Budget estimé</p>
-                          <button
-                            onClick={(e) => handleToggleFavorite(project.id, e)}
-                            type="button"
-                            disabled={pendingFavoriteId === project.id}
-                            aria-label={
-                              favoriteIds.has(project.id)
-                                ? "Retirer des favoris"
-                                : "Enregistrer le projet"
-                            }
-                            aria-pressed={favoriteIds.has(project.id)}
-                            className="text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60 sm:order-first"
+                    {project.features && project.features.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {project.features.slice(0, 3).map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-foreground/80"
                           >
-                            <Bookmark
-                              className="h-[18px] w-[18px]"
-                              strokeWidth={1.8}
-                              fill={favoriteIds.has(project.id) ? "currentColor" : "none"}
-                            />
-                          </button>
-                        </div>
-                        <p className="text-[15px] font-bold">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {project.interestedAgenciesCount ? (
+                      <p className="mt-3 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" strokeWidth={1.8} />
+                        {project.interestedAgenciesCount} agences intéressées
+                      </p>
+                    ) : null}
+
+                    <div className="mt-auto flex items-end justify-between gap-2 border-t border-border/70 pt-4">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Budget estimé</p>
+                        <p className="text-[14.5px] font-bold">
                           {project.budgetMin || project.budgetMax
                             ? `${project.budgetMin} € - ${project.budgetMax} €`
                             : "Budget à définir"}
                         </p>
                         {project.budgetFlexible ? (
-                          <span className="rounded-full bg-fuchsia-50 px-2.5 py-1 text-[11px] font-medium text-fuchsia-700">
+                          <span className="mt-1 inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
                             Budget flexible
                           </span>
                         ) : null}
-                        {project.needType || project.estimatedDuration ? (
-                          <div className="mt-1 w-full text-[12px] text-muted-foreground sm:text-right">
-                            {project.needType ? (
-                              <p>
-                                <span className="font-semibold text-foreground">
-                                  Type de projet
-                                </span>
-                                <br />
-                                {project.needType}
-                              </p>
-                            ) : null}
-                            {project.estimatedDuration ? (
-                              <p className="mt-1">
-                                <span className="font-semibold text-foreground">Durée estimée</span>
-                                <br />
-                                {project.estimatedDuration}
-                              </p>
-                            ) : null}
-                          </div>
-                        ) : null}
                       </div>
+                      <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                        Voir
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </span>
                     </div>
                   </Link>
                 );
