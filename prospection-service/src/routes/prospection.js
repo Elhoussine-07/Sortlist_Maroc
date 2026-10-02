@@ -68,6 +68,30 @@ function mergeLeadsByClientIdentity(rows) {
     );
 }
 
+async function enrichLeadsWithClientProfiles(leads) {
+    const emails = [...new Set(leads.filter((l) => l.client_email).map((l) => l.client_email))];
+    if (emails.length === 0) return;
+
+    let profiles;
+    try {
+        profiles = await frappeClient.getClientProfileSummaries(emails);
+    } catch (err) {
+        logger.warn("Failed to enrich leads with client profiles, keeping IP-derived data", {
+            error: err.message,
+        });
+        return;
+    }
+
+    const byEmail = new Map(profiles.map((p) => [p.user, p]));
+    for (const lead of leads) {
+        const profile = lead.client_email && byEmail.get(lead.client_email);
+        if (!profile) continue;
+        if (!lead.location && profile.country) lead.location = profile.country;
+        if (!lead.company_name && profile.company_name) lead.company_name = profile.company_name;
+        if (profile.logo) lead.company_logo = profile.logo;
+    }
+}
+
 router.post(
     "/visit",
     asyncHandler(async (req, res) => {
@@ -311,7 +335,10 @@ router.get(
             params
         );
 
-        return res.json({ leads: mergeLeadsByClientIdentity(result.rows) });
+        const leads = mergeLeadsByClientIdentity(result.rows);
+        await enrichLeadsWithClientProfiles(leads);
+
+        return res.json({ leads });
     })
 );
 

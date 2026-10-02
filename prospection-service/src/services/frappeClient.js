@@ -143,4 +143,20 @@ async function notifyClientInterest({ client_email, agency, subject, body }) {
   });
 }
 
-module.exports = { getScoringRules, getAgencyDirectory, logVisitor, notifyClientInterest, resolveFrappeUrl };
+async function getClientProfileSummaries(emails) {
+  if (!emails || emails.length === 0) return [];
+  const result = await callFrappe(
+    "platform_core.platform_core.api.prospection.get_client_profile_summaries",
+    { httpMethod: "POST", body: { emails } },
+  );
+  return Array.isArray(result) ? result : [];
+}
+
+module.exports = {
+  getScoringRules,
+  getAgencyDirectory,
+  logVisitor,
+  notifyClientInterest,
+  getClientProfileSummaries,
+  resolveFrappeUrl,
+};

@@ -62,6 +62,19 @@ def get_agency_owner_email(agency):
 	return {"email": email}
 
 @frappe.whitelist(allow_guest=True)
+def get_client_profile_summaries():
+	require_internal_token()
+	payload = frappe.parse_json(frappe.request.data) if frappe.request.data else frappe.local.form_dict
+	emails = payload.get("emails") or []
+	if not emails:
+		return []
+	return frappe.get_all(
+		"ClientProfile",
+		filters={"user": ["in", emails]},
+		fields=["user", "company_name", "country", "logo"],
+	)
+
+@frappe.whitelist(allow_guest=True)
 def log_visitor():
 	require_internal_token()
 	payload = frappe.parse_json(frappe.request.data) if frappe.request.data else frappe.local.form_dict

@@ -1,4 +1,4 @@
-import { camelizeKeys, frappeCall, restCall } from "@/services/http";
+import { camelizeKeys, frappeCall, resolveFileUrl, restCall } from "@/services/http";
 
 const VISITOR_SESSION_KEY = "sortlist_visitor_session_id";
 const VISITOR_SESSION_OWNER_KEY = "sortlist_visitor_session_owner";
@@ -84,6 +84,7 @@ export interface Lead {
   id: string;
   initials: string;
   companyName: string;
+  companyLogo: string | undefined;
   location: string;
   ipAddress: string;
   actions: string[];
@@ -129,6 +130,7 @@ function mapLead(raw: unknown): Lead {
           .join(""),
     ),
     companyName,
+    companyLogo: resolveFileUrl(data["companyLogo"] as string | null | undefined),
     location: String(data["location"] ?? ""),
     ipAddress: String(data["ipAddress"] ?? ""),
     actions: Array.isArray(data["actions"]) ? (data["actions"] as string[]) : [],
@@ -253,6 +255,7 @@ export interface ClientReviewAboutLead {
 export interface IdentifiedClientProfile {
   id: string;
   companyName: string;
+  companyLogo: string | undefined;
   firstName: string;
   lastName: string;
   sector: string;
@@ -269,6 +272,7 @@ export async function getClientProfileForAgency(client: string): Promise<Identif
   return {
     id: String(data["name"] ?? ""),
     companyName: String(data["companyName"] ?? ""),
+    companyLogo: resolveFileUrl(data["logo"] as string | null | undefined),
     firstName: String(data["firstName"] ?? ""),
     lastName: String(data["lastName"] ?? ""),
     sector: String(data["sector"] ?? ""),

@@ -429,6 +429,7 @@ def get_client_profile_for_agency(client=None):
 		"last_name": profile.last_name,
 		"sector": profile.sector,
 		"country": profile.country,
+		"logo": profile.logo,
 		"trust_score": profile.trust_score,
 		"legal_id_verified": profile.legal_id_verified,
 		"reviews": reviews,

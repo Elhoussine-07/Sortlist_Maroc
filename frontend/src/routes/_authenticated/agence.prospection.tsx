@@ -127,9 +127,21 @@ function buildColumns(
       width: "minmax(0,2.2fr)",
       render: (lead) => (
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
-            <span className="text-[14px] font-bold">{lead.initials}</span>
-          </div>
+          {lead.companyLogo ? (
+            <img
+              src={lead.companyLogo}
+              alt={lead.companyName}
+              className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm"
+            />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
+              {lead.initials ? (
+                <span className="text-[14px] font-bold">{lead.initials}</span>
+              ) : (
+                <Building2 className="h-4 w-4" strokeWidth={1.8} />
+              )}
+            </div>
+          )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
@@ -667,6 +679,23 @@ function AgencyProspectionPage() {
           <EmptyState message="Profil introuvable." />
         ) : (
           <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              {clientProfileQuery.data.companyLogo ? (
+                <img
+                  src={clientProfileQuery.data.companyLogo}
+                  alt={clientProfileQuery.data.companyName}
+                  className="h-12 w-12 shrink-0 rounded-xl object-cover shadow-sm"
+                />
+              ) : (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
+                  <Building2 className="h-5 w-5" strokeWidth={1.8} />
+                </div>
+              )}
+              <p className="text-[16px] font-bold">
+                {clientProfileQuery.data.companyName || "Entreprise non renseignée"}
+              </p>
+            </div>
+
             {/* Infos profil en cartes */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-border p-3">

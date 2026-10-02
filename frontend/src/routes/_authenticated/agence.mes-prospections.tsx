@@ -110,13 +110,21 @@ function buildColumns(): Column<Lead>[] {
       width: "minmax(0,2.2fr)",
       render: (item) => (
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
-            {item.initials ? (
-              <span className="text-[14px] font-bold">{item.initials}</span>
-            ) : (
-              <Building2 className="h-4 w-4" strokeWidth={1.8} />
-            )}
-          </div>
+          {item.companyLogo ? (
+            <img
+              src={item.companyLogo}
+              alt={item.companyName}
+              className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm"
+            />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
+              {item.initials ? (
+                <span className="text-[14px] font-bold">{item.initials}</span>
+              ) : (
+                <Building2 className="h-4 w-4" strokeWidth={1.8} />
+              )}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
               {item.companyName || "Visiteur non identifié"}
