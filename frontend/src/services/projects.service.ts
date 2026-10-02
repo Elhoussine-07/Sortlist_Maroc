@@ -58,8 +58,14 @@ export function mapProject(raw: unknown): Project {
     lastActivity: String(
       data["lastActivity"] ?? data["modified"] ?? data["projectCreatedOn"] ?? "",
     ),
-    budgetMin: data["budgetMin"] !== undefined ? Number(data["budgetMin"]) : null,
-    budgetMax: data["budgetMax"] !== undefined ? Number(data["budgetMax"]) : null,
+    budgetMin:
+      data["budgetMin"] !== undefined && data["budgetMin"] !== null
+        ? Number(data["budgetMin"])
+        : null,
+    budgetMax:
+      data["budgetMax"] !== undefined && data["budgetMax"] !== null
+        ? Number(data["budgetMax"])
+        : null,
     location: String(data["location"] ?? ""),
     startedAt: (data["startDate"] as string | undefined) ?? null,
     paymentStatus: (data["paymentStatus"] as string | undefined) ?? undefined,
@@ -88,7 +94,9 @@ export function mapProject(raw: unknown): Project {
     needType: data["needType"] as string | undefined,
     channel: data["channel"] as string | undefined,
     deliveryDelayDays:
-      data["deliveryDelayDays"] !== undefined ? Number(data["deliveryDelayDays"]) : undefined,
+      data["deliveryDelayDays"] !== undefined && data["deliveryDelayDays"] !== null
+        ? Number(data["deliveryDelayDays"])
+        : undefined,
     rejectionSubstatus: (data["rejectionSubstatus"] as string | undefined) ?? undefined,
     cdcFile: (data["cdcFile"] as string | undefined) ?? undefined,
     shortlistIa: Array.isArray(data["shortlistIa"]) ? (data["shortlistIa"] as string[]) : undefined,

@@ -669,10 +669,12 @@ function ClientProjectDetailPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="text-[15px] font-bold">{agency.name}</p>
-                              <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                                <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-                                {agency.location}
-                              </p>
+                              {agency.location ? (
+                                <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                                  <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+                                  {agency.location}
+                                </p>
+                              ) : null}
                             </div>
                             {agency.matchingScore !== null ? (
                               <span className="flex shrink-0 items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[12.5px] font-semibold">
@@ -681,9 +683,11 @@ function ClientProjectDetailPage() {
                               </span>
                             ) : null}
                           </div>
-                          <p className="mt-2 line-clamp-2 text-[13px] text-muted-foreground">
-                            {agency.description}
-                          </p>
+                          {agency.description ? (
+                            <p className="mt-2 line-clamp-2 text-[13px] text-muted-foreground">
+                              {agency.description}
+                            </p>
+                          ) : null}
                           <div className="mt-4 flex flex-wrap gap-2">
                             <button
                               type="button"
