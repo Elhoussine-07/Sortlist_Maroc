@@ -9,6 +9,8 @@ def generate_cdc(project_name):
     frappe.set_user("Administrator")
 
     try:
+        generated_display = frappe.utils.now_datetime().strftime("%d/%m/%Y à %H:%M")
+
         pdf_options = {
             "disable-external-links": True,
             "disable-internal-links": True,
@@ -23,7 +25,7 @@ def generate_cdc(project_name):
             "quiet": True,
 
             "margin-top": "15mm",
-            "margin-bottom": "15mm",
+            "margin-bottom": "20mm",
             "margin-left": "15mm",
             "margin-right": "15mm",
             "page-size": "A4",
@@ -31,6 +33,12 @@ def generate_cdc(project_name):
             "disable-forms": True,
             "no-outline": True,
             "image-quality": 94,
+
+            "footer-left": f"Cahier des charges — {project.name}",
+            "footer-center": f"Généré le {generated_display}",
+            "footer-right": "Page [page] / [topage]",
+            "footer-font-size": "8",
+            "footer-spacing": "5",
         }
 
         pdf_content = frappe.get_print(
