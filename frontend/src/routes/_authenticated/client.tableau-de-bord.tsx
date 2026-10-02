@@ -13,6 +13,7 @@ import {
   RefreshCcw,
   ShieldCheck,
   Sparkles,
+  Target,
   TrendingUp,
   Trash2,
   Users,
@@ -22,6 +23,7 @@ import {
   CircleDot,
   Eye,
 } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/layout/DashboardShell";
@@ -37,7 +39,7 @@ import {
 import { useAuthStore } from "@/store/auth.store";
 import type { Project } from "@/lib/types";
 import { ApiError } from "@/services/http";
-import { getClientDashboard } from "@/services/profile.service";
+import { getClientDashboard, type ClientDashboardRecommendation } from "@/services/profile.service";
 import { deleteProject, getMyProjects, repostProject } from "@/services/projects.service";
 
 export const Route = createFileRoute("/_authenticated/client/tableau-de-bord")({
@@ -98,6 +100,8 @@ function ClientDashboardPage() {
         activeCollaborations: dashboardQuery.data.activeCollaborations.value,
       }
     : EMPTY_STATS;
+  const activityChart = dashboardQuery.data?.activityChart ?? [];
+  const recommendations = dashboardQuery.data?.recommendations ?? [];
 
   const recentProjectsQuery = useQuery({
     queryKey: ["client", "projects", "recent"],
@@ -167,6 +171,99 @@ function ClientDashboardPage() {
               />
             </div>
           )}
+        </section>
+
+        {/* Activité récente + Recommandations */}
+        <section className="mt-9 grid grid-cols-1 gap-5 lg:grid-cols-[1.3fr_1fr]">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="text-[15px] font-bold">Activité récente</h2>
+            {isStatsLoading ? (
+              <div className="mt-4 h-[220px] animate-pulse rounded-lg bg-muted" />
+            ) : activityChart.every((point) => point.count === 0) ? (
+              <div className="mt-4">
+                <EmptyState message="Pas encore d'activité à afficher sur cette période." />
+              </div>
+            ) : (
+              <div className="mt-4 h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={activityChart}
+                    margin={{ left: -20, right: 10, top: 10, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      vertical={false}
+                      stroke="hsl(var(--border))"
+                      strokeDasharray="3 3"
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value: string) =>
+                        new Date(value).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "short",
+                        })
+                      }
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                      minTickGap={24}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [
+                        `${value} activité${value > 1 ? "s" : ""}`,
+                        "",
+                      ]}
+                      labelFormatter={(value) =>
+                        new Date(value as string).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "long",
+                        })
+                      }
+                      contentStyle={{
+                        borderRadius: 8,
+                        borderColor: "hsl(var(--border))",
+                        fontSize: 12.5,
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      fill="url(#activityFill)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="text-[15px] font-bold">Recommandations pour améliorer votre score</h2>
+            {isStatsLoading ? (
+              <div className="mt-4 space-y-3">
+                <div className="h-14 animate-pulse rounded-lg bg-muted" />
+                <div className="h-14 animate-pulse rounded-lg bg-muted" />
+              </div>
+            ) : recommendations.length === 0 ? (
+              <p className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground">
+                <CircleCheck className="h-4 w-4 text-emerald-600" strokeWidth={1.8} />
+                Tout est à jour, bravo !
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-1">
+                {recommendations.map((recommendation) => (
+                  <RecommendationRow key={recommendation.id} recommendation={recommendation} />
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
         {/* Projets récents */}
@@ -294,6 +391,60 @@ function DeltaLabel({ value }: { value: string | null }) {
       {Icon ? <Icon className="h-3 w-3" strokeWidth={2} /> : null}
       {value}
     </span>
+  );
+}
+
+const RECOMMENDATION_STYLES: Record<string, { icon: LucideIcon; iconClass: string }> = {
+  profile: { icon: Target, iconClass: "bg-amber-100 text-amber-600" },
+  response_time: { icon: MessageCircle, iconClass: "bg-blue-100 text-blue-600" },
+  project_detail: { icon: CircleCheck, iconClass: "bg-emerald-100 text-emerald-600" },
+};
+
+function RecommendationRow({ recommendation }: { recommendation: ClientDashboardRecommendation }) {
+  const style = RECOMMENDATION_STYLES[recommendation.id] ?? {
+    icon: Sparkles,
+    iconClass: "bg-primary/10 text-primary",
+  };
+  const Icon = style.icon;
+  const rowClass =
+    "flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-accent";
+  const content = (
+    <>
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${style.iconClass}`}
+      >
+        <Icon className="h-4 w-4" strokeWidth={1.8} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13.5px] font-semibold">{recommendation.title}</p>
+        <p className="mt-0.5 text-[12.5px] text-muted-foreground">{recommendation.description}</p>
+      </div>
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
+    </>
+  );
+
+  if (recommendation.id === "profile") {
+    return (
+      <li>
+        <Link to="/client/mon-profil" className={rowClass}>
+          {content}
+        </Link>
+      </li>
+    );
+  }
+  if (recommendation.id === "response_time" || recommendation.id === "project_detail") {
+    return (
+      <li>
+        <Link to="/client/mes-projets" className={rowClass}>
+          {content}
+        </Link>
+      </li>
+    );
+  }
+  return (
+    <li>
+      <div className={rowClass}>{content}</div>
+    </li>
   );
 }
 

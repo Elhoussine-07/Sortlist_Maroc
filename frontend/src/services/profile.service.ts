@@ -270,12 +270,25 @@ export async function submitCollaborationReview(
   return mapCollaboration(raw);
 }
 
+export interface ClientDashboardActivityPoint {
+  date: string;
+  count: number;
+}
+
+export interface ClientDashboardRecommendation {
+  id: string;
+  title: string;
+  description: string;
+}
+
 export interface ClientDashboard {
   trustScore: { value: number; label: string };
-  publishedProjects: { value: number; delta: string };
-  responseRate: { value: number | null; delta: string };
+  publishedProjects: { value: number; delta: string | null };
+  responseRate: { value: number | null; delta: string | null };
   activeCollaborations: { value: number };
   recentProjects: Project[];
+  activityChart: ClientDashboardActivityPoint[];
+  recommendations: ClientDashboardRecommendation[];
 }
 
 export async function getClientDashboard(): Promise<ClientDashboard> {
@@ -286,14 +299,32 @@ export async function getClientDashboard(): Promise<ClientDashboard> {
     ? (data["recentProjects"] as unknown[])
     : [];
   const responseRateRaw = data["responseRate"];
+  const activityChartList = Array.isArray(data["activityChart"])
+    ? (data["activityChart"] as unknown[])
+    : [];
+  const recommendationsList = Array.isArray(data["recommendations"])
+    ? (data["recommendations"] as unknown[])
+    : [];
 
   return {
     trustScore: { value: trustScore, label: trustScoreLabelFor(trustScore) },
-    publishedProjects: { value: Number(data["projectsPublishedCount"] ?? 0), delta: "0%" },
+    publishedProjects: { value: Number(data["projectsPublishedCount"] ?? 0), delta: null },
+    activityChart: activityChartList.map((item) => {
+      const point = camelizeKeys(item) as Record<string, unknown>;
+      return { date: String(point["date"] ?? ""), count: Number(point["count"] ?? 0) };
+    }),
+    recommendations: recommendationsList.map((item) => {
+      const rec = camelizeKeys(item) as Record<string, unknown>;
+      return {
+        id: String(rec["id"] ?? ""),
+        title: String(rec["title"] ?? ""),
+        description: String(rec["description"] ?? ""),
+      };
+    }),
     responseRate: {
       value:
         responseRateRaw === null || responseRateRaw === undefined ? null : Number(responseRateRaw),
-      delta: "0%",
+      delta: null,
     },
     activeCollaborations: {
       value: Number(data["collaborationsCount"] ?? data["activeProjectsCount"] ?? 0),

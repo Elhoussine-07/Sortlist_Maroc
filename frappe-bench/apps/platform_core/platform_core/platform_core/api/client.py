@@ -264,7 +264,80 @@ def get_dashboard():
 		"active_projects_count": active_projects_count,
 		"collaborations_count": len(list_collaborations()),
 		"recent_projects": recent_projects,
+		"activity_chart": _recent_activity_chart(client_name),
+		"recommendations": _dashboard_recommendations(profile, client_name),
 	}
+
+ACTIVITY_CHART_WINDOW_DAYS = 30
+PROJECT_DESCRIPTION_MIN_LENGTH = 80
+
+def _recent_activity_chart(client_name):
+	project_names = frappe.get_all("Project", {"client": client_name}, pluck="name")
+	since = frappe.utils.add_days(frappe.utils.nowdate(), -(ACTIVITY_CHART_WINDOW_DAYS - 1))
+	counts_by_date = {}
+	if project_names:
+		rows = frappe.db.sql(
+			"""
+			select date(creation) as day, count(*) as total
+			from `tabOpportunity`
+			where project in %(projects)s and creation >= %(since)s
+			group by date(creation)
+			""",
+			{"projects": project_names, "since": since},
+			as_dict=True,
+		)
+		counts_by_date = {str(row.day): row.total for row in rows}
+
+	chart = []
+	for offset in range(ACTIVITY_CHART_WINDOW_DAYS):
+		day = frappe.utils.add_days(since, offset)
+		chart.append({"date": day, "count": counts_by_date.get(day, 0)})
+	return chart
+
+def _dashboard_recommendations(profile, client_name):
+	recommendations = []
+
+	if (profile.profile_completion or 0) < 100:
+		recommendations.append({
+			"id": "profile",
+			"title": "Complétez votre profil",
+			"description": f"Votre profil est complété à {profile.profile_completion or 0}%. "
+			"Un profil complet inspire confiance aux agences.",
+		})
+
+	has_overdue_proposal = frappe.db.exists(
+		"Proposal",
+		{
+			"project": ["in", frappe.get_all("Project", {"client": client_name}, pluck="name") or [""]],
+			"status": "Sent",
+			"reminder_sent_on": ["is", "set"],
+		},
+	)
+	if has_overdue_proposal:
+		recommendations.append({
+			"id": "response_time",
+			"title": "Répondez plus rapidement",
+			"description": "Un ou plusieurs devis attendent votre réponse depuis plus de 48h. "
+			"Un délai de réponse court améliore votre score.",
+		})
+
+	active_project_descriptions = frappe.get_all(
+		"Project",
+		filters={"client": client_name, "status": ["in", ["Posted", "Awaiting", "In Progress"]]},
+		pluck="description",
+	)
+	thin_project = any(
+		len(description or "") < PROJECT_DESCRIPTION_MIN_LENGTH
+		for description in active_project_descriptions
+	)
+	if thin_project:
+		recommendations.append({
+			"id": "project_detail",
+			"title": "Publiez plus de détails sur vos projets",
+			"description": "Des informations détaillées attirent plus d'agences qualifiées.",
+		})
+
+	return recommendations[:3]
 
 RESPONSE_RATE_WINDOW_DAYS = 90
 RESPONSE_RATE_MIN_SAMPLE = 5
