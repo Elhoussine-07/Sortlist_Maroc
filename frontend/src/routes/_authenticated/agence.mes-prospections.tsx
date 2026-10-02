@@ -5,23 +5,18 @@ import {
   Send,
   Search,
   TrendingUp,
-  Users,
-  Mail,
-  MessageSquare,
+  Building2,
   Clock,
-  CheckCircle2,
-  XCircle,
   Eye,
-  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { DashboardShell } from "@/components/layout/DashboardShell";
-import { SearchInput, StatusTabs, StatusBadge } from "@/components/common/Blocks";
+import { StatusTabs } from "@/components/common/Blocks";
 import { FilterSelect, ListPagination } from "@/components/common/ListControls";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import { EmptyState } from "@/components/common/EmptyState";
-import { getLeads, type Lead } from "@/services/prospection.service";
+import { getLeads, type Lead, type LeadTemperature } from "@/services/prospection.service";
 
 export const Route = createFileRoute("/_authenticated/agence/mes-prospections")({
   head: () => ({
@@ -43,10 +38,24 @@ export const Route = createFileRoute("/_authenticated/agence/mes-prospections")(
 
 const TABS = [
   { value: "all", label: "Toutes" },
-  { value: "sent", label: "Envoyées" },
-  { value: "answered", label: "Répondues" },
-  { value: "no_answer", label: "Sans réponse" },
+  { value: "hot", label: "Chaudes" },
+  { value: "warm", label: "Tièdes" },
+  { value: "cold", label: "Froides" },
 ];
+
+const PERIOD_OPTIONS: Array<{ value: string; label: string; days: number }> = [
+  { value: "7d", label: "7 derniers jours", days: 7 },
+  { value: "30d", label: "30 derniers jours", days: 30 },
+  { value: "90d", label: "90 derniers jours", days: 90 },
+];
+
+function periodToFromDate(period: string): string | undefined {
+  const option = PERIOD_OPTIONS.find((item) => item.value === period);
+  if (!option) return undefined;
+  const date = new Date();
+  date.setDate(date.getDate() - option.days);
+  return date.toISOString();
+}
 
 type StatusConfig = {
   bg: string;
@@ -56,30 +65,9 @@ type StatusConfig = {
   label: string;
 };
 
-type StatusKey = "sent" | "answered" | "no_answer" | "hot" | "warm" | "cold";
+type StatusKey = "hot" | "warm" | "cold";
 
 const STATUS_STYLES: Record<StatusKey, StatusConfig> = {
-  sent: {
-    bg: "bg-blue-100",
-    text: "text-blue-700",
-    border: "border-blue-200",
-    icon: Send,
-    label: "Envoyé",
-  },
-  answered: {
-    bg: "bg-emerald-100",
-    text: "text-emerald-700",
-    border: "border-emerald-200",
-    icon: CheckCircle2,
-    label: "Répondu",
-  },
-  no_answer: {
-    bg: "bg-rose-100",
-    text: "text-rose-700",
-    border: "border-rose-200",
-    icon: XCircle,
-    label: "Sans réponse",
-  },
   hot: {
     bg: "bg-red-100",
     text: "text-red-700",
@@ -104,15 +92,14 @@ const STATUS_STYLES: Record<StatusKey, StatusConfig> = {
 };
 
 function isValidStatusKey(key: string): key is StatusKey {
-  return key === "sent" || key === "answered" || key === "no_answer" ||
-    key === "hot" || key === "warm" || key === "cold";
+  return key === "hot" || key === "warm" || key === "cold";
 }
 
 function getStatusConfig(status: string): StatusConfig {
   if (isValidStatusKey(status)) {
     return STATUS_STYLES[status];
   }
-  return STATUS_STYLES.sent;
+  return STATUS_STYLES.cold;
 }
 
 function buildColumns(): Column<Lead>[] {
@@ -124,11 +111,15 @@ function buildColumns(): Column<Lead>[] {
       render: (item) => (
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
-            <span className="text-[14px] font-bold">{item.initials}</span>
+            {item.initials ? (
+              <span className="text-[14px] font-bold">{item.initials}</span>
+            ) : (
+              <Building2 className="h-4 w-4" strokeWidth={1.8} />
+            )}
           </div>
           <div className="min-w-0">
             <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
-              {item.companyName}
+              {item.companyName || "Visiteur non identifié"}
             </p>
             <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
@@ -218,16 +209,21 @@ function buildColumns(): Column<Lead>[] {
   ];
 }
 
+const PAGE_SIZE = 20;
+
 function AgencyMyProspectionsPage() {
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState<"all" | LeadTemperature>("all");
+  const [periodFilter, setPeriodFilter] = useState("");
   const [page, setPage] = useState(1);
   const [sortDirection, setSortDirection] = useState<"recent" | "old">("recent");
-  const [filterStatus, setFilterStatus] = useState("all");
 
   const leadsQuery = useQuery({
-    queryKey: ["agency", "prospection", "leads", "mine", page],
-    queryFn: () => getLeads({ page, pageSize: 50 }),
+    queryKey: ["agency", "prospection", "leads", "mine", periodFilter],
+    queryFn: () => {
+      const from = periodToFromDate(periodFilter);
+      return getLeads(from ? { from } : {});
+    },
   });
 
   const allProspections = useMemo(() => {
@@ -236,40 +232,38 @@ function AgencyMyProspectionsPage() {
   }, [leadsQuery.data, sortDirection]);
   const isLoading = leadsQuery.isLoading;
 
-  const statusFiltered =
+  const tabFiltered =
     activeTab === "all"
       ? allProspections
-      : allProspections.filter((item) => {
-          if (activeTab === "sent")
-            return item.temperature === "cold" || item.temperature === "warm";
-          if (activeTab === "answered") return item.temperature === "hot";
-          if (activeTab === "no_answer") return item.temperature === "cold";
-          return true;
-        });
+      : allProspections.filter((item) => item.temperature === activeTab);
 
   const filtered = query.trim()
-    ? statusFiltered.filter((item) =>
+    ? tabFiltered.filter((item) =>
         item.companyName.toLowerCase().includes(query.trim().toLowerCase()),
       )
-    : statusFiltered;
+    : tabFiltered;
 
   const counts: Record<string, number> = {
     all: allProspections.length,
-    sent: allProspections.filter((i) => i.temperature === "cold" || i.temperature === "warm")
-      .length,
-    answered: allProspections.filter((i) => i.temperature === "hot").length,
-    no_answer: allProspections.filter((i) => i.temperature === "cold").length,
+    hot: allProspections.filter((i) => i.temperature === "hot").length,
+    warm: allProspections.filter((i) => i.temperature === "warm").length,
+    cold: allProspections.filter((i) => i.temperature === "cold").length,
   };
 
   const total = filtered.length;
-  const totalPages = null;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedProspections = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   return (
     <DashboardShell role="agency">
       <style>{`.font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }`}</style>
 
       <div className="mx-auto max-w-[1080px]">
-        {/* ✅ EN-TÊTE MODERNISÉ */}
+        {/* En-tête */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -292,67 +286,51 @@ function AgencyMyProspectionsPage() {
           </div>
         </div>
 
-        {/* ✅ RECHERCHE MODERNISÉE */}
+        {/* Recherche */}
         <div className="mt-7">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
               placeholder="Rechercher une prospection..."
               className="w-full rounded-xl border border-border bg-card px-10 py-3 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-md transition-all"
             />
           </div>
         </div>
 
-        {/* ✅ TABS MODERNISÉS */}
+        {/* Onglets */}
         <div className="mt-6">
-          <StatusTabs tabs={TABS} value={activeTab} onChange={setActiveTab} counts={counts} />
+          <StatusTabs
+            tabs={TABS}
+            value={activeTab}
+            onChange={(value) => {
+              setActiveTab(isValidStatusKey(value) ? value : "all");
+              setPage(1);
+            }}
+            counts={counts}
+          />
         </div>
 
-        {/* ✅ FILTRES MODERNISÉS */}
-        <div className="mt-6 grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3">
-          <div>
-            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Catégorie
-            </label>
-            <select className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all">
-              <option value="">Toutes les catégories</option>
-              <option value="tech">Technologie</option>
-              <option value="marketing">Marketing</option>
-              <option value="finance">Finance</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Statut
-            </label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all"
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="sent">Envoyé</option>
-              <option value="answered">Répondu</option>
-              <option value="no_answer">Sans réponse</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Période
-            </label>
-            <select className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all">
-              <option value="">Toutes les périodes</option>
-              <option value="7d">7 derniers jours</option>
-              <option value="30d">30 derniers jours</option>
-              <option value="90d">90 derniers jours</option>
-            </select>
-          </div>
+        {/* Filtres */}
+        <div className="mt-6 rounded-xl border border-border bg-card p-4 shadow-sm sm:max-w-xs">
+          <FilterSelect
+            label="Période"
+            placeholder="Toutes les périodes"
+            options={PERIOD_OPTIONS}
+            value={periodFilter}
+            onChange={(value) => {
+              setPeriodFilter(value);
+              setPage(1);
+            }}
+          />
         </div>
 
-        {/* ✅ COMPTEUR + TRI */}
+        {/* Compteur + tri */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">
             {total} prospection{total !== 1 ? "s" : ""}
@@ -367,14 +345,14 @@ function AgencyMyProspectionsPage() {
           </button>
         </div>
 
-        {/* ✅ TABLEAU MODERNISÉ */}
+        {/* Tableau */}
         <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <DataTable columns={buildColumns()} rows={filtered} isLoading={isLoading} />
+          <DataTable columns={buildColumns()} rows={paginatedProspections} isLoading={isLoading} />
         </div>
 
-        <ListPagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        <ListPagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
 
-        {/* ✅ LIEN VERS PROSPECTION IA */}
+        {/* Lien vers la prospection IA */}
         <div className="mt-6 rounded-lg border border-border bg-accent/30 p-4 text-center">
           <p className="text-[13px] text-muted-foreground">
             Besoin de nouveaux prospects ?{" "}
