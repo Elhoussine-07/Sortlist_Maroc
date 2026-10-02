@@ -345,6 +345,17 @@ def list_public_projects(budget_min=None, budget_max=None, sub_category=None, ca
 	)
 	return {"results": results, "total": count, "page": page, "page_size": page_size}
 
+def _regenerate_cdc(project_doc):
+	"""Régénère toujours le CDC avec le gabarit courant avant de le servir,
+	pour qu'un fichier généré avec un ancien gabarit ne soit jamais renvoyé."""
+	if project_doc.need_type != "Projet":
+		return project_doc
+
+	from platform_core.platform_core.cdc import generate_cdc
+
+	generate_cdc(project_doc.name)
+	return frappe.get_doc("Project", project_doc.name)
+
 @frappe.whitelist()
 def download_public_project_cdc(project=None):
 	project = get_body_arg("project", project)
@@ -357,12 +368,7 @@ def download_public_project_cdc(project=None):
 	if doc.status != "Posted" or not doc.client:
 		frappe.throw(_("Ce projet n'est plus disponible"), frappe.PermissionError)
 
-	if not doc.cdc_file:
-		from platform_core.platform_core.cdc import generate_cdc
-
-		generate_cdc(doc.name)
-		doc.reload()
-
+	doc = _regenerate_cdc(doc)
 	if not doc.cdc_file:
 		frappe.throw(_("Aucun CDC disponible pour ce projet"))
 
@@ -423,6 +429,7 @@ def view_cdc(opportunity=None):
 	claims = require_active_agency()
 	doc = _get_owned_opportunity(opportunity, claims)
 	project = frappe.get_doc("Project", doc.project)
+	project = _regenerate_cdc(project)
 	return {"cdc_file": project.cdc_file}
 
 @frappe.whitelist()
@@ -431,6 +438,7 @@ def download_cdc(opportunity=None):
 	claims = require_active_agency()
 	doc = _get_owned_opportunity(opportunity, claims)
 	project = frappe.get_doc("Project", doc.project)
+	project = _regenerate_cdc(project)
 	if not project.cdc_file:
 		frappe.throw(_("Aucun CDC disponible pour cette opportunité"))
 

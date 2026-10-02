@@ -67,6 +67,11 @@ def generate_cdc_if_project(project_doc):
 		return frappe.get_doc("Project", project_doc.name)
 	return project_doc
 
+def ensure_fresh_cdc(project_doc):
+	"""Régénère le CDC avec le gabarit courant avant de le servir, pour qu'un
+	ancien fichier généré avec un gabarit précédent ne soit jamais renvoyé."""
+	return generate_cdc_if_project(project_doc)
+
 @frappe.whitelist()
 def update_brief(project=None, **fields):
 	project = require_body_arg(project, "project", _("Projet manquant"))
@@ -315,6 +320,7 @@ def download_cdc(project=None):
 	claims = require_user_type("client")
 	doc = frappe.get_doc("Project", project)
 	_assert_owner(doc, claims["sub"])
+	doc = ensure_fresh_cdc(doc)
 	if not doc.cdc_file:
 		frappe.throw(_("Aucun CDC disponible pour ce projet"))
 

@@ -60,6 +60,8 @@ def generate_cdc(project_name):
         frappe.set_user(previous_user)
 
     try:
+        _delete_existing_cdc_files(project.name)
+
         file_doc = frappe.get_doc({
             "doctype": "File",
             "file_name": f"CDC-{project.name}.pdf",
@@ -87,6 +89,19 @@ def generate_cdc(project_name):
         frappe.log_error(traceback.format_exc(), "CDC File Save Traceback")
 
         raise RuntimeError(f"Échec de la sauvegarde du fichier CDC: {str(e)}")
+
+def _delete_existing_cdc_files(project_name):
+    existing_files = frappe.get_all(
+        "File",
+        filters={
+            "attached_to_doctype": "Project",
+            "attached_to_name": project_name,
+            "attached_to_field": "cdc_file",
+        },
+        pluck="name",
+    )
+    for file_name in existing_files:
+        frappe.delete_doc("File", file_name, ignore_permissions=True, delete_permanently=True)
 
 def generate_cdc_with_alternative_options(project_name):
     project = frappe.get_doc("Project", project_name)
