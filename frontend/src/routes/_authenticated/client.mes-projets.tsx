@@ -459,6 +459,7 @@ function formatProjectTitle(raw: string): string {
 const PAGE_SIZE = 20;
 
 function ClientProjectsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const projectsQuery = useQuery({
     queryKey: ["client", "projects"],
     queryFn: () => getMyProjects(),
@@ -521,9 +522,11 @@ function ClientProjectsPage() {
       <div className="mx-auto max-w-[1080px]">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div className="min-w-0">
-            <h1 className="font-display text-[24px] font-bold tracking-tight">Mes projets</h1>
+            <h1 className="font-display text-[24px] font-bold tracking-tight">
+              {tt("Mes projets")}
+            </h1>
             <p className="mt-1 text-[14px] text-muted-foreground">
-              Suivez l'ensemble de vos projets.
+              {tt("Suivez l'ensemble de vos projets.")}
             </p>
           </div>
 
@@ -532,7 +535,7 @@ function ClientProjectsPage() {
             className="flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-all hover:opacity-90 hover:shadow-md sm:justify-self-end"
           >
             <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-            Postuler un projet
+            {tt("Postuler un projet")}
           </Link>
         </div>
 
@@ -543,7 +546,7 @@ function ClientProjectsPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Rechercher un projet..."
+            placeholder={tt("Rechercher un projet...")}
             className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground focus:outline-none"
           />
         </div>
@@ -566,22 +569,24 @@ function ClientProjectsPage() {
                   : "border border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground")
               }
             >
-              {tab.label}
+              {tt(tab.label)}
               <span className="ml-1.5 font-normal opacity-70">{counts[tab.value] ?? 0}</span>
             </button>
           ))}
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          <FilterSelect label="Catégorie" placeholder="Toutes les catégories" />
-          <FilterSelect label="Statut" placeholder="Tous les statuts" />
-          <FilterSelect label="Période" placeholder="Toutes les périodes" />
+          <FilterSelect label={tt("Catégorie")} placeholder={tt("Toutes les catégories")} />
+          <FilterSelect label={tt("Statut")} placeholder={tt("Tous les statuts")} />
+          <FilterSelect label={tt("Période")} placeholder={tt("Toutes les périodes")} />
         </div>
 
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">
-            {total} projet
-            {total > 1 ? "s" : ""}
+            {(total > 1 ? tt("{count} projets") : tt("{count} projet")).replace(
+              "{count}",
+              String(total),
+            )}
           </p>
 
           <button
@@ -589,7 +594,8 @@ function ClientProjectsPage() {
             type="button"
             className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
           >
-            Trier par : {sortDirection === "recent" ? "Plus récents" : "Plus anciens"}
+            {tt("Trier par : ")}
+            {sortDirection === "recent" ? tt("Plus récents") : tt("Plus anciens")}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
           </button>
         </div>
@@ -598,25 +604,25 @@ function ClientProjectsPage() {
         <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.2fr)_auto] gap-4 border-b border-border bg-accent/40 px-5 py-3 lg:grid">
             <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Projet
+              {tt("Projet")}
             </p>
             <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Catégorie
+              {tt("Catégorie")}
             </p>
             <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Agence
+              {tt("Agence")}
             </p>
             <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Statut
+              {tt("Statut")}
             </p>
             <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Budget
+              {tt("Budget")}
             </p>
             <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Dernière activité
+              {tt("Dernière activité")}
             </p>
             <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Action
+              {tt("Action")}
             </p>
             <span className="w-4" />
           </div>
@@ -627,7 +633,7 @@ function ClientProjectsPage() {
             </div>
           ) : projects.length === 0 ? (
             <div className="p-5">
-              <EmptyState message="Aucun projet à afficher." />
+              <EmptyState message={tt("Aucun projet à afficher.")} />
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -663,6 +669,8 @@ function ProjectActionsMenu({
   onDelete: () => void;
   className?: string;
 }) {
+  const { tt } = usePageText(PAGE_TEXT);
+
   if (!canRepost && !canDelete) {
     return null;
   }
@@ -672,7 +680,7 @@ function ProjectActionsMenu({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label="Plus d'actions"
+          aria-label={tt("Plus d'actions")}
           className={
             "rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground " +
             (className ?? "")
@@ -690,7 +698,7 @@ function ProjectActionsMenu({
             className="cursor-pointer gap-2 text-[13px]"
           >
             <RefreshCcw className="h-3.5 w-3.5" strokeWidth={1.8} />
-            {isReposting ? "Republication..." : "Repostuler"}
+            {isReposting ? tt("Republication...") : tt("Repostuler")}
           </DropdownMenuItem>
         ) : null}
 
@@ -701,7 +709,7 @@ function ProjectActionsMenu({
             onClick={onDelete}
           >
             <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-            {isDeleting ? "Suppression..." : "Supprimer"}
+            {isDeleting ? tt("Suppression...") : tt("Supprimer")}
           </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>
@@ -710,6 +718,8 @@ function ProjectActionsMenu({
 }
 
 function AgencyLink({ project }: { project: Project }) {
+  const { tt } = usePageText(PAGE_TEXT);
+
   if (!project.agencyId) {
     if (project.declinedByAgencyName && project.declinedByAgency) {
       return (
@@ -719,7 +729,9 @@ function AgencyLink({ project }: { project: Project }) {
           className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground hover:underline"
         >
           <Building2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-          <span className="truncate">{project.declinedByAgencyName} (a refusé)</span>
+          <span className="truncate">
+            {project.declinedByAgencyName} {tt("(a refusé)")}
+          </span>
         </Link>
       );
     }
@@ -733,7 +745,7 @@ function AgencyLink({ project }: { project: Project }) {
       className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-primary transition-colors hover:underline"
     >
       <Building2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-      <span className="truncate">{project.partnerAgencyName ?? "Voir l'agence"}</span>
+      <span className="truncate">{project.partnerAgencyName ?? tt("Voir l'agence")}</span>
     </Link>
   );
 }
@@ -745,32 +757,33 @@ function ProjectRow({
   project: Project;
   viewedFromTab: "all" | ProjectStatus;
 }) {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
 
   const repostMutation = useMutation({
     mutationFn: () => repostProject(project.id),
     onSuccess: () => {
-      toast("Projet republié auprès des agences pertinentes.");
+      toast(tt("Projet republié auprès des agences pertinentes."));
       void queryClient.invalidateQueries({ queryKey: ["client", "projects"] });
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de republier ce projet.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de republier ce projet."));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteProject(project.id),
     onSuccess: () => {
-      toast("Projet supprimé.");
+      toast(tt("Projet supprimé."));
       void queryClient.invalidateQueries({ queryKey: ["client", "projects"] });
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de supprimer ce projet.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de supprimer ce projet."));
     },
   });
 
   function handleDelete() {
-    if (window.confirm("Supprimer définitivement ce projet ?")) {
+    if (window.confirm(tt("Supprimer définitivement ce projet ?"))) {
       deleteMutation.mutate();
     }
   }
@@ -787,7 +800,8 @@ function ProjectRow({
       : project.status;
   const statusConfig = getStatusConfig(displayStatus);
   const StatusIcon = statusConfig.icon;
-  const title = formatProjectTitle(project.title);
+  const rawTitle = formatProjectTitle(project.title);
+  const title = rawTitle === "Projet sans titre" ? tt("Projet sans titre") : rawTitle;
 
   const resumeLink =
     project.status === "draft" ? (
@@ -796,7 +810,7 @@ function ProjectRow({
         search={{ resume: project.id }}
         className="block w-full rounded-lg border border-border bg-background px-4 py-2 text-center text-[13px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
       >
-        📝 Reprendre
+        📝 {tt("Reprendre")}
       </Link>
     ) : (
       <Link
@@ -804,7 +818,7 @@ function ProjectRow({
         params={{ id: project.id }}
         className="block w-full rounded-lg border border-border bg-background px-4 py-2 text-center text-[13px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
       >
-        👁️ Voir
+        👁️ {tt("Voir")}
       </Link>
     );
 
@@ -828,7 +842,9 @@ function ProjectRow({
             </p>
             <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-              {project.reference ? `Réf. ${project.reference.slice(0, 8)}` : "Nouveau projet"}
+              {project.reference
+                ? `${tt("Réf.")} ${project.reference.slice(0, 8)}`
+                : tt("Nouveau projet")}
             </p>
           </div>
         </div>
@@ -836,7 +852,7 @@ function ProjectRow({
         {/* Catégorie */}
         <div className="min-w-0">
           <p className="truncate text-[13px] font-medium text-foreground">
-            {project.category || "Non catégorisé"}
+            {project.category || tt("Non catégorisé")}
           </p>
           {project.subCategory && (
             <p className="truncate text-[12.5px] text-muted-foreground">{project.subCategory}</p>
@@ -858,7 +874,7 @@ function ProjectRow({
             `}
           >
             <StatusIcon className="h-3 w-3" strokeWidth={2} />
-            {statusConfig.label}
+            {tt(statusConfig.label)}
           </span>
         </div>
 
@@ -869,7 +885,7 @@ function ProjectRow({
               {project.budgetMin.toLocaleString()} € — {project.budgetMax.toLocaleString()} €
             </>
           ) : (
-            <span className="text-muted-foreground">Non défini</span>
+            <span className="text-muted-foreground">{tt("Non défini")}</span>
           )}
         </p>
 
@@ -907,7 +923,9 @@ function ProjectRow({
             <p className="font-display text-[14px] font-bold leading-snug">{title}</p>
             <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-              {project.reference ? `Réf. ${project.reference.slice(0, 8)}` : "Nouveau projet"}
+              {project.reference
+                ? `${tt("Réf.")} ${project.reference.slice(0, 8)}`
+                : tt("Nouveau projet")}
             </p>
           </div>
 
@@ -929,35 +947,37 @@ function ProjectRow({
             `}
           >
             <StatusIcon className="h-3 w-3" strokeWidth={2} />
-            {statusConfig.label}
+            {tt(statusConfig.label)}
           </span>
 
           <span className="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-[12px] font-medium text-muted-foreground">
-            {project.category || "Non catégorisé"}
+            {project.category || tt("Non catégorisé")}
           </span>
         </div>
 
         {/* ✅ Agence en mobile */}
         {project.agencyId || project.declinedByAgencyName ? (
           <div className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
-            <span className="text-[11px] uppercase tracking-wide">Agence :</span>
+            <span className="text-[11px] uppercase tracking-wide">{tt("Agence :")}</span>
             <AgencyLink project={project} />
           </div>
         ) : null}
 
         <div className="grid grid-cols-2 gap-3 text-[12.5px] text-muted-foreground">
           <p>
-            <span className="block text-[11px] uppercase tracking-wide">Budget</span>
+            <span className="block text-[11px] uppercase tracking-wide">{tt("Budget")}</span>
             {project.budgetMin && project.budgetMax ? (
               <>
                 {project.budgetMin.toLocaleString()} € — {project.budgetMax.toLocaleString()} €
               </>
             ) : (
-              <span className="text-muted-foreground">Non défini</span>
+              <span className="text-muted-foreground">{tt("Non défini")}</span>
             )}
           </p>
           <p>
-            <span className="block text-[11px] uppercase tracking-wide">Dernière activité</span>
+            <span className="block text-[11px] uppercase tracking-wide">
+              {tt("Dernière activité")}
+            </span>
             {project.lastActivity}
           </p>
         </div>

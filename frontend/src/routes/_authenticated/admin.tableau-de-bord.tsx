@@ -8,6 +8,7 @@ import { StatSkeleton, StackSkeleton } from "@/components/common/Skeletons";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useAuthStore } from "@/store/auth.store";
 import { listPendingSuspensions } from "@/services/moderation.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/admin/tableau-de-bord")({
   head: () => ({
@@ -16,7 +17,66 @@ export const Route = createFileRoute("/_authenticated/admin/tableau-de-bord")({
   component: AdminDashboardPage,
 });
 
+const PAGE_TEXT = {
+  "Tableau de bord — Administration": {
+    en: "Dashboard — Administration",
+    ar: "لوحة التحكم — الإدارة",
+    es: "Panel — Administración",
+  },
+  "Vue d'ensemble des litiges et suspensions en attente, tous projets confondus.": {
+    en: "Overview of pending disputes and suspensions, across all projects.",
+    ar: "نظرة عامة على النزاعات والتعليقات المعلقة، عبر جميع المشاريع.",
+    es: "Resumen de las disputas y suspensiones pendientes, en todos los proyectos.",
+  },
+  "Litiges en attente de verdict": {
+    en: "Disputes awaiting a verdict",
+    ar: "نزاعات في انتظار القرار",
+    es: "Disputas pendientes de veredicto",
+  },
+  "Suspensions amiables en attente": {
+    en: "Pending amicable suspensions",
+    ar: "تعليقات ودية معلقة",
+    es: "Suspensiones amistosas pendientes",
+  },
+  "Décidées en priorité par l'agence — modérateur en filet de sécurité": {
+    en: "Decided primarily by the agency — moderator as a safety net",
+    ar: "تُقرَّر أساسًا من قبل الوكالة — المشرف كشبكة أمان",
+    es: "Decididas principalmente por la agencia — moderador como red de seguridad",
+  },
+  "Dossiers en attente au total": {
+    en: "Total pending cases",
+    ar: "إجمالي الملفات المعلقة",
+    es: "Total de casos pendientes",
+  },
+  "Nécessitent une décision Fondé / Non fondé du modérateur.": {
+    en: "Require a Founded / Unfounded decision from the moderator.",
+    ar: "تتطلب قرارًا من المشرف بـ«مؤسَّس» أو «غير مؤسَّس».",
+    es: "Requieren una decisión de Fundada / No fundada por parte del moderador.",
+  },
+  "Voir tous les dossiers": {
+    en: "View all cases",
+    ar: "عرض جميع الملفات",
+    es: "Ver todos los casos",
+  },
+  "Aucun litige en attente pour le moment.": {
+    en: "No disputes pending at the moment.",
+    ar: "لا توجد نزاعات معلقة في الوقت الحالي.",
+    es: "No hay disputas pendientes en este momento.",
+  },
+  "Agence inconnue": {
+    en: "Unknown agency",
+    ar: "وكالة غير معروفة",
+    es: "Agencia desconocida",
+  },
+  "Litige — à trancher": {
+    en: "Dispute — to be resolved",
+    ar: "نزاع — بانتظار الحسم",
+    es: "Disputa — pendiente de resolución",
+  },
+} satisfies PageTextDict;
+
 function AdminDashboardPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const role = useAuthStore((state) => state.role);
   const navigate = useNavigate();
 
@@ -51,9 +111,11 @@ function AdminDashboardPage() {
   return (
     <DashboardShell role="admin">
       <div className="mx-auto max-w-[1080px]">
-        <h1 className="text-[24px] font-bold tracking-tight">Tableau de bord — Administration</h1>
+        <h1 className="text-[24px] font-bold tracking-tight">
+          {tt("Tableau de bord — Administration")}
+        </h1>
         <p className="mt-1 text-[14px] text-muted-foreground">
-          Vue d'ensemble des litiges et suspensions en attente, tous projets confondus.
+          {tt("Vue d'ensemble des litiges et suspensions en attente, tous projets confondus.")}
         </p>
 
         <div className="mt-7">
@@ -63,18 +125,18 @@ function AdminDashboardPage() {
             <StatGrid>
               <StatCard
                 icon={Gavel}
-                label="Litiges en attente de verdict"
+                label={tt("Litiges en attente de verdict")}
                 value={String(stats.pendingDisputes)}
               />
               <StatCard
                 icon={Handshake}
-                label="Suspensions amiables en attente"
+                label={tt("Suspensions amiables en attente")}
                 value={String(stats.pendingAmicable)}
-                footer="Décidées en priorité par l'agence — modérateur en filet de sécurité"
+                footer={tt("Décidées en priorité par l'agence — modérateur en filet de sécurité")}
               />
               <StatCard
                 icon={Gavel}
-                label="Dossiers en attente au total"
+                label={tt("Dossiers en attente au total")}
                 value={String(stats.total)}
               />
             </StatGrid>
@@ -83,14 +145,14 @@ function AdminDashboardPage() {
 
         <div className="mt-8">
           <SectionCard
-            title="Litiges en attente de verdict"
-            description="Nécessitent une décision Fondé / Non fondé du modérateur."
+            title={tt("Litiges en attente de verdict")}
+            description={tt("Nécessitent une décision Fondé / Non fondé du modérateur.")}
             action={
               <Link
                 to="/admin/litiges"
                 className="flex items-center gap-1.5 text-[13.5px] font-semibold text-primary transition-opacity hover:opacity-80"
               >
-                Voir tous les dossiers
+                {tt("Voir tous les dossiers")}
                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
               </Link>
             }
@@ -98,7 +160,7 @@ function AdminDashboardPage() {
             {casesQuery.isPending ? (
               <StackSkeleton count={3} />
             ) : recentDisputes.length === 0 ? (
-              <EmptyState message="Aucun litige en attente pour le moment." />
+              <EmptyState message={tt("Aucun litige en attente pour le moment.")} />
             ) : (
               <div className="space-y-3">
                 {recentDisputes.map((item) => (
@@ -110,10 +172,10 @@ function AdminDashboardPage() {
                     <div className="min-w-0">
                       <p className="truncate text-[14px] font-bold">{item.projectTitle}</p>
                       <p className="mt-1 truncate text-[13px] text-muted-foreground">
-                        {item.clientName} — {item.agencyName ?? "Agence inconnue"}
+                        {item.clientName} — {item.agencyName ?? tt("Agence inconnue")}
                       </p>
                     </div>
-                    <StatusBadge label="Litige — à trancher" />
+                    <StatusBadge label={tt("Litige — à trancher")} />
                   </Link>
                 ))}
               </div>

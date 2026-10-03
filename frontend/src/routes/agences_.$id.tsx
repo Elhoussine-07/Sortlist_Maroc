@@ -1842,14 +1842,14 @@ function PublicAgencyProfilePage() {
                   setContactForm((prev) => ({ ...prev, title: event.target.value }))
                 }
                 className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-sm transition-all"
-                placeholder="Ex. Refonte de notre site vitrine"
+                placeholder={tt("Ex. Refonte de notre site vitrine")}
               />
             </div>
           )}
 
           <div>
             <label className="text-[13px] font-semibold" htmlFor="contact-description">
-              Décrivez votre besoin
+              {tt("Décrivez votre besoin")}
             </label>
             <textarea
               id="contact-description"
@@ -1859,7 +1859,7 @@ function PublicAgencyProfilePage() {
               }
               rows={4}
               className="mt-1.5 w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-sm transition-all"
-              placeholder="Contexte, objectifs, contraintes..."
+              placeholder={tt("Contexte, objectifs, contraintes...")}
             />
           </div>
 
@@ -1868,7 +1868,7 @@ function PublicAgencyProfilePage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-[13px] font-semibold" htmlFor="contact-category">
-                    Catégorie
+                    {tt("Catégorie")}
                   </label>
                   <select
                     id="contact-category"
@@ -1882,7 +1882,7 @@ function PublicAgencyProfilePage() {
                     }
                     className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all"
                   >
-                    <option value="">Sélectionner...</option>
+                    <option value="">{tt("Sélectionner...")}</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
@@ -1892,7 +1892,7 @@ function PublicAgencyProfilePage() {
                 </div>
                 <div>
                   <label className="text-[13px] font-semibold" htmlFor="contact-sub-category">
-                    Sous-catégorie
+                    {tt("Sous-catégorie")}
                   </label>
                   <select
                     id="contact-sub-category"
@@ -1903,7 +1903,7 @@ function PublicAgencyProfilePage() {
                     disabled={selectedCategorySubOptions.length === 0}
                     className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <option value="">Sélectionner...</option>
+                    <option value="">{tt("Sélectionner...")}</option>
                     {selectedCategorySubOptions.map((sub) => (
                       <option key={sub.id} value={sub.id}>
                         {sub.name}
@@ -1916,7 +1916,7 @@ function PublicAgencyProfilePage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-[13px] font-semibold" htmlFor="contact-budget-min">
-                    Budget min (€)
+                    {tt("Budget min (€)")}
                   </label>
                   <input
                     id="contact-budget-min"
@@ -1931,7 +1931,7 @@ function PublicAgencyProfilePage() {
                 </div>
                 <div>
                   <label className="text-[13px] font-semibold" htmlFor="contact-budget-max">
-                    Budget max (€)
+                    {tt("Budget max (€)")}
                   </label>
                   <input
                     id="contact-budget-max"
@@ -1949,7 +1949,7 @@ function PublicAgencyProfilePage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-[13px] font-semibold" htmlFor="contact-location">
-                    Localisation
+                    {tt("Localisation")}
                   </label>
                   <input
                     id="contact-location"
@@ -1959,12 +1959,12 @@ function PublicAgencyProfilePage() {
                       setContactForm((prev) => ({ ...prev, location: event.target.value }))
                     }
                     className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-sm transition-all"
-                    placeholder="Ex. Casablanca, à distance..."
+                    placeholder={tt("Ex. Casablanca, à distance...")}
                   />
                 </div>
                 <div>
                   <label className="text-[13px] font-semibold" htmlFor="contact-delay">
-                    Délai souhaité (jours)
+                    {tt("Délai souhaité (jours)")}
                   </label>
                   <input
                     id="contact-delay"

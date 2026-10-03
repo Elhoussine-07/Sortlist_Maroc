@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
   Activity,
   ArrowRight,
@@ -37,6 +38,7 @@ import { DataTable, type Column } from "@/components/common/DataTable";
 import type { Project } from "@/lib/types";
 import { getAgencyDashboardOverview } from "@/services/agencies.service";
 import { getAgencyProjects } from "@/services/agency-projects.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/agence/tableau-de-bord")({
   head: () => ({
@@ -209,92 +211,90 @@ function PQIBadge({ score }: { score: number | null }) {
   );
 }
 
-const PROJECT_COLUMNS: Column<Project>[] = [
-  {
-    key: "project",
-    header: "Projet",
-    width: "minmax(0,2fr)",
-    render: (project) => {
-      const style = CATEGORY_STYLES[project.category] ?? DEFAULT_CATEGORY_STYLE;
-      const Icon = style.icon;
-
-      return (
-        <div className="flex min-w-0 items-start gap-3">
-          <div
-            className={
-              "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm " +
-              style.className
-            }
-          >
-            <Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
-          </div>
-          <div className="min-w-0">
-            <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
-              {project.title}
-            </p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-              {project.reference ? `Réf. ${project.reference.slice(0, 8)}` : "Nouveau projet"}
-            </p>
-          </div>
-        </div>
-      );
-    },
+const PAGE_TEXT = {
+  Brouillon: { en: "Draft", ar: "مسودة", es: "Borrador" },
+  Publié: { en: "Published", ar: "منشور", es: "Publicado" },
+  "En attente": { en: "Pending", ar: "قيد الانتظار", es: "Pendiente" },
+  "En cours": { en: "In progress", ar: "قيد التنفيذ", es: "En curso" },
+  Terminé: { en: "Completed", ar: "مكتمل", es: "Finalizado" },
+  Suspendu: { en: "Suspended", ar: "معلّق", es: "Suspendido" },
+  Rejeté: { en: "Rejected", ar: "مرفوض", es: "Rechazado" },
+  Projet: { en: "Project", ar: "المشروع", es: "Proyecto" },
+  Catégorie: { en: "Category", ar: "الفئة", es: "Categoría" },
+  Statut: { en: "Status", ar: "الحالة", es: "Estado" },
+  "Dernière activité": { en: "Last activity", ar: "آخر نشاط", es: "Última actividad" },
+  Action: { en: "Action", ar: "الإجراء", es: "Acción" },
+  "Réf. ": { en: "Ref. ", ar: "رقم المرجع ", es: "Ref. " },
+  "Nouveau projet": { en: "New project", ar: "مشروع جديد", es: "Proyecto nuevo" },
+  "Non catégorisé": { en: "Uncategorized", ar: "غير مصنف", es: "Sin categoría" },
+  "👁️ Voir": { en: "👁️ View", ar: "👁️ عرض", es: "👁️ Ver" },
+  "Score PQI": { en: "PQI Score", ar: "درجة PQI", es: "Puntuación PQI" },
+  "Tableau de bord": { en: "Dashboard", ar: "لوحة التحكم", es: "Panel de control" },
+  "Voici un aperçu de l'activité de votre agence.": {
+    en: "Here's an overview of your agency's activity.",
+    ar: "إليك نظرة عامة على نشاط وكالتك.",
+    es: "Aquí tienes un resumen de la actividad de tu agencia.",
   },
-  {
-    key: "category",
-    header: "Catégorie",
-    render: (project) => (
-      <p className="truncate text-[13px] font-medium text-foreground">
-        {project.category || "Non catégorisé"}
-      </p>
-    ),
+  "Prospection IA": { en: "AI Prospecting", ar: "التنقيب بالذكاء الاصطناعي", es: "Prospección con IA" },
+  "Opportunités ouvertes": {
+    en: "Open opportunities",
+    ar: "الفرص المفتوحة",
+    es: "Oportunidades abiertas",
   },
-  {
-    key: "status",
-    header: "Statut",
-    render: (project) => {
-      const statusConfig = STATUS_STYLES[project.status] ?? DEFAULT_STATUS_STYLE;
-      const StatusIcon = statusConfig.icon;
-      return (
-        <span
-          className={`
-            inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold
-            ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border}
-            shadow-sm transition-all hover:scale-105
-          `}
-        >
-          <StatusIcon className="h-3 w-3" strokeWidth={2} />
-          {statusConfig.label}
-        </span>
-      );
-    },
+  "Voir les opportunités": {
+    en: "View opportunities",
+    ar: "عرض الفرص",
+    es: "Ver oportunidades",
   },
-  {
-    key: "activity",
-    header: "Dernière activité",
-    render: (project) => (
-      <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-        <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.6} />
-        {project.lastActivity}
-      </p>
-    ),
+  "Projets en cours": { en: "Ongoing projects", ar: "المشاريع الجارية", es: "Proyectos en curso" },
+  "Voir les projets": { en: "View projects", ar: "عرض المشاريع", es: "Ver proyectos" },
+  "Note moyenne": { en: "Average rating", ar: "متوسط التقييم", es: "Valoración media" },
+  "PROJETS RÉCENTS": { en: "RECENT PROJECTS", ar: "المشاريع الأخيرة", es: "PROYECTOS RECIENTES" },
+  "Voir tous les projets": {
+    en: "View all projects",
+    ar: "عرض جميع المشاريع",
+    es: "Ver todos los proyectos",
   },
-  {
-    key: "action",
-    header: "Action",
-    render: (project) => (
-      <Link
-        to="/agence/projets-en-cours"
-        className="block w-full rounded-lg border border-border bg-background px-4 py-2 text-center text-[13px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm lg:w-auto"
-      >
-        👁️ Voir
-      </Link>
-    ),
+  "ACTIVITÉS RÉCENTES": { en: "RECENT ACTIVITY", ar: "الأنشطة الأخيرة", es: "ACTIVIDAD RECIENTE" },
+  "Devis envoyés, réponses clients, litiges et facturation.": {
+    en: "Quotes sent, client replies, disputes, and billing.",
+    ar: "عروض الأسعار المرسلة، ردود العملاء، النزاعات، والفوترة.",
+    es: "Presupuestos enviados, respuestas de clientes, disputas y facturación.",
   },
-];
+  "Aucune activité récente à afficher.": {
+    en: "No recent activity to display.",
+    ar: "لا يوجد نشاط حديث لعرضه.",
+    es: "No hay actividad reciente para mostrar.",
+  },
+  "ACCÈS RAPIDES": { en: "QUICK ACCESS", ar: "الوصول السريع", es: "ACCESOS RÁPIDOS" },
+  Facturation: { en: "Billing", ar: "الفوترة", es: "Facturación" },
+  "Suivez vos factures émises et reçues.": {
+    en: "Track your issued and received invoices.",
+    ar: "تابع فواتيرك الصادرة والمستلمة.",
+    es: "Haz seguimiento de tus facturas emitidas y recibidas.",
+  },
+  "Analytics PQI": { en: "PQI Analytics", ar: "تحليلات PQI", es: "Analítica PQI" },
+  "Analysez vos indicateurs de performance.": {
+    en: "Analyze your performance indicators.",
+    ar: "حلّل مؤشرات أدائك.",
+    es: "Analiza tus indicadores de rendimiento.",
+  },
+  "Découvrez les clients suggérés par l'IA.": {
+    en: "Discover clients suggested by AI.",
+    ar: "اكتشف العملاء المقترحين بواسطة الذكاء الاصطناعي.",
+    es: "Descubre los clientes sugeridos por la IA.",
+  },
+  Workflow: { en: "Workflow", ar: "سير العمل", es: "Flujo de trabajo" },
+  "Suivez les étapes de traitement des opportunités.": {
+    en: "Track the stages of opportunity processing.",
+    ar: "تابع مراحل معالجة الفرص.",
+    es: "Sigue las etapas de procesamiento de las oportunidades.",
+  },
+  Ouvrir: { en: "Open", ar: "فتح", es: "Abrir" },
+} satisfies PageTextDict;
 
 function AgencyDashboardPage() {
+  const { tt, locale } = usePageText(PAGE_TEXT);
   const dashboardQuery = useQuery({
     queryKey: ["agency", "dashboard"],
     queryFn: getAgencyDashboardOverview,
@@ -312,11 +312,101 @@ function AgencyDashboardPage() {
 
   const stats: AgencyStats = {
     pqiScore: dashboardQuery.data?.pqiScore ?? null,
-    pqiLabel: dashboardQuery.data ? "Score PQI" : null,
+    pqiLabel: dashboardQuery.data ? tt("Score PQI") : null,
     openOpportunities: dashboardQuery.data?.openOpportunitiesCount ?? null,
     activeProjects: dashboardQuery.data?.inProgressCount ?? null,
     averageRating: dashboardQuery.data?.averageClientRating ?? null,
   };
+
+  const PROJECT_COLUMNS: Column<Project>[] = useMemo(
+    () => [
+      {
+        key: "project",
+        header: tt("Projet"),
+        width: "minmax(0,2fr)",
+        render: (project) => {
+          const style = CATEGORY_STYLES[project.category] ?? DEFAULT_CATEGORY_STYLE;
+          const Icon = style.icon;
+
+          return (
+            <div className="flex min-w-0 items-start gap-3">
+              <div
+                className={
+                  "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm " +
+                  style.className
+                }
+              >
+                <Icon className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              </div>
+              <div className="min-w-0">
+                <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
+                  {project.title}
+                </p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
+                  {project.reference
+                    ? `${tt("Réf. ")}${project.reference.slice(0, 8)}`
+                    : tt("Nouveau projet")}
+                </p>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: "category",
+        header: tt("Catégorie"),
+        render: (project) => (
+          <p className="truncate text-[13px] font-medium text-foreground">
+            {project.category || tt("Non catégorisé")}
+          </p>
+        ),
+      },
+      {
+        key: "status",
+        header: tt("Statut"),
+        render: (project) => {
+          const statusConfig = STATUS_STYLES[project.status] ?? DEFAULT_STATUS_STYLE;
+          const StatusIcon = statusConfig.icon;
+          return (
+            <span
+              className={`
+            inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold
+            ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border}
+            shadow-sm transition-all hover:scale-105
+          `}
+            >
+              <StatusIcon className="h-3 w-3" strokeWidth={2} />
+              {tt(statusConfig.label)}
+            </span>
+          );
+        },
+      },
+      {
+        key: "activity",
+        header: tt("Dernière activité"),
+        render: (project) => (
+          <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.6} />
+            {project.lastActivity}
+          </p>
+        ),
+      },
+      {
+        key: "action",
+        header: tt("Action"),
+        render: (project) => (
+          <Link
+            to="/agence/projets-en-cours"
+            className="block w-full rounded-lg border border-border bg-background px-4 py-2 text-center text-[13px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm lg:w-auto"
+          >
+            {tt("👁️ Voir")}
+          </Link>
+        ),
+      },
+    ],
+    [tt, locale],
+  );
 
   const isStatsLoading = dashboardQuery.isLoading;
   const recentProjects = projectsQuery.data?.items ?? [];

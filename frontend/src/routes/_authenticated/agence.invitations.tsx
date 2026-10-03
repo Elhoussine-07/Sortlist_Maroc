@@ -100,11 +100,12 @@ function receivedColumns(
   onAccept: (item: JoinRequestReceived) => void,
   onReject: (item: JoinRequestReceived) => void,
   pendingId: string | null,
+  tt: (source: string) => string,
 ): Column<JoinRequestReceived>[] {
   return [
     {
       key: "user",
-      header: "Utilisateur",
+      header: tt("Utilisateur"),
       render: (item) => (
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
@@ -116,7 +117,7 @@ function receivedColumns(
             </p>
             <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-              Demande de rattachement
+              {tt("Demande de rattachement")}
             </p>
           </div>
         </div>
@@ -124,7 +125,7 @@ function receivedColumns(
     },
     {
       key: "context",
-      header: "Contexte",
+      header: tt("Contexte"),
       render: (item) => (
         <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.6} />
@@ -134,7 +135,7 @@ function receivedColumns(
     },
     {
       key: "requestedAt",
-      header: "Demandé le",
+      header: tt("Demandé le"),
       render: (item) => (
         <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.6} />
@@ -144,7 +145,7 @@ function receivedColumns(
     },
     {
       key: "action",
-      header: "Action",
+      header: tt("Action"),
       render: (item) => (
         <div className="flex flex-wrap gap-2">
           <button
@@ -154,7 +155,7 @@ function receivedColumns(
             className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-50"
           >
             <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-            Accepter
+            {tt("Accepter")}
           </button>
           <button
             type="button"
@@ -163,7 +164,7 @@ function receivedColumns(
             className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-[13px] font-semibold text-foreground transition-all hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 disabled:opacity-50"
           >
             <XCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
-            Refuser
+            {tt("Refuser")}
           </button>
         </div>
       ),
@@ -171,83 +172,303 @@ function receivedColumns(
   ];
 }
 
-const sentColumns: Column<JoinRequestSent>[] = [
-  {
-    key: "agencyName",
-    header: "Agence",
-    render: (item) => (
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
-          <Users className="h-[18px] w-[18px]" strokeWidth={1.6} />
+function sentColumns(tt: (source: string) => string): Column<JoinRequestSent>[] {
+  return [
+    {
+      key: "agencyName",
+      header: tt("Agence"),
+      render: (item) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
+            <Users className="h-[18px] w-[18px]" strokeWidth={1.6} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
+              {item.agencyName}
+            </p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
+              {tt("Demande envoyée")}
+            </p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
-            {item.agencyName}
-          </p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-            Demande envoyée
-          </p>
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: "status",
-    header: "Statut",
-    render: (item) => {
-      const config = getStatusConfig(item.status);
-      const Icon = config.icon;
-      return (
-        <span
-          className={`
+      ),
+    },
+    {
+      key: "status",
+      header: tt("Statut"),
+      render: (item) => {
+        const config = getStatusConfig(item.status);
+        const Icon = config.icon;
+        return (
+          <span
+            className={`
             inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold
             ${config.bg} ${config.text} border ${config.border}
             shadow-sm transition-all hover:scale-105
           `}
-        >
-          <Icon className="h-3 w-3" strokeWidth={2} />
-          {config.label}
-        </span>
-      );
+          >
+            <Icon className="h-3 w-3" strokeWidth={2} />
+            {tt(config.label)}
+          </span>
+        );
+      },
     },
-  },
-  {
-    key: "requestedAt",
-    header: "Demandé le",
-    render: (item) => (
-      <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-        <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.6} />
-        <span className="truncate">{item.requestedAt}</span>
-      </p>
-    ),
-  },
-  {
-    key: "note",
-    header: "Réponse",
-    render: (item) => {
-      if (item.status === "Rejected" && item.rejectionReason) {
+    {
+      key: "requestedAt",
+      header: tt("Demandé le"),
+      render: (item) => (
+        <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.6} />
+          <span className="truncate">{item.requestedAt}</span>
+        </p>
+      ),
+    },
+    {
+      key: "note",
+      header: tt("Réponse"),
+      render: (item) => {
+        if (item.status === "Rejected" && item.rejectionReason) {
+          return (
+            <p className="flex items-center gap-1.5 text-[13px] text-rose-600">
+              <XCircle className="h-3.5 w-3.5" strokeWidth={1.6} />
+              <span className="truncate">{item.rejectionReason}</span>
+            </p>
+          );
+        }
+        if (item.status === "Approved") {
+          return (
+            <p className="flex items-center gap-1.5 text-[13px] text-emerald-600">
+              <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.6} />
+              <span className="truncate">{tt("Acceptée — vous avez accès à l'agence")}</span>
+            </p>
+          );
+        }
         return (
-          <p className="flex items-center gap-1.5 text-[13px] text-rose-600">
-            <XCircle className="h-3.5 w-3.5" strokeWidth={1.6} />
-            <span className="truncate">{item.rejectionReason}</span>
+          <p className="truncate text-[13px] text-muted-foreground">
+            {tt("En attente de réponse")}
           </p>
         );
-      }
-      if (item.status === "Approved") {
-        return (
-          <p className="flex items-center gap-1.5 text-[13px] text-emerald-600">
-            <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.6} />
-            <span className="truncate">Acceptée — vous avez accès à l'agence</span>
-          </p>
-        );
-      }
-      return <p className="truncate text-[13px] text-muted-foreground">En attente de réponse</p>;
+      },
     },
+  ];
+}
+
+const PAGE_TEXT = {
+  "Utilisateur": {
+    en: "User",
+    ar: "المستخدم",
+    es: "Usuario",
   },
-];
+  "Demande de rattachement": {
+    en: "Affiliation request",
+    ar: "طلب الانضمام",
+    es: "Solicitud de afiliación",
+  },
+  "Contexte": {
+    en: "Context",
+    ar: "السياق",
+    es: "Contexto",
+  },
+  "Demandé le": {
+    en: "Requested on",
+    ar: "تاريخ الطلب",
+    es: "Solicitado el",
+  },
+  "Action": {
+    en: "Action",
+    ar: "الإجراء",
+    es: "Acción",
+  },
+  "Accepter": {
+    en: "Accept",
+    ar: "قبول",
+    es: "Aceptar",
+  },
+  "Refuser": {
+    en: "Decline",
+    ar: "رفض",
+    es: "Rechazar",
+  },
+  "Agence": {
+    en: "Agency",
+    ar: "الوكالة",
+    es: "Agencia",
+  },
+  "Demande envoyée": {
+    en: "Request sent",
+    ar: "طلب مُرسَل",
+    es: "Solicitud enviada",
+  },
+  "Statut": {
+    en: "Status",
+    ar: "الحالة",
+    es: "Estado",
+  },
+  "Réponse": {
+    en: "Response",
+    ar: "الرد",
+    es: "Respuesta",
+  },
+  "Acceptée — vous avez accès à l'agence": {
+    en: "Accepted — you now have access to the agency",
+    ar: "مقبول — أصبح لديك الآن إمكانية الوصول إلى الوكالة",
+    es: "Aceptada — ahora tienes acceso a la agencia",
+  },
+  "En attente de réponse": {
+    en: "Awaiting response",
+    ar: "بانتظار الرد",
+    es: "Esperando respuesta",
+  },
+  "En attente": {
+    en: "Pending",
+    ar: "قيد الانتظار",
+    es: "Pendiente",
+  },
+  "Acceptée": {
+    en: "Accepted",
+    ar: "مقبولة",
+    es: "Aceptada",
+  },
+  "Refusée": {
+    en: "Rejected",
+    ar: "مرفوضة",
+    es: "Rechazada",
+  },
+  "Demande acceptée avec succès": {
+    en: "Request accepted successfully",
+    ar: "تم قبول الطلب بنجاح",
+    es: "Solicitud aceptada con éxito",
+  },
+  "Impossible d'accepter cette demande.": {
+    en: "Unable to accept this request.",
+    ar: "تعذّر قبول هذا الطلب.",
+    es: "No se pudo aceptar esta solicitud.",
+  },
+  "Demande refusée": {
+    en: "Request declined",
+    ar: "تم رفض الطلب",
+    es: "Solicitud rechazada",
+  },
+  "Impossible de refuser cette demande.": {
+    en: "Unable to decline this request.",
+    ar: "تعذّر رفض هذا الطلب.",
+    es: "No se pudo rechazar esta solicitud.",
+  },
+  "Invitations": {
+    en: "Invitations",
+    ar: "الدعوات",
+    es: "Invitaciones",
+  },
+  "Gérez les demandes de rattachement à votre agence.": {
+    en: "Manage affiliation requests to your agency.",
+    ar: "إدارة طلبات الانضمام إلى وكالتك.",
+    es: "Gestiona las solicitudes de afiliación a tu agencia.",
+  },
+  "demande": {
+    en: "request",
+    ar: "طلب",
+    es: "solicitud",
+  },
+  "demandes": {
+    en: "requests",
+    ar: "طلبات",
+    es: "solicitudes",
+  },
+  "envoyée": {
+    en: "sent",
+    ar: "مُرسَل",
+    es: "enviada",
+  },
+  "envoyées": {
+    en: "sent",
+    ar: "مُرسَلة",
+    es: "enviadas",
+  },
+  "Demandes reçues": {
+    en: "Received requests",
+    ar: "الطلبات الواردة",
+    es: "Solicitudes recibidas",
+  },
+  "Un utilisateur souhaite rejoindre votre agence — acceptez ou refusez sa demande.": {
+    en: "A user wants to join your agency — accept or decline their request.",
+    ar: "يرغب أحد المستخدمين في الانضمام إلى وكالتك — اقبل طلبه أو ارفضه.",
+    es: "Un usuario desea unirse a tu agencia — acepta o rechaza su solicitud.",
+  },
+  "Rechercher un utilisateur...": {
+    en: "Search for a user...",
+    ar: "ابحث عن مستخدم...",
+    es: "Buscar un usuario...",
+  },
+  "Trier par :": {
+    en: "Sort by:",
+    ar: "ترتيب حسب:",
+    es: "Ordenar por:",
+  },
+  "Plus récentes": {
+    en: "Most recent",
+    ar: "الأحدث",
+    es: "Más recientes",
+  },
+  "Plus anciennes": {
+    en: "Oldest",
+    ar: "الأقدم",
+    es: "Más antiguas",
+  },
+  "Aucune demande en attente.": {
+    en: "No pending requests.",
+    ar: "لا توجد طلبات معلقة.",
+    es: "No hay solicitudes pendientes.",
+  },
+  "Mes demandes envoyées": {
+    en: "My sent requests",
+    ar: "طلباتي المُرسَلة",
+    es: "Mis solicitudes enviadas",
+  },
+  "Suivi des demandes de rattachement que vous avez envoyées à d'autres agences.": {
+    en: "Track the affiliation requests you have sent to other agencies.",
+    ar: "تتبّع طلبات الانضمام التي أرسلتها إلى وكالات أخرى.",
+    es: "Seguimiento de las solicitudes de afiliación que has enviado a otras agencias.",
+  },
+  "Vous n'avez envoyé aucune demande.": {
+    en: "You haven't sent any requests.",
+    ar: "لم ترسل أي طلب.",
+    es: "No has enviado ninguna solicitud.",
+  },
+  "Refuser la demande": {
+    en: "Decline the request",
+    ar: "رفض الطلب",
+    es: "Rechazar la solicitud",
+  },
+  "Refuser la demande de rattachement de": {
+    en: "Decline the affiliation request from",
+    ar: "رفض طلب الانضمام المُقدَّم من",
+    es: "Rechazar la solicitud de afiliación de",
+  },
+  "Un message est optionnel.": {
+    en: "A message is optional.",
+    ar: "الرسالة اختيارية.",
+    es: "El mensaje es opcional.",
+  },
+  "Envoi...": {
+    en: "Sending...",
+    ar: "جارٍ الإرسال...",
+    es: "Enviando...",
+  },
+  "Message (optionnel)": {
+    en: "Message (optional)",
+    ar: "رسالة (اختياري)",
+    es: "Mensaje (opcional)",
+  },
+  "Expliquez brièvement pourquoi vous refusez cette demande...": {
+    en: "Briefly explain why you are declining this request...",
+    ar: "اشرح بإيجاز سبب رفضك لهذا الطلب...",
+    es: "Explica brevemente por qué rechazas esta solicitud...",
+  },
+} satisfies PageTextDict;
 
 function AgencyInvitationsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const [rejectTarget, setRejectTarget] = useState<JoinRequestReceived | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -273,11 +494,11 @@ function AgencyInvitationsPage() {
   const approveMutation = useMutation({
     mutationFn: (item: JoinRequestReceived) => approveJoinRequest(item.id),
     onSuccess: () => {
-      toast("Demande acceptée avec succès");
+      toast(tt("Demande acceptée avec succès"));
       invalidateAll();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'accepter cette demande.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'accepter cette demande."));
     },
   });
 
@@ -285,13 +506,13 @@ function AgencyInvitationsPage() {
     mutationFn: (payload: { item: JoinRequestReceived; reason: string }) =>
       rejectJoinRequest(payload.item.id, payload.reason || undefined),
     onSuccess: () => {
-      toast("Demande refusée");
+      toast(tt("Demande refusée"));
       invalidateAll();
       setRejectTarget(null);
       setRejectReason("");
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de refuser cette demande.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de refuser cette demande."));
     },
   });
 
@@ -324,16 +545,18 @@ function AgencyInvitationsPage() {
               <Users className="h-[22px] w-[22px]" strokeWidth={1.6} />
             </div>
             <div>
-              <h1 className="font-display text-[24px] font-bold tracking-tight">Invitations</h1>
+              <h1 className="font-display text-[24px] font-bold tracking-tight">
+                {tt("Invitations")}
+              </h1>
               <p className="mt-1 text-[14px] text-muted-foreground">
-                Gérez les demandes de rattachement à votre agence.
+                {tt("Gérez les demandes de rattachement à votre agence.")}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary">
               <TrendingUp className="inline h-3.5 w-3.5 mr-1" />
-              {received.length} demande{received.length !== 1 ? "s" : ""}
+              {received.length} {tt(received.length !== 1 ? "demandes" : "demande")}
             </span>
           </div>
         </div>
@@ -343,9 +566,9 @@ function AgencyInvitationsPage() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
               <div>
-                <h2 className="text-[16px] font-bold">Demandes reçues</h2>
+                <h2 className="text-[16px] font-bold">{tt("Demandes reçues")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Un utilisateur souhaite rejoindre votre agence — acceptez ou refusez sa demande.
+                  {tt("Un utilisateur souhaite rejoindre votre agence — acceptez ou refusez sa demande.")}
                 </p>
               </div>
             </div>
@@ -358,7 +581,7 @@ function AgencyInvitationsPage() {
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Rechercher un utilisateur..."
+                  placeholder={tt("Rechercher un utilisateur...")}
                   className="w-full rounded-lg border border-border bg-background px-10 py-2.5 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-sm transition-all"
                 />
               </div>
@@ -367,7 +590,7 @@ function AgencyInvitationsPage() {
             {/* ✅ TRI */}
             <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
               <p className="truncate text-[14px] font-semibold">
-                {sortedReceived.length} demande{sortedReceived.length !== 1 ? "s" : ""}
+                {sortedReceived.length} {tt(sortedReceived.length !== 1 ? "demandes" : "demande")}
               </p>
               <button
                 onClick={() =>
@@ -376,14 +599,15 @@ function AgencyInvitationsPage() {
                 type="button"
                 className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
               >
-                Trier par : {sortDirection === "recent" ? "Plus récentes" : "Plus anciennes"}
+                {tt("Trier par :")}{" "}
+                {sortDirection === "recent" ? tt("Plus récentes") : tt("Plus anciennes")}
                 <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
               </button>
             </div>
 
             <div className="mt-4">
               {receivedQuery.isLoading ? null : sortedReceived.length === 0 ? (
-                <EmptyState message="Aucune demande en attente." />
+                <EmptyState message={tt("Aucune demande en attente.")} />
               ) : (
                 <DataTable
                   columns={receivedColumns(
@@ -393,6 +617,7 @@ function AgencyInvitationsPage() {
                       setRejectReason("");
                     },
                     pendingActionId,
+                    tt,
                   )}
                   rows={sortedReceived}
                   isLoading={receivedQuery.isLoading}
@@ -407,21 +632,21 @@ function AgencyInvitationsPage() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
               <div>
-                <h2 className="text-[16px] font-bold">Mes demandes envoyées</h2>
+                <h2 className="text-[16px] font-bold">{tt("Mes demandes envoyées")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Suivi des demandes de rattachement que vous avez envoyées à d'autres agences.
+                  {tt("Suivi des demandes de rattachement que vous avez envoyées à d'autres agences.")}
                 </p>
               </div>
               <span className="rounded-full bg-primary/10 px-3 py-1 text-[12px] font-semibold text-primary">
-                {sent.length} envoyée{sent.length !== 1 ? "s" : ""}
+                {sent.length} {tt(sent.length !== 1 ? "envoyées" : "envoyée")}
               </span>
             </div>
 
             <div className="mt-5">
               {sentQuery.isLoading ? null : sent.length === 0 ? (
-                <EmptyState message="Vous n'avez envoyé aucune demande." />
+                <EmptyState message={tt("Vous n'avez envoyé aucune demande.")} />
               ) : (
-                <DataTable columns={sentColumns} rows={sent} isLoading={sentQuery.isLoading} />
+                <DataTable columns={sentColumns(tt)} rows={sent} isLoading={sentQuery.isLoading} />
               )}
             </div>
           </div>
@@ -437,13 +662,13 @@ function AgencyInvitationsPage() {
             setRejectReason("");
           }
         }}
-        title="Refuser la demande"
+        title={tt("Refuser la demande")}
         description={
           rejectTarget
-            ? `Refuser la demande de rattachement de ${rejectTarget.user}. Un message est optionnel.`
-            : "Un message est optionnel."
+            ? `${tt("Refuser la demande de rattachement de")} ${rejectTarget.user}. ${tt("Un message est optionnel.")}`
+            : tt("Un message est optionnel.")
         }
-        confirmLabel={rejectMutation.isPending ? "Envoi..." : "Refuser"}
+        confirmLabel={rejectMutation.isPending ? tt("Envoi...") : tt("Refuser")}
         onConfirm={() => {
           if (!rejectTarget) return;
           rejectMutation.mutate({ item: rejectTarget, reason: rejectReason.trim() });
@@ -458,17 +683,17 @@ function AgencyInvitationsPage() {
               <div>
                 <p className="text-[13px] font-semibold">{rejectTarget.user}</p>
                 <p className="text-[12px] text-muted-foreground">
-                  {rejectTarget.context || "Demande de rattachement"}
+                  {rejectTarget.context || tt("Demande de rattachement")}
                 </p>
               </div>
             </div>
           )}
           <TextAreaField
-            label="Message (optionnel)"
+            label={tt("Message (optionnel)")}
             rows={4}
             value={rejectReason}
             onChange={(event) => setRejectReason(event.target.value)}
-            placeholder="Expliquez brièvement pourquoi vous refusez cette demande..."
+            placeholder={tt("Expliquez brièvement pourquoi vous refusez cette demande...")}
           />
         </div>
       </ActionModal>

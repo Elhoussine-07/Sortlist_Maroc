@@ -48,7 +48,151 @@ interface AccountActionTarget {
   label: string;
 }
 
+const PAGE_TEXT = {
+  "Avis publié.": {
+    en: "Review published.",
+    ar: "تم نشر التقييم.",
+    es: "Reseña publicada.",
+  },
+  "Avis rejeté.": {
+    en: "Review rejected.",
+    ar: "تم رفض التقييم.",
+    es: "Reseña rechazada.",
+  },
+  "Impossible d'enregistrer la décision.": {
+    en: "Unable to save the decision.",
+    ar: "تعذّر حفظ القرار.",
+    es: "No se pudo guardar la decisión.",
+  },
+  "Compte suspendu.": {
+    en: "Account suspended.",
+    ar: "تم تعليق الحساب.",
+    es: "Cuenta suspendida.",
+  },
+  "Compte signalé.": {
+    en: "Account flagged.",
+    ar: "تم الإبلاغ عن الحساب.",
+    es: "Cuenta reportada.",
+  },
+  "Impossible d'enregistrer l'action.": {
+    en: "Unable to save the action.",
+    ar: "تعذّر حفظ الإجراء.",
+    es: "No se pudo guardar la acción.",
+  },
+  "Avis & comptes": {
+    en: "Reviews & accounts",
+    ar: "التقييمات والحسابات",
+    es: "Reseñas y cuentas",
+  },
+  "Modération des avis et actions sur les comptes Client/Agence.": {
+    en: "Review moderation and actions on Client/Agency accounts.",
+    ar: "الإشراف على التقييمات واتخاذ الإجراءات على حسابات العملاء/الوكالات.",
+    es: "Moderación de reseñas y acciones sobre las cuentas de Cliente/Agencia.",
+  },
+  "Avis Client → Agence en attente": {
+    en: "Pending Client → Agency reviews",
+    ar: "تقييمات العميل ← الوكالة قيد الانتظار",
+    es: "Reseñas Cliente → Agencia pendientes",
+  },
+  "Doivent être approuvés avant publication.": {
+    en: "Must be approved before publication.",
+    ar: "يجب الموافقة عليها قبل النشر.",
+    es: "Deben aprobarse antes de su publicación.",
+  },
+  "Aucun avis en attente.": {
+    en: "No reviews pending.",
+    ar: "لا توجد تقييمات قيد الانتظار.",
+    es: "No hay reseñas pendientes.",
+  },
+  "Noté par {name}": {
+    en: "Rated by {name}",
+    ar: "قيّمه {name}",
+    es: "Calificado por {name}",
+  },
+  "Approuver": {
+    en: "Approve",
+    ar: "الموافقة",
+    es: "Aprobar",
+  },
+  "Rejeter": {
+    en: "Reject",
+    ar: "رفض",
+    es: "Rechazar",
+  },
+  "Signaler l'agence": {
+    en: "Flag the agency",
+    ar: "الإبلاغ عن الوكالة",
+    es: "Reportar la agencia",
+  },
+  "Suspendre l'agence": {
+    en: "Suspend the agency",
+    ar: "تعليق الوكالة",
+    es: "Suspender la agencia",
+  },
+  "Avis Agence → Client (récents)": {
+    en: "Agency → Client reviews (recent)",
+    ar: "تقييمات الوكالة ← العميل (الأحدث)",
+    es: "Reseñas Agencia → Cliente (recientes)",
+  },
+  "Publiés directement (pas de file de modération sur ce sens) — listés ici pour visibilité.": {
+    en: "Published directly (no moderation queue in this direction) — listed here for visibility.",
+    ar: "تُنشر مباشرة (لا توجد قائمة انتظار للإشراف في هذا الاتجاه) — مدرجة هنا للعرض فقط.",
+    es: "Publicadas directamente (sin cola de moderación en este sentido) — aparecen aquí solo para visibilidad.",
+  },
+  "Aucun avis récent.": {
+    en: "No recent reviews.",
+    ar: "لا توجد تقييمات حديثة.",
+    es: "No hay reseñas recientes.",
+  },
+  "Signaler le client": {
+    en: "Flag the client",
+    ar: "الإبلاغ عن العميل",
+    es: "Reportar al cliente",
+  },
+  "Suspendre le client": {
+    en: "Suspend the client",
+    ar: "تعليق العميل",
+    es: "Suspender al cliente",
+  },
+  "Confirmer la suspension": {
+    en: "Confirm suspension",
+    ar: "تأكيد التعليق",
+    es: "Confirmar la suspensión",
+  },
+  "Confirmer le signalement": {
+    en: "Confirm flagging",
+    ar: "تأكيد الإبلاغ",
+    es: "Confirmar el reporte",
+  },
+  "Compte : {label}": {
+    en: "Account: {label}",
+    ar: "الحساب: {label}",
+    es: "Cuenta: {label}",
+  },
+  "Confirmer": {
+    en: "Confirm",
+    ar: "تأكيد",
+    es: "Confirmar",
+  },
+  "Motif (obligatoire)": {
+    en: "Reason (required)",
+    ar: "السبب (إلزامي)",
+    es: "Motivo (obligatorio)",
+  },
+  "Motif (optionnel)": {
+    en: "Reason (optional)",
+    ar: "السبب (اختياري)",
+    es: "Motivo (opcional)",
+  },
+  "Ex. avis mentionnant un comportement frauduleux...": {
+    en: "E.g. a review mentioning fraudulent behavior...",
+    ar: "مثال: تقييم يذكر سلوكًا احتياليًا...",
+    es: "Ej. una reseña que menciona un comportamiento fraudulento...",
+  },
+} satisfies PageTextDict;
+
 function AdminReviewsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const role = useAuthStore((state) => state.role);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -79,11 +223,11 @@ function AdminReviewsPage() {
     mutationFn: ({ id, approve }: { id: string; approve: boolean }) =>
       moderateAgencyReview(id, approve),
     onSuccess: (_data, variables) => {
-      toast(variables.approve ? "Avis publié." : "Avis rejeté.");
+      toast(variables.approve ? tt("Avis publié.") : tt("Avis rejeté."));
       void queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer la décision.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'enregistrer la décision."));
     },
   });
 
@@ -103,13 +247,13 @@ function AdminReviewsPage() {
         : flagAccount(actionTarget.accountType, actionTarget.target, actionReason.trim());
     },
     onSuccess: () => {
-      toast(actionKind === "suspend" ? "Compte suspendu." : "Compte signalé.");
+      toast(actionKind === "suspend" ? tt("Compte suspendu.") : tt("Compte signalé."));
       setActionTarget(null);
       setActionKind(null);
       setActionReason("");
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer l'action.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'enregistrer l'action."));
     },
   });
 
@@ -118,20 +262,20 @@ function AdminReviewsPage() {
   return (
     <DashboardShell role="admin">
       <div className="mx-auto max-w-[1080px]">
-        <h1 className="text-[24px] font-bold tracking-tight">Avis & comptes</h1>
+        <h1 className="text-[24px] font-bold tracking-tight">{tt("Avis & comptes")}</h1>
         <p className="mt-1 text-[14px] text-muted-foreground">
-          Modération des avis et actions sur les comptes Client/Agence.
+          {tt("Modération des avis et actions sur les comptes Client/Agence.")}
         </p>
 
         <div className="mt-7">
           <SectionCard
-            title="Avis Client → Agence en attente"
-            description="Doivent être approuvés avant publication."
+            title={tt("Avis Client → Agence en attente")}
+            description={tt("Doivent être approuvés avant publication.")}
           >
             {agencyReviewsQuery.isPending ? (
               <StackSkeleton count={3} />
             ) : agencyReviews.length === 0 ? (
-              <EmptyState message="Aucun avis en attente." />
+              <EmptyState message={tt("Aucun avis en attente.")} />
             ) : (
               <div className="space-y-4">
                 {agencyReviews.map((review) => (
@@ -142,7 +286,7 @@ function AdminReviewsPage() {
                           {review.agencyName ?? review.agency}
                         </p>
                         <p className="mt-1 text-[13px] text-muted-foreground">
-                          Noté par {review.clientName}
+                          {tt("Noté par {name}").replace("{name}", review.clientName)}
                         </p>
                       </div>
                       <StarRating rating={review.rating} />
@@ -158,7 +302,7 @@ function AdminReviewsPage() {
                         className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                        Approuver
+                        {tt("Approuver")}
                       </button>
                       <button
                         type="button"
@@ -167,7 +311,7 @@ function AdminReviewsPage() {
                         className="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <XCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
-                        Rejeter
+                        {tt("Rejeter")}
                       </button>
                       <button
                         type="button"
@@ -182,7 +326,7 @@ function AdminReviewsPage() {
                         className="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent"
                       >
                         <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
-                        Signaler l'agence
+                        {tt("Signaler l'agence")}
                       </button>
                       <button
                         type="button"
@@ -197,7 +341,7 @@ function AdminReviewsPage() {
                         className="flex items-center gap-1.5 rounded-md border border-destructive px-3 py-2 text-[13px] font-semibold text-destructive transition-colors hover:bg-destructive/10"
                       >
                         <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
-                        Suspendre l'agence
+                        {tt("Suspendre l'agence")}
                       </button>
                     </div>
                   </article>
@@ -209,13 +353,15 @@ function AdminReviewsPage() {
 
         <div className="mt-7">
           <SectionCard
-            title="Avis Agence → Client (récents)"
-            description="Publiés directement (pas de file de modération sur ce sens) — listés ici pour visibilité."
+            title={tt("Avis Agence → Client (récents)")}
+            description={tt(
+              "Publiés directement (pas de file de modération sur ce sens) — listés ici pour visibilité.",
+            )}
           >
             {clientReviewsQuery.isPending ? (
               <StackSkeleton count={3} />
             ) : clientReviews.length === 0 ? (
-              <EmptyState message="Aucun avis récent." />
+              <EmptyState message={tt("Aucun avis récent.")} />
             ) : (
               <div className="space-y-4">
                 {clientReviews.map((review) => (
@@ -224,7 +370,10 @@ function AdminReviewsPage() {
                       <div className="min-w-0">
                         <p className="text-[14px] font-bold">{review.clientName}</p>
                         <p className="mt-1 text-[13px] text-muted-foreground">
-                          Noté par {review.agencyName ?? review.agency}
+                          {tt("Noté par {name}").replace(
+                            "{name}",
+                            review.agencyName ?? review.agency,
+                          )}
                         </p>
                       </div>
                       <StarRating rating={review.rating} />
@@ -246,7 +395,7 @@ function AdminReviewsPage() {
                         className="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent"
                       >
                         <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
-                        Signaler le client
+                        {tt("Signaler le client")}
                       </button>
                       <button
                         type="button"
@@ -261,7 +410,7 @@ function AdminReviewsPage() {
                         className="flex items-center gap-1.5 rounded-md border border-destructive px-3 py-2 text-[13px] font-semibold text-destructive transition-colors hover:bg-destructive/10"
                       >
                         <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
-                        Suspendre le client
+                        {tt("Suspendre le client")}
                       </button>
                     </div>
                   </article>
@@ -280,17 +429,17 @@ function AdminReviewsPage() {
             setActionReason("");
           }
         }}
-        title={actionKind === "suspend" ? "Confirmer la suspension" : "Confirmer le signalement"}
-        description={actionTarget ? `Compte : ${actionTarget.label}` : ""}
-        confirmLabel={accountActionMutation.isPending ? "..." : "Confirmer"}
+        title={actionKind === "suspend" ? tt("Confirmer la suspension") : tt("Confirmer le signalement")}
+        description={actionTarget ? tt("Compte : {label}").replace("{label}", actionTarget.label) : ""}
+        confirmLabel={accountActionMutation.isPending ? "..." : tt("Confirmer")}
         onConfirm={() => accountActionMutation.mutate()}
       >
         <TextAreaField
-          label={actionKind === "flag" ? "Motif (obligatoire)" : "Motif (optionnel)"}
+          label={actionKind === "flag" ? tt("Motif (obligatoire)") : tt("Motif (optionnel)")}
           rows={4}
           value={actionReason}
           onChange={(event) => setActionReason(event.target.value)}
-          placeholder="Ex. avis mentionnant un comportement frauduleux..."
+          placeholder={tt("Ex. avis mentionnant un comportement frauduleux...")}
         />
       </ActionModal>
     </DashboardShell>

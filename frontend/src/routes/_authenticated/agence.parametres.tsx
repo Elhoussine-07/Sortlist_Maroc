@@ -19,6 +19,198 @@ import {
 } from "lucide-react";
 import { useThemeStore } from "@/store/theme.store";
 import { useLocaleStore, type Locale } from "@/store/locale.store";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const PAGE_TEXT = {
+  "Par défaut": { en: "Default", ar: "افتراضي", es: "Predeterminado" },
+  Système: { en: "System", ar: "النظام", es: "Sistema" },
+  Clair: { en: "Light", ar: "فاتح", es: "Claro" },
+  Sombre: { en: "Dark", ar: "داكن", es: "Oscuro" },
+  "Suivre le système": { en: "Follow system", ar: "اتباع النظام", es: "Seguir el sistema" },
+  Paramètres: { en: "Settings", ar: "الإعدادات", es: "Configuración" },
+  "Gérez les paramètres de votre compte et de votre agence.": {
+    en: "Manage your account and agency settings.",
+    ar: "أدر إعدادات حسابك ووكالتك.",
+    es: "Gestiona la configuración de tu cuenta y de tu agencia.",
+  },
+  Profil: { en: "Profile", ar: "الملف الشخصي", es: "Perfil" },
+  Apparence: { en: "Appearance", ar: "المظهر", es: "Apariencia" },
+  Notifications: { en: "Notifications", ar: "الإشعارات", es: "Notificaciones" },
+  Facturation: { en: "Billing", ar: "الفوترة", es: "Facturación" },
+  Sécurité: { en: "Security", ar: "الأمان", es: "Seguridad" },
+  "Profil agence": { en: "Agency profile", ar: "ملف الوكالة", es: "Perfil de la agencia" },
+  "Vos informations d'agence.": {
+    en: "Your agency information.",
+    ar: "معلومات وكالتك.",
+    es: "La información de tu agencia.",
+  },
+  "E-mail non renseigné": {
+    en: "Email not provided",
+    ar: "لم يتم تحديد البريد الإلكتروني",
+    es: "Correo electrónico no indicado",
+  },
+  "Modifier le profil agence": {
+    en: "Edit agency profile",
+    ar: "تعديل ملف الوكالة",
+    es: "Editar el perfil de la agencia",
+  },
+  Thème: { en: "Theme", ar: "السمة", es: "Tema" },
+  "Choisissez le thème d'affichage.": {
+    en: "Choose the display theme.",
+    ar: "اختر سمة العرض.",
+    es: "Elige el tema de visualización.",
+  },
+  "Préférences d'affichage": {
+    en: "Display preferences",
+    ar: "تفضيلات العرض",
+    es: "Preferencias de visualización",
+  },
+  "Langue, police et taille du texte.": {
+    en: "Language, font and text size.",
+    ar: "اللغة والخط وحجم النص.",
+    es: "Idioma, fuente y tamaño del texto.",
+  },
+  Langue: { en: "Language", ar: "اللغة", es: "Idioma" },
+  "Langue de l'interface": {
+    en: "Interface language",
+    ar: "لغة الواجهة",
+    es: "Idioma de la interfaz",
+  },
+  Police: { en: "Font", ar: "الخط", es: "Fuente" },
+  "Police d'affichage": { en: "Display font", ar: "خط العرض", es: "Fuente de visualización" },
+  "Taille du texte": { en: "Text size", ar: "حجم النص", es: "Tamaño del texto" },
+  "Ajustez la lisibilité de l'interface": {
+    en: "Adjust the readability of the interface",
+    ar: "اضبط وضوح قراءة الواجهة",
+    es: "Ajusta la legibilidad de la interfaz",
+  },
+  "Alertes opportunités, rappels de devis et notifications générales.": {
+    en: "Opportunity alerts, quote reminders and general notifications.",
+    ar: "تنبيهات الفرص، تذكيرات العروض، والإشعارات العامة.",
+    es: "Alertas de oportunidades, recordatorios de presupuestos y notificaciones generales.",
+  },
+  "Notifications par e-mail": {
+    en: "Email notifications",
+    ar: "إشعارات البريد الإلكتروني",
+    es: "Notificaciones por correo electrónico",
+  },
+  "Opportunités, litiges, factures": {
+    en: "Opportunities, disputes, invoices",
+    ar: "فرص، نزاعات، فواتير",
+    es: "Oportunidades, disputas, facturas",
+  },
+  "Notifications push": { en: "Push notifications", ar: "الإشعارات الفورية", es: "Notificaciones push" },
+  "Alertes en temps réel dans le navigateur": {
+    en: "Real-time alerts in the browser",
+    ar: "تنبيهات فورية في المتصفح",
+    es: "Alertas en tiempo real en el navegador",
+  },
+  "Alertes nouvelles opportunités": {
+    en: "New opportunity alerts",
+    ar: "تنبيهات الفرص الجديدة",
+    es: "Alertas de nuevas oportunidades",
+  },
+  "Recevez un e-mail dès qu'un projet correspond à vos compétences": {
+    en: "Receive an email as soon as a project matches your skills",
+    ar: "تلقَّ بريدًا إلكترونيًا فور توافق مشروع مع مهاراتك",
+    es: "Recibe un correo electrónico en cuanto un proyecto coincida con tus competencias",
+  },
+  "Rappels de devis": { en: "Quote reminders", ar: "تذكيرات العروض", es: "Recordatorios de presupuestos" },
+  "Relance automatique avant expiration d'une opportunité": {
+    en: "Automatic reminder before an opportunity expires",
+    ar: "تذكير تلقائي قبل انتهاء صلاحية الفرصة",
+    es: "Recordatorio automático antes de que expire una oportunidad",
+  },
+  "Informations de facturation": {
+    en: "Billing information",
+    ar: "معلومات الفوترة",
+    es: "Información de facturación",
+  },
+  "Utilisées sur les factures émises par votre agence.": {
+    en: "Used on the invoices issued by your agency.",
+    ar: "تُستخدم في الفواتير الصادرة عن وكالتك.",
+    es: "Se utilizan en las facturas emitidas por tu agencia.",
+  },
+  "E-mail de facturation": {
+    en: "Billing email",
+    ar: "البريد الإلكتروني للفوترة",
+    es: "Correo electrónico de facturación",
+  },
+  "Numéro de TVA": { en: "VAT number", ar: "رقم التعريف الضريبي", es: "Número de IVA" },
+  "Adresse de facturation": { en: "Billing address", ar: "عنوان الفوترة", es: "Dirección de facturación" },
+  "Enregistrement...": { en: "Saving...", ar: "جارٍ الحفظ...", es: "Guardando..." },
+  Enregistrer: { en: "Save", ar: "حفظ", es: "Guardar" },
+  "Mot de passe": { en: "Password", ar: "كلمة المرور", es: "Contraseña" },
+  "Modifiez régulièrement votre mot de passe.": {
+    en: "Change your password regularly.",
+    ar: "قم بتغيير كلمة مرورك بانتظام.",
+    es: "Cambia tu contraseña regularmente.",
+  },
+  "Mot de passe actuel": { en: "Current password", ar: "كلمة المرور الحالية", es: "Contraseña actual" },
+  "Nouveau mot de passe": { en: "New password", ar: "كلمة المرور الجديدة", es: "Nueva contraseña" },
+  "Confirmer le mot de passe": {
+    en: "Confirm password",
+    ar: "تأكيد كلمة المرور",
+    es: "Confirmar contraseña",
+  },
+  "Robustesse :": { en: "Strength:", ar: "القوة:", es: "Seguridad:" },
+  Fort: { en: "Strong", ar: "قوية", es: "Fuerte" },
+  Moyen: { en: "Medium", ar: "متوسطة", es: "Media" },
+  Faible: { en: "Weak", ar: "ضعيفة", es: "Débil" },
+  "Mise à jour...": { en: "Updating...", ar: "جارٍ التحديث...", es: "Actualizando..." },
+  "Mettre à jour le mot de passe": {
+    en: "Update password",
+    ar: "تحديث كلمة المرور",
+    es: "Actualizar contraseña",
+  },
+  "Double authentification": {
+    en: "Two-factor authentication",
+    ar: "المصادقة الثنائية",
+    es: "Autenticación de dos factores",
+  },
+  "Sécurisez votre compte avec un code de vérification envoyé par e-mail à chaque connexion.": {
+    en: "Secure your account with a verification code sent by email on every sign-in.",
+    ar: "أمّن حسابك برمز تحقق يُرسل عبر البريد الإلكتروني في كل تسجيل دخول.",
+    es: "Protege tu cuenta con un código de verificación enviado por correo electrónico en cada inicio de sesión.",
+  },
+  "Authentification à deux facteurs (2FA)": {
+    en: "Two-factor authentication (2FA)",
+    ar: "المصادقة الثنائية (2FA)",
+    es: "Autenticación de dos factores (2FA)",
+  },
+  "2FA activée": { en: "2FA enabled", ar: "تم تفعيل المصادقة الثنائية", es: "2FA activada" },
+  "2FA désactivée": { en: "2FA disabled", ar: "المصادقة الثنائية معطّلة", es: "2FA desactivada" },
+  "Paramètres mis à jour": {
+    en: "Settings updated",
+    ar: "تم تحديث الإعدادات",
+    es: "Configuración actualizada",
+  },
+  "Mise à jour impossible.": {
+    en: "Unable to update.",
+    ar: "تعذّر التحديث.",
+    es: "No se pudo actualizar.",
+  },
+  "Mot de passe mis à jour": {
+    en: "Password updated",
+    ar: "تم تحديث كلمة المرور",
+    es: "Contraseña actualizada",
+  },
+  "Mise à jour du mot de passe impossible.": {
+    en: "Unable to update the password.",
+    ar: "تعذّر تحديث كلمة المرور.",
+    es: "No se pudo actualizar la contraseña.",
+  },
+  "Informations de facturation enregistrées": {
+    en: "Billing information saved",
+    ar: "تم حفظ معلومات الفوترة",
+    es: "Información de facturación guardada",
+  },
+  "Enregistrement des informations de facturation impossible.": {
+    en: "Unable to save the billing information.",
+    ar: "تعذّر حفظ معلومات الفوترة.",
+    es: "No se pudo guardar la información de facturación.",
+  },
+} satisfies PageTextDict;
 
 const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: "default", label: "Par défaut" },
@@ -144,6 +336,7 @@ function passwordStrength(value: string): {
 }
 
 function AgencySettingsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const currentTheme = useThemeStore((state) => state.theme);
   const currentFont = useThemeStore((state) => state.font);
@@ -186,10 +379,10 @@ function AgencySettingsPage() {
     mutationFn: updateSettings,
     onSuccess: (updated) => {
       queryClient.setQueryData(["agency", "settings"], updated);
-      toast("Paramètres mis à jour");
+      toast(tt("Paramètres mis à jour"));
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Mise à jour impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Mise à jour impossible."));
     },
   });
 
@@ -222,11 +415,13 @@ function AgencySettingsPage() {
   const changePasswordMutation = useMutation({
     mutationFn: changePassword,
     onSuccess: () => {
-      toast("Mot de passe mis à jour");
+      toast(tt("Mot de passe mis à jour"));
       passwordForm.reset();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Mise à jour du mot de passe impossible.");
+      toast(
+        error instanceof ApiError ? error.message : tt("Mise à jour du mot de passe impossible."),
+      );
     },
   });
 
@@ -272,14 +467,14 @@ function AgencySettingsPage() {
   const registerBillingMutation = useMutation({
     mutationFn: updateAgencyProfile,
     onSuccess: () => {
-      toast("Informations de facturation enregistrées");
+      toast(tt("Informations de facturation enregistrées"));
       void queryClient.invalidateQueries({ queryKey: ["agency", "profile"] });
     },
     onError: (error) => {
       toast(
         error instanceof ApiError
           ? error.message
-          : "Enregistrement des informations de facturation impossible.",
+          : tt("Enregistrement des informations de facturation impossible."),
       );
     },
   });
@@ -315,9 +510,9 @@ function AgencySettingsPage() {
 
       <div className="mx-auto max-w-[1080px] space-y-6">
         <div>
-          <h1 className="font-display text-[26px] font-bold tracking-tight">Paramètres</h1>
+          <h1 className="font-display text-[26px] font-bold tracking-tight">{tt("Paramètres")}</h1>
           <p className="mt-1 text-[14px] text-muted-foreground">
-            Gérez les paramètres de votre compte et de votre agence.
+            {tt("Gérez les paramètres de votre compte et de votre agence.")}
           </p>
         </div>
 
@@ -325,29 +520,29 @@ function AgencySettingsPage() {
           <TabsList className="h-auto flex-wrap gap-1 rounded-lg border border-border bg-transparent p-1">
             <TabsTrigger value="profil" className="gap-1.5">
               <User className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Profil
+              {tt("Profil")}
             </TabsTrigger>
             <TabsTrigger value="apparence" className="gap-1.5">
               <Palette className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Apparence
+              {tt("Apparence")}
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1.5">
               <Bell className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Notifications
+              {tt("Notifications")}
             </TabsTrigger>
             <TabsTrigger value="facturation" className="gap-1.5">
               <CreditCard className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Facturation
+              {tt("Facturation")}
             </TabsTrigger>
             <TabsTrigger value="securite" className="gap-1.5">
               <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Sécurité
+              {tt("Sécurité")}
             </TabsTrigger>
           </TabsList>
 
           {}
           <TabsContent value="profil" className="mt-6">
-            <SectionCard title="Profil agence" description="Vos informations d'agence.">
+            <SectionCard title={tt("Profil agence")} description={tt("Vos informations d'agence.")}>
               {agencyProfileQuery.isPending ? (
                 <FormSkeleton fields={2} />
               ) : agencyProfileQuery.data ? (

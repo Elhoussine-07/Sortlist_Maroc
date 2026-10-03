@@ -47,6 +47,366 @@ import {
   sendProspectionEmail,
 } from "@/services/prospection.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const PAGE_TEXT = {
+  Chaud: {
+    en: "Hot",
+    ar: "ساخن",
+    es: "Caliente",
+  },
+  Tiède: {
+    en: "Warm",
+    ar: "فاتر",
+    es: "Tibio",
+  },
+  Froid: {
+    en: "Cold",
+    ar: "بارد",
+    es: "Frío",
+  },
+  Prospect: {
+    en: "Prospect",
+    ar: "العميل المحتمل",
+    es: "Prospecto",
+  },
+  visites: {
+    en: "visits",
+    ar: "زيارات",
+    es: "visitas",
+  },
+  "Localisation non spécifiée": {
+    en: "Location not specified",
+    ar: "الموقع غير محدد",
+    es: "Ubicación no especificada",
+  },
+  "Client identifié — voir le profil": {
+    en: "Identified client — view profile",
+    ar: "عميل معروف — عرض الملف الشخصي",
+    es: "Cliente identificado — ver perfil",
+  },
+  "Non identifié (détection IP)": {
+    en: "Not identified (IP detection)",
+    ar: "غير معروف (كشف عبر IP)",
+    es: "No identificado (detección por IP)",
+  },
+  "Signaux détectés": {
+    en: "Detected signals",
+    ar: "الإشارات المكتشفة",
+    es: "Señales detectadas",
+  },
+  Réduire: {
+    en: "Collapse",
+    ar: "طي",
+    es: "Contraer",
+  },
+  Température: {
+    en: "Temperature",
+    ar: "درجة الاهتمام",
+    es: "Temperatura",
+  },
+  Score: {
+    en: "Score",
+    ar: "النقاط",
+    es: "Puntuación",
+  },
+  Action: {
+    en: "Action",
+    ar: "الإجراء",
+    es: "Acción",
+  },
+  "Génération...": {
+    en: "Generating...",
+    ar: "جارٍ الإنشاء...",
+    es: "Generando...",
+  },
+  Générer: {
+    en: "Generate",
+    ar: "إنشاء",
+    es: "Generar",
+  },
+  "Prospection IA": {
+    en: "AI prospecting",
+    ar: "التنقيب بالذكاء الاصطناعي",
+    es: "Prospección con IA",
+  },
+  "Prospects suggérés par l'IA à partir des signaux d'intérêt.": {
+    en: "Prospects suggested by AI based on interest signals.",
+    ar: "عملاء محتملون يقترحهم الذكاء الاصطناعي بناءً على إشارات الاهتمام.",
+    es: "Prospectos sugeridos por la IA a partir de señales de interés.",
+  },
+  prospect: {
+    en: "prospect",
+    ar: "عميل محتمل",
+    es: "prospecto",
+  },
+  prospects: {
+    en: "prospects",
+    ar: "عملاء محتملون",
+    es: "prospectos",
+  },
+  "Prospects chauds": {
+    en: "Hot prospects",
+    ar: "عملاء محتملون ساخنون",
+    es: "Prospectos calientes",
+  },
+  "Fort intérêt détecté": {
+    en: "Strong interest detected",
+    ar: "تم رصد اهتمام قوي",
+    es: "Interés elevado detectado",
+  },
+  "Prospects tièdes": {
+    en: "Warm prospects",
+    ar: "عملاء محتملون فاترون",
+    es: "Prospectos tibios",
+  },
+  "Intérêt modéré": {
+    en: "Moderate interest",
+    ar: "اهتمام متوسط",
+    es: "Interés moderado",
+  },
+  "Prospects froids": {
+    en: "Cold prospects",
+    ar: "عملاء محتملون باردون",
+    es: "Prospectos fríos",
+  },
+  "Intérêt faible": {
+    en: "Low interest",
+    ar: "اهتمام ضعيف",
+    es: "Interés bajo",
+  },
+  "Rechercher un prospect...": {
+    en: "Search for a prospect...",
+    ar: "البحث عن عميل محتمل...",
+    es: "Buscar un prospecto...",
+  },
+  "Période de suivi": {
+    en: "Tracking period",
+    ar: "فترة المتابعة",
+    es: "Período de seguimiento",
+  },
+  Du: {
+    en: "From",
+    ar: "من",
+    es: "Desde",
+  },
+  Au: {
+    en: "To",
+    ar: "إلى",
+    es: "Hasta",
+  },
+  Réinitialiser: {
+    en: "Reset",
+    ar: "إعادة تعيين",
+    es: "Restablecer",
+  },
+  Tous: {
+    en: "All",
+    ar: "الكل",
+    es: "Todos",
+  },
+  Chauds: {
+    en: "Hot",
+    ar: "ساخنون",
+    es: "Calientes",
+  },
+  Tièdes: {
+    en: "Warm",
+    ar: "فاترون",
+    es: "Tibios",
+  },
+  Froids: {
+    en: "Cold",
+    ar: "باردون",
+    es: "Fríos",
+  },
+  "Trier par :": {
+    en: "Sort by:",
+    ar: "ترتيب حسب:",
+    es: "Ordenar por:",
+  },
+  "Plus pertinents": {
+    en: "Most relevant",
+    ar: "الأكثر صلة",
+    es: "Más relevantes",
+  },
+  "Moins pertinents": {
+    en: "Least relevant",
+    ar: "الأقل صلة",
+    es: "Menos relevantes",
+  },
+  "Paramètres de scoring": {
+    en: "Scoring settings",
+    ar: "إعدادات التقييم",
+    es: "Configuración de puntuación",
+  },
+  "Seuils utilisés par l'IA pour qualifier les prospects. Modifiable uniquement depuis l'espace Modération/Admin.":
+    {
+      en: "Thresholds used by the AI to qualify prospects. Only editable from the Moderation/Admin area.",
+      ar: "الحدود التي يستخدمها الذكاء الاصطناعي لتصنيف العملاء المحتملين. قابلة للتعديل فقط من مساحة الإشراف/الإدارة.",
+      es: "Umbrales utilizados por la IA para calificar a los prospectos. Solo se pueden modificar desde el espacio de Moderación/Administración.",
+    },
+  'Seuil "Chaud"': {
+    en: '"Hot" threshold',
+    ar: 'حد "ساخن"',
+    es: 'Umbral "Caliente"',
+  },
+  'Seuil "Tiède"': {
+    en: '"Warm" threshold',
+    ar: 'حد "فاتر"',
+    es: 'Umbral "Tibio"',
+  },
+  "E-mail de prospection": {
+    en: "Prospecting email",
+    ar: "بريد إلكتروني للتنقيب",
+    es: "Correo de prospección",
+  },
+  "Généré par l'IA à partir des signaux du prospect.": {
+    en: "Generated by AI based on the prospect's signals.",
+    ar: "تم إنشاؤه بواسطة الذكاء الاصطناعي بناءً على إشارات العميل المحتمل.",
+    es: "Generado por IA a partir de las señales del prospecto.",
+  },
+  "Envoi...": {
+    en: "Sending...",
+    ar: "جارٍ الإرسال...",
+    es: "Enviando...",
+  },
+  Envoyer: {
+    en: "Send",
+    ar: "إرسال",
+    es: "Enviar",
+  },
+  Destinataire: {
+    en: "Recipient",
+    ar: "المستلم",
+    es: "Destinatario",
+  },
+  "Non identifié — entreprise détectée par IP, envoi informatif": {
+    en: "Not identified — company detected by IP, informational send",
+    ar: "غير معروف — تم اكتشاف الشركة عبر IP، إرسال إعلامي",
+    es: "No identificado — empresa detectada por IP, envío informativo",
+  },
+  Objet: {
+    en: "Subject",
+    ar: "الموضوع",
+    es: "Asunto",
+  },
+  "Objet de l'e-mail...": {
+    en: "Email subject...",
+    ar: "موضوع البريد الإلكتروني...",
+    es: "Asunto del correo...",
+  },
+  Message: {
+    en: "Message",
+    ar: "الرسالة",
+    es: "Mensaje",
+  },
+  "Votre message...": {
+    en: "Your message...",
+    ar: "رسالتك...",
+    es: "Tu mensaje...",
+  },
+  "Génération de l'e-mail impossible.": {
+    en: "Unable to generate the email.",
+    ar: "تعذّر إنشاء البريد الإلكتروني.",
+    es: "No se pudo generar el correo.",
+  },
+  "Aucun prospect sélectionné.": {
+    en: "No prospect selected.",
+    ar: "لم يتم اختيار أي عميل محتمل.",
+    es: "Ningún prospecto seleccionado.",
+  },
+  "E-mail envoyé avec succès": {
+    en: "Email sent successfully",
+    ar: "تم إرسال البريد الإلكتروني بنجاح",
+    es: "Correo enviado con éxito",
+  },
+  "E-mail non délivré": {
+    en: "Email not delivered",
+    ar: "لم يتم تسليم البريد الإلكتروني",
+    es: "Correo no entregado",
+  },
+  "Le transport d'envoi n'est pas configuré — le brouillon reste disponible ci-dessus.": {
+    en: "The sending service is not configured — the draft remains available above.",
+    ar: "لم يتم إعداد خدمة الإرسال — تظل المسودة متاحة أعلاه.",
+    es: "El servicio de envío no está configurado — el borrador sigue disponible arriba.",
+  },
+  "Envoi de l'e-mail impossible.": {
+    en: "Unable to send the email.",
+    ar: "تعذّر إرسال البريد الإلكتروني.",
+    es: "No se pudo enviar el correo.",
+  },
+  "Profil du prospect": {
+    en: "Prospect profile",
+    ar: "ملف العميل المحتمل",
+    es: "Perfil del prospecto",
+  },
+  Fermer: {
+    en: "Close",
+    ar: "إغلاق",
+    es: "Cerrar",
+  },
+  "Profil introuvable.": {
+    en: "Profile not found.",
+    ar: "تعذّر العثور على الملف الشخصي.",
+    es: "No se encontró el perfil.",
+  },
+  "Entreprise non renseignée": {
+    en: "Company not provided",
+    ar: "لم يتم تحديد الشركة",
+    es: "Empresa no indicada",
+  },
+  Entreprise: {
+    en: "Company",
+    ar: "الشركة",
+    es: "Empresa",
+  },
+  Contact: {
+    en: "Contact",
+    ar: "جهة الاتصال",
+    es: "Contacto",
+  },
+  Secteur: {
+    en: "Sector",
+    ar: "القطاع",
+    es: "Sector",
+  },
+  Pays: {
+    en: "Country",
+    ar: "البلد",
+    es: "País",
+  },
+  "Score de confiance": {
+    en: "Trust score",
+    ar: "درجة الثقة",
+    es: "Puntuación de confianza",
+  },
+  "Identifiant légal": {
+    en: "Legal ID",
+    ar: "المعرّف القانوني",
+    es: "Identificación legal",
+  },
+  Vérifié: {
+    en: "Verified",
+    ar: "موثّق",
+    es: "Verificado",
+  },
+  "Non vérifié": {
+    en: "Not verified",
+    ar: "غير موثّق",
+    es: "No verificado",
+  },
+  "Avis d'autres agences ({count})": {
+    en: "Reviews from other agencies ({count})",
+    ar: "تقييمات وكالات أخرى ({count})",
+    es: "Opiniones de otras agencias ({count})",
+  },
+  "Aucun avis publié sur ce client pour l'instant.": {
+    en: "No reviews published for this client yet.",
+    ar: "لا توجد تقييمات منشورة لهذا العميل حتى الآن.",
+    es: "Aún no hay opiniones publicadas sobre este cliente.",
+  },
+} satisfies PageTextDict;
 
 export const Route = createFileRoute("/_authenticated/agence/prospection")({
   head: () => ({

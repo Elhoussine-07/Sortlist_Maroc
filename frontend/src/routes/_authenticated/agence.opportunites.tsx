@@ -228,6 +228,7 @@ const PAGE_TEXT = {
   "Accepter": { en: "Accept", ar: "قبول", es: "Aceptar" },
   "Refuser": { en: "Decline", ar: "رفض", es: "Rechazar" },
   "Envoyer un devis": { en: "Send a quote", ar: "إرسال عرض سعر", es: "Enviar presupuesto" },
+  "Envoyer le devis": { en: "Send the quote", ar: "إرسال عرض السعر", es: "Enviar el presupuesto" },
   "Prêt à reprendre": { en: "Ready to resume", ar: "جاهز لاستئناف العمل", es: "Listo para reanudar" },
   "Opportunités": { en: "Opportunities", ar: "الفرص", es: "Oportunidades" },
   "Répondez aux projets qui correspondent à vos compétences.": {
@@ -798,14 +799,14 @@ function AgencyOpportunitiesPage() {
         {/* COMPTEUR + TRI */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">
-            {total ?? 0} opportunité{total !== 1 ? "s" : ""}
+            {total ?? 0} {tt(total !== 1 ? "opportunités" : "opportunité")}
           </p>
           <button
             onClick={() => setSortDirection((current) => (current === "recent" ? "old" : "recent"))}
             type="button"
             className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
           >
-            Trier par : {sortDirection === "recent" ? "Plus récentes" : "Plus anciennes"}
+            {tt("Trier par :")} {tt(sortDirection === "recent" ? "Plus récentes" : "Plus anciennes")}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
           </button>
         </div>
@@ -827,17 +828,17 @@ function AgencyOpportunitiesPage() {
             setQuoteAmount("");
           }
         }}
-        title="Envoyer un devis"
+        title={tt("Envoyer un devis")}
         {...(quoteTarget
           ? {
-              description: `Proposez un montant pour "${truncateTitle(quoteTarget.projectTitle, 40)}" - ${quoteTarget.companyName}.`,
+              description: `${tt("Proposez un montant pour")} "${truncateTitle(quoteTarget.projectTitle, 40)}" - ${quoteTarget.companyName}.`,
             }
           : {})}
-        confirmLabel={sendQuoteMutation.isPending ? "Envoi..." : "Envoyer le devis"}
+        confirmLabel={sendQuoteMutation.isPending ? tt("Envoi...") : tt("Envoyer le devis")}
         onConfirm={() => {
           const amount = Number(quoteAmount);
           if (!quoteTarget || !quoteAmount.trim() || Number.isNaN(amount) || amount <= 0) {
-            toast("Renseignez un montant valide.");
+            toast(tt("Renseignez un montant valide."));
             return;
           }
           sendQuoteMutation.mutate({ id: quoteTarget.id, amount });
@@ -845,7 +846,7 @@ function AgencyOpportunitiesPage() {
       >
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-accent/30 p-4 text-center">
-            <p className="text-[13px] text-muted-foreground">Montant proposé</p>
+            <p className="text-[13px] text-muted-foreground">{tt("Montant proposé")}</p>
             <div className="relative mt-2">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-bold text-muted-foreground">
                 €
@@ -863,8 +864,12 @@ function AgencyOpportunitiesPage() {
           </div>
           {quoteTarget && (
             <div className="grid grid-cols-2 gap-2 text-[13px] text-muted-foreground">
-              <span>Projet : {truncateTitle(quoteTarget.projectTitle, 25)}</span>
-              <span className="text-right">Client : {quoteTarget.companyName}</span>
+              <span>
+                {tt("Projet :")} {truncateTitle(quoteTarget.projectTitle, 25)}
+              </span>
+              <span className="text-right">
+                {tt("Client :")} {quoteTarget.companyName}
+              </span>
             </div>
           )}
         </div>
@@ -877,10 +882,12 @@ function AgencyOpportunitiesPage() {
           if (!open) setDetailsProject(null);
         }}
         title={
-          detailsProject?.title ? truncateTitle(detailsProject.title, 35) : "Détails du projet"
+          detailsProject?.title
+            ? truncateTitle(detailsProject.title, 35)
+            : tt("Détails du projet")
         }
-        confirmLabel={expressInterestMutation.isPending ? "Envoi..." : "Postuler"}
-        cancelLabel="Fermer"
+        confirmLabel={expressInterestMutation.isPending ? tt("Envoi...") : tt("Postuler")}
+        cancelLabel={tt("Fermer")}
         onConfirm={() => {
           if (!detailsProject) return;
           expressInterestMutation.mutate(detailsProject.id);
@@ -892,49 +899,53 @@ function AgencyOpportunitiesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Catégorie
+                  {tt("Catégorie")}
                 </p>
                 <p className="mt-1 text-[13px] font-semibold">
-                  {detailsProject.category || "Non catégorisé"}
+                  {detailsProject.category || tt("Non catégorisé")}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Sous-catégorie
+                  {tt("Sous-catégorie")}
                 </p>
                 <p className="mt-1 text-[13px] font-semibold">
                   {detailsProject.subCategory || "?"}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Budget</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {tt("Budget")}
+                </p>
                 <p className="mt-1 text-[13px] font-semibold">
                   {detailsProject.budgetMin !== null && detailsProject.budgetMax !== null
                     ? `${detailsProject.budgetMin.toLocaleString()} € - ${detailsProject.budgetMax.toLocaleString()} €`
-                    : "Non défini"}
+                    : tt("Non défini")}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Localisation
+                  {tt("Localisation")}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold">
                   <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                  {detailsProject.location || "Non spécifiée"}
+                  {detailsProject.location || tt("Non spécifiée")}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Délai souhaité
+                  {tt("Délai souhaité")}
                 </p>
                 <p className="mt-1 text-[13px] font-semibold">
                   {detailsProject.deliveryDelayDays
-                    ? `${detailsProject.deliveryDelayDays} jours`
-                    : "Non défini"}
+                    ? `${detailsProject.deliveryDelayDays} ${tt("jours")}`
+                    : tt("Non défini")}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Statut</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {tt("Statut")}
+                </p>
                 <p className="mt-1 text-[13px] font-semibold">
                   {detailsProject.statusLabel || "?"}
                 </p>
@@ -943,7 +954,7 @@ function AgencyOpportunitiesPage() {
             {detailsProject.description && (
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Description
+                  {tt("Description")}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-[13px] leading-[1.6]">
                   {detailsProject.description}

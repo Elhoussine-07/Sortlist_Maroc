@@ -47,6 +47,7 @@ import {
   type PendingProposal,
 } from "@/services/proposals.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 function useNow(intervalMs = 60_000): number {
   const [now, setNow] = useState(() => Date.now());

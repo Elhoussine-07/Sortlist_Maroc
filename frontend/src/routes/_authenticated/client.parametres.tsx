@@ -557,16 +557,16 @@ function ClientSettingsPage() {
 
           <TabsContent value="notifications" className="mt-6">
             <SectionCard
-              title="Notifications"
-              description="Choisissez comment vous souhaitez être informé."
+              title={tt("Notifications")}
+              description={tt("Choisissez comment vous souhaitez être informé.")}
             >
               {isLoading ? (
                 <FormSkeleton fields={2} />
               ) : (
                 <div>
                   <PreferenceRow
-                    label="Notifications par e-mail"
-                    description="Nouvelles propositions, litiges, factures"
+                    label={tt("Notifications par e-mail")}
+                    description={tt("Nouvelles propositions, litiges, factures")}
                   >
                     <Switch
                       checked={settings?.emailNotifications ?? false}
@@ -574,8 +574,8 @@ function ClientSettingsPage() {
                     />
                   </PreferenceRow>
                   <PreferenceRow
-                    label="Notifications push"
-                    description="Alertes en temps réel dans le navigateur"
+                    label={tt("Notifications push")}
+                    description={tt("Alertes en temps réel dans le navigateur")}
                   >
                     <Switch
                       checked={settings?.pushNotifications ?? false}
@@ -589,20 +589,20 @@ function ClientSettingsPage() {
 
           <TabsContent value="securite" className="mt-6 space-y-6">
             <SectionCard
-              title="Mot de passe"
-              description="Modifiez régulièrement votre mot de passe."
+              title={tt("Mot de passe")}
+              description={tt("Modifiez régulièrement votre mot de passe.")}
             >
               <form onSubmit={onSubmitPassword} className="space-y-5" noValidate>
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                   <TextField
-                    label="Mot de passe actuel"
+                    label={tt("Mot de passe actuel")}
                     type="password"
                     error={form.formState.errors.currentPassword?.message}
                     {...form.register("currentPassword")}
                   />
                   <div>
                     <TextField
-                      label="Nouveau mot de passe"
+                      label={tt("Nouveau mot de passe")}
                       type="password"
                       error={form.formState.errors.newPassword?.message}
                       {...form.register("newPassword")}
@@ -621,13 +621,13 @@ function ClientSettingsPage() {
                           ))}
                         </div>
                         <p className="mt-1 text-[12px] text-muted-foreground">
-                          Robustesse : {strength.label}
+                          {tt("Robustesse :")} {tt(strength.label)}
                         </p>
                       </div>
                     ) : null}
                   </div>
                   <TextField
-                    label="Confirmer le mot de passe"
+                    label={tt("Confirmer le mot de passe")}
                     type="password"
                     error={form.formState.errors.confirmPassword?.message}
                     {...form.register("confirmPassword")}
@@ -639,14 +639,18 @@ function ClientSettingsPage() {
                   disabled={passwordMutation.isPending}
                   className="rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {passwordMutation.isPending ? "Mise à jour..." : "Mettre à jour le mot de passe"}
+                  {passwordMutation.isPending
+                    ? tt("Mise à jour...")
+                    : tt("Mettre à jour le mot de passe")}
                 </button>
               </form>
             </SectionCard>
 
             <SectionCard
-              title="Double authentification"
-              description="Sécurisez votre compte avec un code de vérification envoyé par e-mail à chaque connexion."
+              title={tt("Double authentification")}
+              description={tt(
+                "Sécurisez votre compte avec un code de vérification envoyé par e-mail à chaque connexion.",
+              )}
             >
               {isLoading ? (
                 <Skeleton className="h-9 w-full" />
@@ -657,8 +661,8 @@ function ClientSettingsPage() {
                   </div>
                   <div className="flex-1">
                     <PreferenceRow
-                      label="Authentification à deux facteurs (2FA)"
-                      description={settings?.twoFactorEnabled ? "2FA activée" : "2FA désactivée"}
+                      label={tt("Authentification à deux facteurs (2FA)")}
+                      description={tt(settings?.twoFactorEnabled ? "2FA activée" : "2FA désactivée")}
                     >
                       <Switch
                         checked={settings?.twoFactorEnabled ?? false}
