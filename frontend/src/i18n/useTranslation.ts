@@ -1,4 +1,4 @@
-import { useLocaleStore } from "@/store/locale.store";
+import { useLocaleStore, type Locale } from "@/store/locale.store";
 import { translations } from "@/i18n/translations";
 
 function resolve(obj: unknown, path: string): unknown {
@@ -24,4 +24,25 @@ export function useTranslation() {
   }
 
   return { t, tList, locale };
+}
+
+/**
+ * Self-contained page/component-local translation dictionary: no shared keys to
+ * coordinate across files. Each page defines its own PAGE_TEXT map of
+ * { "French source string": { en, ar, es } } and calls usePageText(PAGE_TEXT).
+ * tt("French source string") returns it unchanged in fr, or the mapped string
+ * in the other locales (falling back to the French source if a key/locale is
+ * missing, so partial coverage never breaks rendering).
+ */
+export type PageTextDict = Record<string, Partial<Record<Exclude<Locale, "fr">, string>>>;
+
+export function usePageText(dict: PageTextDict) {
+  const locale = useLocaleStore((state) => state.locale);
+
+  function tt(source: string): string {
+    if (locale === "fr") return source;
+    return dict[source]?.[locale] ?? source;
+  }
+
+  return { tt, locale };
 }
