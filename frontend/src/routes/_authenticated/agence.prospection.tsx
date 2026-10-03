@@ -637,6 +637,7 @@ function buildColumns(
 }
 
 function AgencyProspectionPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const [query, setQuery] = useState("");
   const [temperature, setTemperature] = useState("all");
   const [isEmailOpen, setIsEmailOpen] = useState(false);
@@ -716,30 +717,30 @@ function AgencyProspectionPage() {
       setIsEmailOpen(true);
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Génération de l'e-mail impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Génération de l'e-mail impossible."));
     },
   });
 
   const sendEmailMutation = useMutation({
     mutationFn: () => {
-      if (!emailTarget) throw new Error("Aucun prospect sélectionné.");
+      if (!emailTarget) throw new Error(tt("Aucun prospect sélectionné."));
       return sendProspectionEmail(emailTarget.id, { subject: emailSubject, body: emailBody });
     },
     onSuccess: (result) => {
       if (result.sent) {
-        toast("E-mail envoyé avec succès", { description: emailTarget?.companyName });
+        toast(tt("E-mail envoyé avec succès"), { description: emailTarget?.companyName });
         setIsEmailOpen(false);
         setEmailTarget(null);
       } else {
-        toast.warning("E-mail non délivré", {
+        toast.warning(tt("E-mail non délivré"), {
           description:
             result.note ||
-            "Le transport d'envoi n'est pas configuré — le brouillon reste disponible ci-dessus.",
+            tt("Le transport d'envoi n'est pas configuré — le brouillon reste disponible ci-dessus."),
         });
       }
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Envoi de l'e-mail impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Envoi de l'e-mail impossible."));
     },
   });
 
@@ -755,16 +756,18 @@ function AgencyProspectionPage() {
               <Compass className="h-[22px] w-[22px]" strokeWidth={1.6} />
             </div>
             <div>
-              <h1 className="font-display text-[24px] font-bold tracking-tight">Prospection IA</h1>
+              <h1 className="font-display text-[24px] font-bold tracking-tight">
+                {tt("Prospection IA")}
+              </h1>
               <p className="mt-1 text-[14px] text-muted-foreground">
-                Prospects suggérés par l'IA à partir des signaux d'intérêt.
+                {tt("Prospects suggérés par l'IA à partir des signaux d'intérêt.")}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary">
               <TrendingUp className="inline h-3.5 w-3.5 mr-1" />
-              {counts["all"]} prospect{counts["all"] !== 1 ? "s" : ""}
+              {counts["all"]} {tt(counts["all"] !== 1 ? "prospects" : "prospect")}
             </span>
           </div>
         </div>
@@ -783,9 +786,9 @@ function AgencyProspectionPage() {
                   <span className="text-2xl font-bold text-red-600">{counters.hot ?? 0}</span>
                 </div>
                 <p className="mt-2 text-[13px] font-medium text-muted-foreground">
-                  Prospects chauds
+                  {tt("Prospects chauds")}
                 </p>
-                <p className="text-[12px] text-muted-foreground">Fort intérêt détecté</p>
+                <p className="text-[12px] text-muted-foreground">{tt("Fort intérêt détecté")}</p>
               </div>
 
               <div className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md">
@@ -796,9 +799,9 @@ function AgencyProspectionPage() {
                   <span className="text-2xl font-bold text-amber-600">{counters.warm ?? 0}</span>
                 </div>
                 <p className="mt-2 text-[13px] font-medium text-muted-foreground">
-                  Prospects tièdes
+                  {tt("Prospects tièdes")}
                 </p>
-                <p className="text-[12px] text-muted-foreground">Intérêt modéré</p>
+                <p className="text-[12px] text-muted-foreground">{tt("Intérêt modéré")}</p>
               </div>
 
               <div className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md">
@@ -809,9 +812,9 @@ function AgencyProspectionPage() {
                   <span className="text-2xl font-bold text-blue-600">{counters.cold ?? 0}</span>
                 </div>
                 <p className="mt-2 text-[13px] font-medium text-muted-foreground">
-                  Prospects froids
+                  {tt("Prospects froids")}
                 </p>
-                <p className="text-[12px] text-muted-foreground">Intérêt faible</p>
+                <p className="text-[12px] text-muted-foreground">{tt("Intérêt faible")}</p>
               </div>
             </div>
           )}
@@ -825,7 +828,7 @@ function AgencyProspectionPage() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Rechercher un prospect..."
+              placeholder={tt("Rechercher un prospect...")}
               className="w-full rounded-xl border border-border bg-card px-10 py-3 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-md transition-all"
             />
           </div>
@@ -838,11 +841,11 @@ function AgencyProspectionPage() {
         <div className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground">
             <CalendarClock className="h-4 w-4" strokeWidth={1.7} />
-            Période de suivi
+            {tt("Période de suivi")}
           </div>
           <div className="min-w-[190px] flex-1">
             <label className="text-[12px] text-muted-foreground" htmlFor="prospection-from">
-              Du
+              {tt("Du")}
             </label>
             <input
               id="prospection-from"
@@ -854,7 +857,7 @@ function AgencyProspectionPage() {
           </div>
           <div className="min-w-[190px] flex-1">
             <label className="text-[12px] text-muted-foreground" htmlFor="prospection-to">
-              Au
+              {tt("Au")}
             </label>
             <input
               id="prospection-to"
@@ -873,7 +876,7 @@ function AgencyProspectionPage() {
               }}
               className="rounded-lg border border-border px-3.5 py-2 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              Réinitialiser
+              {tt("Réinitialiser")}
             </button>
           )}
         </div>
@@ -882,10 +885,10 @@ function AgencyProspectionPage() {
         <div className="mt-6">
           <StatusTabs
             tabs={[
-              { value: "all", label: "Tous" },
-              { value: "hot", label: "Chauds" },
-              { value: "warm", label: "Tièdes" },
-              { value: "cold", label: "Froids" },
+              { value: "all", label: tt("Tous") },
+              { value: "hot", label: tt("Chauds") },
+              { value: "warm", label: tt("Tièdes") },
+              { value: "cold", label: tt("Froids") },
             ]}
             value={temperature}
             onChange={setTemperature}
@@ -896,14 +899,15 @@ function AgencyProspectionPage() {
         {/* COMPTEUR + TRI */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">
-            {leads.length} prospect{leads.length !== 1 ? "s" : ""}
+            {leads.length} {tt(leads.length !== 1 ? "prospects" : "prospect")}
           </p>
           <button
             onClick={() => setSortDirection((current) => (current === "recent" ? "old" : "recent"))}
             type="button"
             className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
           >
-            Trier par : {sortDirection === "recent" ? "Plus pertinents" : "Moins pertinents"}
+            {tt("Trier par :")}{" "}
+            {sortDirection === "recent" ? tt("Plus pertinents") : tt("Moins pertinents")}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
           </button>
         </div>
@@ -923,6 +927,7 @@ function AgencyProspectionPage() {
               },
               expandedActionIds,
               toggleActionsExpanded,
+              tt,
             )}
             rows={leads}
             isLoading={isLoading}
@@ -939,17 +944,18 @@ function AgencyProspectionPage() {
                 <Filter className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-[16px] font-bold">Paramètres de scoring</h2>
+                <h2 className="text-[16px] font-bold">{tt("Paramètres de scoring")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Seuils utilisés par l'IA pour qualifier les prospects. Modifiable uniquement
-                  depuis l'espace Modération/Admin.
+                  {tt(
+                    "Seuils utilisés par l'IA pour qualifier les prospects. Modifiable uniquement depuis l'espace Modération/Admin.",
+                  )}
                 </p>
               </div>
             </div>
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="rounded-lg border border-border p-4">
                 <p className="text-[12px] uppercase tracking-wide text-muted-foreground">
-                  Seuil "Chaud"
+                  {tt('Seuil "Chaud"')}
                 </p>
                 <p className="mt-1 text-2xl font-bold">
                   {settingsQuery.data ? String(settingsQuery.data.scoring.hotMin) : "..."}
@@ -964,7 +970,7 @@ function AgencyProspectionPage() {
               </div>
               <div className="rounded-lg border border-border p-4">
                 <p className="text-[12px] uppercase tracking-wide text-muted-foreground">
-                  Seuil "Tiède"
+                  {tt('Seuil "Tiède"')}
                 </p>
                 <p className="mt-1 text-2xl font-bold">
                   {settingsQuery.data ? String(settingsQuery.data.scoring.warmMin) : "..."}
@@ -989,34 +995,34 @@ function AgencyProspectionPage() {
           setIsEmailOpen(open);
           if (!open) setEmailTarget(null);
         }}
-        title="E-mail de prospection"
-        description="Généré par l'IA à partir des signaux du prospect."
-        confirmLabel={sendEmailMutation.isPending ? "Envoi..." : "Envoyer"}
+        title={tt("E-mail de prospection")}
+        description={tt("Généré par l'IA à partir des signaux du prospect.")}
+        confirmLabel={sendEmailMutation.isPending ? tt("Envoi...") : tt("Envoyer")}
         onConfirm={() => sendEmailMutation.mutate()}
       >
         <div className="space-y-4">
           <div className="flex items-center gap-3 rounded-lg border border-border bg-accent/30 p-3">
             <Mail className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-[12px] text-muted-foreground">Destinataire</p>
+              <p className="text-[12px] text-muted-foreground">{tt("Destinataire")}</p>
               <p className="font-semibold">
                 {emailTarget?.clientEmail ??
-                  "Non identifié — entreprise détectée par IP, envoi informatif"}
+                  tt("Non identifié — entreprise détectée par IP, envoi informatif")}
               </p>
             </div>
           </div>
           <TextField
-            label="Objet"
+            label={tt("Objet")}
             value={emailSubject}
             onChange={(event) => setEmailSubject(event.target.value)}
-            placeholder="Objet de l'e-mail..."
+            placeholder={tt("Objet de l'e-mail...")}
           />
           <TextAreaField
-            label="Message"
+            label={tt("Message")}
             rows={6}
             value={emailBody}
             onChange={(event) => setEmailBody(event.target.value)}
-            placeholder="Votre message..."
+            placeholder={tt("Votre message...")}
           />
         </div>
       </ActionModal>
@@ -1028,16 +1034,16 @@ function AgencyProspectionPage() {
           setIsClientProfileOpen(open);
           if (!open) setClientProfileTarget(null);
         }}
-        title="Profil du prospect"
+        title={tt("Profil du prospect")}
         description={clientProfileTarget?.companyName ?? ""}
-        confirmLabel="Fermer"
+        confirmLabel={tt("Fermer")}
         singleAction
         onConfirm={() => setIsClientProfileOpen(false)}
       >
         {clientProfileQuery.isLoading ? (
           <StackSkeleton count={3} />
         ) : !clientProfileQuery.data ? (
-          <EmptyState message="Profil introuvable." />
+          <EmptyState message={tt("Profil introuvable.")} />
         ) : (
           <div className="space-y-5">
             <div className="flex items-center gap-3">
@@ -1053,7 +1059,7 @@ function AgencyProspectionPage() {
                 </div>
               )}
               <p className="text-[16px] font-bold">
-                {clientProfileQuery.data.companyName || "Entreprise non renseignée"}
+                {clientProfileQuery.data.companyName || tt("Entreprise non renseignée")}
               </p>
             </div>
 
@@ -1061,7 +1067,7 @@ function AgencyProspectionPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Entreprise
+                  {tt("Entreprise")}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold">
                   <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1069,7 +1075,9 @@ function AgencyProspectionPage() {
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Contact</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {tt("Contact")}
+                </p>
                 <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold">
                   <Users className="h-3.5 w-3.5 text-muted-foreground" />
                   {[clientProfileQuery.data.firstName, clientProfileQuery.data.lastName]
@@ -1078,13 +1086,17 @@ function AgencyProspectionPage() {
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Secteur</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {tt("Secteur")}
+                </p>
                 <p className="mt-1 text-[13px] font-semibold">
                   {clientProfileQuery.data.sector || "—"}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pays</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {tt("Pays")}
+                </p>
                 <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold">
                   <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                   {clientProfileQuery.data.country || "—"}
@@ -1092,7 +1104,7 @@ function AgencyProspectionPage() {
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Score de confiance
+                  {tt("Score de confiance")}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold">
                   <Star className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1101,16 +1113,16 @@ function AgencyProspectionPage() {
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Identifiant légal
+                  {tt("Identifiant légal")}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-[13px] font-semibold">
                   {clientProfileQuery.data.legalIdVerified ? (
                     <>
                       <UserCheck className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2} />
-                      Vérifié
+                      {tt("Vérifié")}
                     </>
                   ) : (
-                    "Non vérifié"
+                    tt("Non vérifié")
                   )}
                 </p>
               </div>
@@ -1120,11 +1132,14 @@ function AgencyProspectionPage() {
             <div>
               <p className="mb-3 flex items-center gap-2 text-[13px] font-semibold">
                 <Star className="h-4 w-4 text-muted-foreground" />
-                Avis d'autres agences ({clientProfileQuery.data.reviews.length})
+                {tt("Avis d'autres agences ({count})").replace(
+                  "{count}",
+                  String(clientProfileQuery.data.reviews.length),
+                )}
               </p>
               {clientProfileQuery.data.reviews.length === 0 ? (
                 <div className="rounded-lg border border-border p-4 text-center text-muted-foreground">
-                  Aucun avis publié sur ce client pour l'instant.
+                  {tt("Aucun avis publié sur ce client pour l'instant.")}
                 </div>
               ) : (
                 <ul className="max-h-[280px] space-y-3 overflow-y-auto">
