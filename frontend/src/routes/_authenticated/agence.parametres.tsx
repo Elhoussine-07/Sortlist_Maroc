@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -196,6 +196,21 @@ function AgencySettingsPage() {
     if (patch.font) useThemeStore.getState().setFont(patch.font);
     if (patch.textSize !== undefined) useThemeStore.getState().setTextSize(patch.textSize);
     updateSettingsMutation.mutate(patch);
+  }
+
+  const textSizeSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (textSizeSaveTimeout.current) clearTimeout(textSizeSaveTimeout.current);
+    };
+  }, []);
+
+  function handleTextSizeChange(value: number) {
+    useThemeStore.getState().setTextSize(value);
+    if (textSizeSaveTimeout.current) clearTimeout(textSizeSaveTimeout.current);
+    textSizeSaveTimeout.current = setTimeout(() => {
+      updateSettingsMutation.mutate({ textSize: value });
+    }, 500);
   }
 
   const changePasswordMutation = useMutation({
@@ -451,9 +466,7 @@ function AgencySettingsPage() {
                         min={80}
                         max={130}
                         value={currentTextSize}
-                        onChange={(event) =>
-                          applyDisplaySetting({ textSize: Number(event.target.value) })
-                        }
+                        onChange={(event) => handleTextSizeChange(Number(event.target.value))}
                         className="w-40 accent-primary"
                       />
                       <span className="text-[16px] text-muted-foreground">A</span>

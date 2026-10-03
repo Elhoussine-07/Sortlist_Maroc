@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -198,6 +198,21 @@ function ClientSettingsPage() {
     settingsMutation.mutate({ [key]: value } as Partial<Settings>);
   };
 
+  const textSizeSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (textSizeSaveTimeout.current) clearTimeout(textSizeSaveTimeout.current);
+    };
+  }, []);
+
+  function handleTextSizeChange(value: number) {
+    useThemeStore.getState().setTextSize(value);
+    if (textSizeSaveTimeout.current) clearTimeout(textSizeSaveTimeout.current);
+    textSizeSaveTimeout.current = setTimeout(() => {
+      settingsMutation.mutate({ textSize: value });
+    }, 500);
+  }
+
   return (
     <DashboardShell role="client">
       <style>{`.font-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }`}</style>
@@ -368,7 +383,7 @@ function ClientSettingsPage() {
                         min={80}
                         max={130}
                         value={currentTextSize}
-                        onChange={(event) => updateSetting("textSize", Number(event.target.value))}
+                        onChange={(event) => handleTextSizeChange(Number(event.target.value))}
                         className="w-40 accent-primary"
                       />
                       <span className="text-[16px] text-muted-foreground">A</span>
