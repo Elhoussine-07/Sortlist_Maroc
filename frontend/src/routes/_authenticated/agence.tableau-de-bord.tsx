@@ -424,10 +424,10 @@ function AgencyDashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-[30px] font-bold tracking-tight sm:text-[32px]">
-              Tableau de bord
+              {tt("Tableau de bord")}
             </h1>
             <p className="mt-1.5 text-[14px] text-muted-foreground">
-              Voici un aperçu de l'activité de votre agence.
+              {tt("Voici un aperçu de l'activité de votre agence.")}
             </p>
           </div>
           <Link
@@ -435,7 +435,7 @@ function AgencyDashboardPage() {
             className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-all hover:opacity-90 hover:shadow-md"
           >
             <Sparkles className="h-4 w-4" />
-            Prospection IA
+            {tt("Prospection IA")}
           </Link>
         </div>
 
@@ -453,7 +453,9 @@ function AgencyDashboardPage() {
                   </div>
                   <PQIBadge score={stats.pqiScore} />
                 </div>
-                <p className="mt-4 text-[13px] font-medium text-muted-foreground">Score PQI</p>
+                <p className="mt-4 text-[13px] font-medium text-muted-foreground">
+                  {tt("Score PQI")}
+                </p>
                 <p className="font-display text-[28px] font-bold leading-none">
                   {stats.pqiScore === null ? "?" : stats.pqiScore}
                   <span className="text-[14px] font-normal text-muted-foreground">/100</span>
@@ -471,7 +473,7 @@ function AgencyDashboardPage() {
                   <Briefcase className="h-5 w-5" strokeWidth={1.7} />
                 </div>
                 <p className="mt-4 text-[13px] font-medium text-muted-foreground">
-                  Opportunités ouvertes
+                  {tt("Opportunités ouvertes")}
                 </p>
                 <p className="font-display text-[28px] font-bold leading-none">
                   {stats.openOpportunities === null ? "?" : stats.openOpportunities}
@@ -480,7 +482,7 @@ function AgencyDashboardPage() {
                   to="/agence/opportunites"
                   className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary transition-opacity hover:opacity-70"
                 >
-                  Voir les opportunités
+                  {tt("Voir les opportunités")}
                   <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                 </Link>
               </div>
@@ -491,7 +493,7 @@ function AgencyDashboardPage() {
                   <Folder className="h-5 w-5" strokeWidth={1.7} />
                 </div>
                 <p className="mt-4 text-[13px] font-medium text-muted-foreground">
-                  Projets en cours
+                  {tt("Projets en cours")}
                 </p>
                 <p className="font-display text-[28px] font-bold leading-none">
                   {stats.activeProjects === null ? "?" : stats.activeProjects}
@@ -500,7 +502,7 @@ function AgencyDashboardPage() {
                   to="/agence/projets-en-cours"
                   className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary transition-opacity hover:opacity-70"
                 >
-                  Voir les projets
+                  {tt("Voir les projets")}
                   <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                 </Link>
               </div>
@@ -510,7 +512,9 @@ function AgencyDashboardPage() {
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 transition-colors group-hover:bg-amber-500 group-hover:text-white">
                   <Star className="h-5 w-5" strokeWidth={1.7} />
                 </div>
-                <p className="mt-4 text-[13px] font-medium text-muted-foreground">Note moyenne</p>
+                <p className="mt-4 text-[13px] font-medium text-muted-foreground">
+                  {tt("Note moyenne")}
+                </p>
                 <p className="font-display text-[28px] font-bold leading-none">
                   {stats.averageRating === null ? "?" : stats.averageRating}
                   <span className="text-[14px] font-normal text-muted-foreground">/5</span>
@@ -529,13 +533,13 @@ function AgencyDashboardPage() {
         <section className="mt-9">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
             <h2 className="truncate text-[13.5px] font-bold tracking-wide text-muted-foreground">
-              PROJETS RÉCENTS
+              {tt("PROJETS RÉCENTS")}
             </h2>
             <Link
               to="/agence/projets-en-cours"
               className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-primary transition-opacity hover:opacity-70"
             >
-              Voir tous les projets
+              {tt("Voir tous les projets")}
               <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
             </Link>
           </div>
@@ -554,17 +558,17 @@ function AgencyDashboardPage() {
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-5 py-4">
               <h2 className="text-[13.5px] font-bold tracking-wide text-muted-foreground">
-                ACTIVITÉS RÉCENTES
+                {tt("ACTIVITÉS RÉCENTES")}
               </h2>
               <p className="text-[13px] text-muted-foreground">
-                Devis envoyés, réponses clients, litiges et facturation.
+                {tt("Devis envoyés, réponses clients, litiges et facturation.")}
               </p>
             </div>
             <div className="px-5 py-4">
               {isActivitiesLoading ? (
                 <StackSkeleton count={3} />
               ) : activities.length === 0 ? (
-                <EmptyState message="Aucune activité récente à afficher." />
+                <EmptyState message={tt("Aucune activité récente à afficher.")} />
               ) : (
                 <ul className="relative space-y-5 border-l-2 border-border pl-5">
                   {activities.map((activity, index) => {
@@ -600,31 +604,31 @@ function AgencyDashboardPage() {
         {/* ✅ ACCÈS RAPIDES AVEC DESIGN MODERNISÉ */}
         <section className="mt-9">
           <h2 className="text-[13.5px] font-bold tracking-wide text-muted-foreground">
-            ACCÈS RAPIDES
+            {tt("ACCÈS RAPIDES")}
           </h2>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <QuickAccess
               icon={Wallet}
-              label="Facturation"
-              description="Suivez vos factures émises et reçues."
+              label={tt("Facturation")}
+              description={tt("Suivez vos factures émises et reçues.")}
               to="/agence/facturation"
             />
             <QuickAccess
               icon={BarChart3}
-              label="Analytics PQI"
-              description="Analysez vos indicateurs de performance."
+              label={tt("Analytics PQI")}
+              description={tt("Analysez vos indicateurs de performance.")}
               to="/agence/analytics"
             />
             <QuickAccess
               icon={Sparkles}
-              label="Prospection IA"
-              description="Découvrez les clients suggérés par l'IA."
+              label={tt("Prospection IA")}
+              description={tt("Découvrez les clients suggérés par l'IA.")}
               to="/agence/prospection"
             />
             <QuickAccess
               icon={Workflow}
-              label="Workflow"
-              description="Suivez les étapes de traitement des opportunités."
+              label={tt("Workflow")}
+              description={tt("Suivez les étapes de traitement des opportunités.")}
               to="/agence/workflow"
             />
           </div>
@@ -658,7 +662,7 @@ function QuickAccess({
         <p className="mt-1 text-[13px] leading-[1.5] text-muted-foreground">{description}</p>
       </div>
       <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-primary opacity-0 transition-all group-hover:opacity-100">
-        Ouvrir
+        {tt("Ouvrir")}
         <ArrowRight
           className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
           strokeWidth={1.8}
