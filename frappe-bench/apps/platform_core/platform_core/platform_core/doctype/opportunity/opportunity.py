@@ -157,24 +157,25 @@ class Opportunity(Document):
 
     def _notify_agency(self, title, message):
         from platform_core.platform_core.doctype.agencymember.agencymember import get_agency_owner_email
+        from platform_core.platform_core.notify import notify
 
         agency_user = get_agency_owner_email(self.agency)
         if not agency_user:
             return
 
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": agency_user,
-                "category": "Opportunity",
-                "title": title,
-                "body": message,
-                "reference_doctype": "Opportunity",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        notify(
+            recipient=agency_user,
+            category="Opportunity",
+            title=title,
+            body=message,
+            reference_doctype="Opportunity",
+            reference_name=self.name,
+            channel="Both",
+        )
 
     def _notify_client(self, title, message):
+        from platform_core.platform_core.notify import notify
+
         project = frappe.get_doc("Project", self.project)
         if not project.client:
             return
@@ -183,17 +184,15 @@ class Opportunity(Document):
         if not client_user:
             return
 
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": client_user,
-                "category": "Opportunity",
-                "title": title,
-                "body": message,
-                "reference_doctype": "Opportunity",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        notify(
+            recipient=client_user,
+            category="Opportunity",
+            title=title,
+            body=message,
+            reference_doctype="Opportunity",
+            reference_name=self.name,
+            channel="Both",
+        )
 
 def create_from_project(project, agency, source=None, matching_score=None):
     doc = frappe.get_doc({

@@ -22,19 +22,18 @@ class ProjectPayment(Document):
 
     def _notify_agency(self):
         from platform_core.platform_core.doctype.agencymember.agencymember import get_agency_owner_email
+        from platform_core.platform_core.notify import notify
 
         agency_user = get_agency_owner_email(self.agency)
         if not agency_user:
             return
 
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": agency_user,
-                "category": "Autre",
-                "title": "Paiement reçu du client",
-                "body": f"Le client a réglé {self.amount} pour le projet.",
-                "reference_doctype": "ProjectPayment",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        notify(
+            recipient=agency_user,
+            category="Autre",
+            title="Paiement reçu du client",
+            body=f"Le client a réglé {self.amount} pour le projet.",
+            reference_doctype="ProjectPayment",
+            reference_name=self.name,
+            channel="Both",
+        )

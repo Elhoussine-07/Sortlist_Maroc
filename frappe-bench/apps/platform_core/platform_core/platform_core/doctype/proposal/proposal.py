@@ -86,6 +86,8 @@ class Proposal(Document):
         opp_doc.save(ignore_permissions=True)
 
     def _notify_client(self):
+        from platform_core.platform_core.notify import notify
+
         client = frappe.db.get_value("Project", self.project, "client")
         if not client:
             return
@@ -94,17 +96,15 @@ class Proposal(Document):
         if not client_user:
             return
 
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": client_user,
-                "category": "Proposal",
-                "title": "Nouveau devis reçu",
-                "body": f"Un devis de {self.amount} a été envoyé pour votre projet.",
-                "reference_doctype": "Proposal",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        notify(
+            recipient=client_user,
+            category="Proposal",
+            title="Nouveau devis reçu",
+            body=f"Un devis de {self.amount} a été envoyé pour votre projet.",
+            reference_doctype="Proposal",
+            reference_name=self.name,
+            channel="Both",
+        )
 
     def on_update(self):
         before = self.get_doc_before_save()
@@ -146,22 +146,21 @@ class Proposal(Document):
 
     def _notify_agency(self, title, message):
         from platform_core.platform_core.doctype.agencymember.agencymember import get_agency_owner_email
+        from platform_core.platform_core.notify import notify
 
         agency_user = get_agency_owner_email(self.agency)
         if not agency_user:
             return
 
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": agency_user,
-                "category": "Proposal",
-                "title": title,
-                "body": message,
-                "reference_doctype": "Proposal",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        notify(
+            recipient=agency_user,
+            category="Proposal",
+            title=title,
+            body=message,
+            reference_doctype="Proposal",
+            reference_name=self.name,
+            channel="Both",
+        )
 
     def _create_invoice(self):
         project = frappe.get_doc("Project", self.project)

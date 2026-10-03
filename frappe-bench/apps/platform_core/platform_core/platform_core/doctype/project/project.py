@@ -147,14 +147,14 @@ class Project(Document):
         }
 
     def _create_notification(self, user, ntype, title, message):
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": user,
-                "category": ntype,
-                "title": title,
-                "body": message,
-                "reference_doctype": "Project",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        from platform_core.platform_core.notify import notify
+
+        notify(
+            recipient=user,
+            category=ntype,
+            title=title,
+            body=message,
+            reference_doctype="Project",
+            reference_name=self.name,
+            channel="Both",
+        )

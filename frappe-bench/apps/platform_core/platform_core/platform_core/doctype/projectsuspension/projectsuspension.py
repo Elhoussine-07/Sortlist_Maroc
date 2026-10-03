@@ -406,6 +406,8 @@ class ProjectSuspension(Document):
         )
 
     def _notify_client(self, title, message):
+        from platform_core.platform_core.notify import notify
+
         project = frappe.get_doc("Project", self.project)
         if not project.client:
             return
@@ -414,19 +416,19 @@ class ProjectSuspension(Document):
         if not client_user:
             return
 
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": client_user,
-                "category": "Suspension",
-                "title": title,
-                "body": message,
-                "reference_doctype": "ProjectSuspension",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        notify(
+            recipient=client_user,
+            category="Suspension",
+            title=title,
+            body=message,
+            reference_doctype="ProjectSuspension",
+            reference_name=self.name,
+            channel="Both",
+        )
 
     def _notify_agency(self, title, message):
+        from platform_core.platform_core.notify import notify
+
         opportunity = frappe.get_all(
             "Opportunity",
             filters={"project": self.project, "status": "Gagnée"},
@@ -442,17 +444,15 @@ class ProjectSuspension(Document):
         if not agency_user:
             return
 
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": agency_user,
-                "category": "Suspension",
-                "title": title,
-                "body": message,
-                "reference_doctype": "ProjectSuspension",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        notify(
+            recipient=agency_user,
+            category="Suspension",
+            title=title,
+            body=message,
+            reference_doctype="ProjectSuspension",
+            reference_name=self.name,
+            channel="Both",
+        )
 
 def suspend_for_unpaid_invoice(invoice):
 	invoice_doc = invoice if not isinstance(invoice, str) else frappe.get_doc("Invoice", invoice)

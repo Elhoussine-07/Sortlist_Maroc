@@ -120,19 +120,18 @@ class Invoice(Document):
 
     def _notify_agency(self, title, message):
         from platform_core.platform_core.doctype.agencymember.agencymember import get_agency_owner_email
+        from platform_core.platform_core.notify import notify
 
         agency_user = get_agency_owner_email(self.agency)
         if not agency_user:
             return
 
-        frappe.get_doc(
-            {
-                "doctype": "Notification",
-                "recipient": agency_user,
-                "category": "Invoice",
-                "title": title,
-                "body": message,
-                "reference_doctype": "Invoice",
-                "reference_name": self.name,
-            }
-        ).insert(ignore_permissions=True)
+        notify(
+            recipient=agency_user,
+            category="Invoice",
+            title=title,
+            body=message,
+            reference_doctype="Invoice",
+            reference_name=self.name,
+            channel="Both",
+        )
