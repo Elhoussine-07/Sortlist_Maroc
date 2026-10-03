@@ -28,8 +28,11 @@ def _send_first_reminders():
 		proposal.save(ignore_permissions=True)
 
 		project = frappe.get_doc("Project", proposal.project)
+		client_user = frappe.db.get_value("ClientProfile", project.client, "user") if project.client else None
+		if not client_user:
+			continue
 		notify(
-			recipient=project.client,
+			recipient=client_user,
 			category="Relance devis",
 			title=f"Rappel : un devis attend votre réponse pour « {project.title} »",
 			body=f"Vous avez {settings.reminder_extra_hours or 24}h supplémentaires pour Accepter ou Refuser ce devis.",
@@ -94,14 +97,16 @@ def _escalate_expired_suspensions_to_rejected():
 		if opportunity_name:
 			frappe.get_doc("Opportunity", opportunity_name).archive("Suspendu Rejeté")
 
-		notify(
-			recipient=project.client,
-			category="Statut projet",
-			title=f"Projet « {project.title} » rejeté",
-			body="Faute de réponse dans les délais, ce projet est passé au statut Rejeté.",
-			link=f"/client/projects/{project.name}",
-			channel="Both",
-		)
+		client_user = frappe.db.get_value("ClientProfile", project.client, "user") if project.client else None
+		if client_user:
+			notify(
+				recipient=client_user,
+				category="Statut projet",
+				title=f"Projet « {project.title} » rejeté",
+				body="Faute de réponse dans les délais, ce projet est passé au statut Rejeté.",
+				link=f"/client/projects/{project.name}",
+				channel="Both",
+			)
 
 def _escalate_expired_litige_notices():
 	now = now_datetime()
