@@ -29,7 +29,14 @@ import {
 } from "@/services/agencies.service";
 import { ApiError } from "@/services/http";
 
+interface ProjetsSearch {
+  country?: string | undefined;
+}
+
 export const Route = createFileRoute("/projets")({
+  validateSearch: (search: Record<string, unknown>): ProjetsSearch => ({
+    country: typeof search["country"] === "string" ? search["country"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Trouvez le projet idéal — Sortlist Pro" },
@@ -54,12 +61,18 @@ const SORT_OPTIONS: Array<{ value: NonNullable<ProjectSearchParams["sort"]>; lab
 ];
 
 function SearchProjectsPage() {
+  const { country: countryFromUrl } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
   const [budget, setBudget] = useState("");
+  const [country, setCountry] = useState(countryFromUrl ?? "");
   const [sort, setSort] = useState<NonNullable<ProjectSearchParams["sort"]>>("recent");
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setCountry(countryFromUrl ?? "");
+  }, [countryFromUrl]);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [availableCount, setAvailableCount] = useState<number | null>(null);
@@ -119,6 +132,7 @@ function SearchProjectsPage() {
         ...(category ? { category } : {}),
         ...(subCategory ? { subCategory } : {}),
         ...(budget ? { budget } : {}),
+        ...(country ? { country } : {}),
         sort,
         page,
       };
@@ -137,11 +151,11 @@ function SearchProjectsPage() {
         .finally(() => setIsLoading(false));
     }, 350);
     return () => clearTimeout(timer);
-  }, [query, category, subCategory, budget, sort, page]);
+  }, [query, category, subCategory, budget, country, sort, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [query, category, subCategory, budget, sort]);
+  }, [query, category, subCategory, budget, country, sort]);
 
   useEffect(() => {
     setSubCategory("");
@@ -152,11 +166,12 @@ function SearchProjectsPage() {
     setCategory("");
     setSubCategory("");
     setBudget("");
+    setCountry("");
     setSort("recent");
   }
 
   const hasAnyActiveFilter = Boolean(
-    query || category || subCategory || budget || sort !== "recent",
+    query || category || subCategory || budget || country || sort !== "recent",
   );
 
   return (
@@ -218,6 +233,9 @@ function SearchProjectsPage() {
             ) : null}
             {budget ? (
               <FilterPill label={`Budget : ${budget}`} onRemove={() => setBudget("")} />
+            ) : null}
+            {country ? (
+              <FilterPill label={`Pays : ${country}`} onRemove={() => setCountry("")} />
             ) : null}
             {sort !== "recent" ? (
               <FilterPill

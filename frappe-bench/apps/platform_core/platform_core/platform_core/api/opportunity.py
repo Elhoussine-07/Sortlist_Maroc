@@ -297,7 +297,7 @@ def list_available_projects(budget_min=None, budget_max=None, location=None, sub
 
 @frappe.whitelist(allow_guest=True)
 def list_public_projects(budget_min=None, budget_max=None, sub_category=None, category=None,
-	query=None, page=1, page_size=20):
+	query=None, country=None, page=1, page_size=20):
 	conditions = ["p.status = 'Posted'", "p.client is not null"]
 	values = {}
 
@@ -316,6 +316,11 @@ def list_public_projects(budget_min=None, budget_max=None, sub_category=None, ca
 	if query:
 		conditions.append("(p.title like %(query)s or p.description like %(query)s)")
 		values["query"] = f"%{query}%"
+	if country:
+		conditions.append(
+			"p.client in (select name from `tabClientProfile` where country = %(country)s)"
+		)
+		values["country"] = country
 
 	page = max(int(page or 1), 1)
 	page_size = min(max(int(page_size or 20), 1), 100)

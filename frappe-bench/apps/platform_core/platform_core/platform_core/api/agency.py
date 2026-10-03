@@ -75,10 +75,12 @@ def log_profile_view(agency):
 	log_action(agency=agency, action="Consultation du profil", visitor_ip=frappe.local.request_ip)
 
 @frappe.whitelist(allow_guest=True)
-def list_agencies(query=None, category=None, location=None, page=1, page_size=20):
+def list_agencies(query=None, category=None, location=None, country=None, page=1, page_size=20):
 	from platform_core.platform_core.api.search import search_agencies
 
-	return search_agencies(query=query, category=category, location=location, page=page, page_size=page_size)
+	return search_agencies(
+		query=query, category=category, location=location, country=country, page=page, page_size=page_size
+	)
 
 @frappe.whitelist()
 def update_profile(**fields):

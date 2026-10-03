@@ -6,6 +6,7 @@ export interface ProjectSearchParams {
   category?: string;
   subCategory?: string;
   budget?: string;
+  country?: string;
   sort?: "recent" | "relevance";
   page?: number;
   pageSize?: number;
@@ -229,6 +230,7 @@ export async function searchProjects(
     sub_category: params.subCategory,
     budget_min: budgetMin,
     budget_max: budgetMax,
+    country: params.country,
     page,
     page_size: pageSize,
   });

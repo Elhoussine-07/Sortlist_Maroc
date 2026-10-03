@@ -598,8 +598,10 @@ function HomePage() {
               className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {COUNTRIES.map((country) => (
-                <div
+                <Link
                   key={country.name}
+                  to="/agences"
+                  search={{ country: country.name }}
                   className="group flex w-[160px] shrink-0 flex-col items-center rounded-xl border border-border bg-card p-5 text-center transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
                 >
                   <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
@@ -611,7 +613,7 @@ function HomePage() {
                   <span className="mt-3 text-[12px] font-semibold text-muted-foreground/50 group-hover:text-primary/70 transition-colors">
                     Découvrir →
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
 

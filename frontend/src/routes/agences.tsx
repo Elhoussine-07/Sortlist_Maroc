@@ -19,7 +19,14 @@ import { searchAgencies, type AgencySearchParams } from "@/services/agencies.ser
 import { ApiError } from "@/services/http";
 import { toast } from "sonner";
 
+interface AgencesSearch {
+  country?: string | undefined;
+}
+
 export const Route = createFileRoute("/agences")({
+  validateSearch: (search: Record<string, unknown>): AgencesSearch => ({
+    country: typeof search["country"] === "string" ? search["country"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Trouvez l'agence idéale — Sortlist Pro" },
@@ -154,12 +161,18 @@ function Rating({ value }: { value: number }) {
 }
 
 function SearchAgenciesPage() {
+  const { country: countryFromUrl } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
+  const [country, setCountry] = useState(countryFromUrl ?? "");
   const [sort, setSort] = useState<AgencySearchParams["sort"]>("relevance");
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    setCountry(countryFromUrl ?? "");
+  }, [countryFromUrl]);
 
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [foundCount, setFoundCount] = useState<number | null>(null);
@@ -179,6 +192,7 @@ function SearchAgenciesPage() {
         ...(query ? { query } : {}),
         ...(category ? { category } : {}),
         ...(subCategory ? { subCategory } : {}),
+        ...(country ? { country } : {}),
         ...(sort ? { sort } : {}),
         page,
       })
@@ -198,11 +212,11 @@ function SearchAgenciesPage() {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [query, category, subCategory, sort, page]);
+  }, [query, category, subCategory, country, sort, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [query, category, subCategory, sort]);
+  }, [query, category, subCategory, country, sort]);
 
   function selectCategory(label: string) {
     setCategory((current) => {
@@ -224,12 +238,15 @@ function SearchAgenciesPage() {
     setQuery("");
     setCategory("");
     setSubCategory("");
+    setCountry("");
     setSort("relevance");
   }
 
-  const activeFilterCount = [category, subCategory].filter(Boolean).length;
+  const activeFilterCount = [category, subCategory, country].filter(Boolean).length;
 
-  const hasAnyActiveFilter = Boolean(query || category || subCategory || sort !== "relevance");
+  const hasAnyActiveFilter = Boolean(
+    query || category || subCategory || country || sort !== "relevance",
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -252,7 +269,9 @@ function SearchAgenciesPage() {
             </h1>
 
             <p className="mt-1.5 text-[13.5px] text-muted-foreground">
-              Filtrez par secteur pour affiner les recommandations.
+              {country
+                ? `Agences basées en ${country}. Filtrez par secteur pour affiner les recommandations.`
+                : "Filtrez par secteur pour affiner les recommandations."}
             </p>
           </div>
 
@@ -371,6 +390,10 @@ function SearchAgenciesPage() {
 
             {subCategory ? (
               <FilterPill label={subCategory} onRemove={() => selectSubCategory(subCategory)} />
+            ) : null}
+
+            {country ? (
+              <FilterPill label={`Pays : ${country}`} onRemove={() => setCountry("")} />
             ) : null}
 
             {sort !== "relevance" ? (

@@ -21,6 +21,7 @@ export interface AgencySearchParams {
   query?: string;
   category?: string;
   subCategory?: string;
+  country?: string;
   sort?: "relevance" | "rating" | "recent";
   page?: number;
   pageSize?: number;
@@ -80,6 +81,7 @@ export async function searchAgencies(
     query: params.query,
     category: params.category,
     location: params.subCategory,
+    country: params.country,
     page,
     page_size: pageSize,
   });
