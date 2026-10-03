@@ -20,6 +20,7 @@ import {
 import { changePassword } from "@/services/auth.service";
 import { ApiError } from "@/services/http";
 import { useThemeStore } from "@/store/theme.store";
+import { useLocaleStore, type Locale } from "@/store/locale.store";
 
 const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: "default", label: "Par défaut" },
@@ -116,6 +117,7 @@ function ClientSettingsPage() {
   const currentTheme = useThemeStore((state) => state.theme);
   const currentFont = useThemeStore((state) => state.font);
   const currentTextSize = useThemeStore((state) => state.textSize);
+  const currentLocale = useLocaleStore((state) => state.locale);
   const settingsQuery = useQuery({
     queryKey: ["client", "settings"],
     queryFn: getSettings,
@@ -133,6 +135,9 @@ function ClientSettingsPage() {
     useThemeStore.getState().setTheme(settings.theme);
     useThemeStore.getState().setFont(settings.font);
     useThemeStore.getState().setTextSize(settings.textSize);
+    if (settings.language && ["fr", "en", "ar", "es"].includes(settings.language)) {
+      useLocaleStore.getState().setLocale(settings.language as Locale);
+    }
   }, [settings]);
 
   const form = useForm<PasswordForm>({
@@ -182,6 +187,7 @@ function ClientSettingsPage() {
     if (key === "theme") useThemeStore.getState().setTheme(value as Settings["theme"]);
     if (key === "font") useThemeStore.getState().setFont(value as string);
     if (key === "textSize") useThemeStore.getState().setTextSize(value as number);
+    if (key === "language") useLocaleStore.getState().setLocale(value as Locale);
 
     if (key === "emailNotifications" || key === "pushNotifications") {
       settingsMutation.mutate({
@@ -348,8 +354,10 @@ function ClientSettingsPage() {
                 <div>
                   <PreferenceRow label="Langue" description="Langue de l'interface">
                     <select
-                      value={settings?.language ?? "fr"}
-                      onChange={(event) => updateSetting("language", event.target.value)}
+                      value={currentLocale}
+                      onChange={(event) =>
+                        updateSetting("language", event.target.value as Settings["language"])
+                      }
                       className="rounded-md border border-border bg-transparent px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-primary/50"
                     >
                       {LANGUAGE_OPTIONS.map((option) => (

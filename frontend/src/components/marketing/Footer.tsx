@@ -1,160 +1,160 @@
 import { Link } from "@tanstack/react-router";
 import { Headphones } from "lucide-react";
+import { useTranslation } from "@/i18n/useTranslation";
 
 export function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-muted text-foreground">
       <div className="mx-auto max-w-[1080px] px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-5">
           <div className="col-span-2 sm:col-span-1">
             <p className="text-[16px] font-bold tracking-tight">Sortlist</p>
-            <p className="mt-3 text-[13px] leading-[1.5] text-foreground/60">
-              Une nouvelle manière de connecter les entreprises et de créer des opportunités B2B
-              durables.
-            </p>
+            <p className="mt-3 text-[13px] leading-[1.5] text-foreground/60">{t("footer.tagline")}</p>
           </div>
 
           <div>
-            <p className="text-[13px] font-bold">Plateforme</p>
+            <p className="text-[13px] font-bold">{t("footer.platform")}</p>
             <nav className="mt-4 space-y-2.5">
               <Link
                 to="/agences"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Trouver l'agence idéale
+                {t("footer.findAgency")}
               </Link>
               <Link
                 to="/projets"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Trouver le projet idéal
+                {t("footer.findProject")}
               </Link>
               <Link
                 to="/postuler-un-projet"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Poster un projet
+                {t("footer.postProject")}
               </Link>
               <Link
                 to="/services"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Services couverts
+                {t("footer.services")}
               </Link>
               <Link
                 to="/comment-ca-marche"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Comment ça marche
+                {t("footer.howItWorks")}
               </Link>
             </nav>
           </div>
 
           <div>
-            <p className="text-[13px] font-bold">Pour les prestataires</p>
+            <p className="text-[13px] font-bold">{t("footer.providers")}</p>
             <nav className="mt-4 space-y-2.5">
               <Link
                 to="/comment-ca-marche"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Comment ça fonctionne
+                {t("footer.howItWorksProvider")}
               </Link>
               <Link
                 to="/inscription-agence"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Lister mon agence
+                {t("footer.listAgency")}
               </Link>
               <Link
                 to="/tarifs"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Prix
+                {t("footer.pricing")}
               </Link>
               <Link
                 to="/ressources"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Ressources et conseils
+                {t("footer.resources")}
               </Link>
               <Link
                 to="/devenir-partenaire"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Devenir partenaire
+                {t("footer.becomePartner")}
               </Link>
             </nav>
           </div>
 
           <div>
-            <p className="text-[13px] font-bold">Ressources</p>
+            <p className="text-[13px] font-bold">{t("footer.resourcesTitle")}</p>
             <nav className="mt-4 space-y-2.5">
               <Link
                 to="/blog"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Blog
+                {t("footer.blog")}
               </Link>
               <Link
                 to="/guides"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Guides et tutoriels
+                {t("footer.guides")}
               </Link>
               <Link
                 to="/etudes"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Études et rapports
+                {t("footer.studies")}
               </Link>
               <Link
                 to="/faq"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                FAQ
+                {t("footer.faq")}
               </Link>
               <Link
                 to="/aide"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Centre d'aide
+                {t("footer.helpCenter")}
               </Link>
             </nav>
           </div>
 
           <div>
-            <p className="text-[13px] font-bold">Entreprise</p>
+            <p className="text-[13px] font-bold">{t("footer.company")}</p>
             <nav className="mt-4 space-y-2.5">
               <Link
                 to="/a-propos"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                À propos
+                {t("footer.about")}
               </Link>
               <Link
                 to="/a-propos"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Notre vision
+                {t("footer.vision")}
               </Link>
               <Link
                 to="/carrieres"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Carrières
+                {t("footer.careers")}
               </Link>
               <Link
                 to="/presse"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Presse
+                {t("footer.press")}
               </Link>
 
               <a
                 href="mailto:contact@sortlistpro.com"
                 className="block text-[13px] text-foreground/70 transition-colors hover:text-foreground"
               >
-                Contact
+                {t("footer.contact")}
               </a>
             </nav>
           </div>
@@ -162,9 +162,9 @@ export function Footer() {
 
         <div className="mt-12 grid grid-cols-1 gap-8 border-t border-foreground/20 pt-8 sm:grid-cols-2">
           <div>
-            <p className="text-[13px] font-bold">Restez informé</p>
+            <p className="text-[13px] font-bold">{t("footer.stayInformed")}</p>
             <p className="mt-2 text-[12.5px] leading-[1.5] text-foreground/60">
-              Pour toute actualité ou question, notre équipe reste joignable directement par e-mail.
+              {t("footer.stayInformedDesc")}
             </p>
             <a
               href="mailto:contact@sortlistpro.com"
@@ -179,16 +179,14 @@ export function Footer() {
               <Headphones className="h-4 w-4" strokeWidth={1.6} />
             </span>
             <div>
-              <p className="text-[13px] font-bold">Besoin d'aide ?</p>
-              <p className="mt-1 text-[12.5px] text-foreground/60">
-                Notre équipe est là pour vous aider.
-              </p>
+              <p className="text-[13px] font-bold">{t("footer.needHelp")}</p>
+              <p className="mt-1 text-[12.5px] text-foreground/60">{t("footer.needHelpDesc")}</p>
 
               <a
                 href="mailto:contact@sortlistpro.com"
                 className="mt-1 inline-block text-[12.5px] font-semibold text-foreground transition-opacity hover:opacity-80"
               >
-                Nous contacter →
+                {t("footer.contactUs")}
               </a>
             </div>
           </div>
@@ -196,26 +194,26 @@ export function Footer() {
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-foreground/20 pt-8 sm:flex-row">
           <p className="text-[12.5px] text-foreground/60">
-            © {new Date().getFullYear()} Sortlist. Tous droits réservés.
+            © {new Date().getFullYear()} Sortlist. {t("footer.rights")}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
             <Link
               to="/mentions-legales"
               className="text-[12.5px] text-foreground/70 transition-colors hover:text-foreground"
             >
-              Mentions légales
+              {t("footer.legal")}
             </Link>
             <Link
               to="/confidentialite"
               className="text-[12.5px] text-foreground/70 transition-colors hover:text-foreground"
             >
-              Politique de confidentialité
+              {t("footer.privacy")}
             </Link>
             <Link
               to="/conditions-utilisation"
               className="text-[12.5px] text-foreground/70 transition-colors hover:text-foreground"
             >
-              Conditions d'utilisation
+              {t("footer.terms")}
             </Link>
           </div>
         </div>

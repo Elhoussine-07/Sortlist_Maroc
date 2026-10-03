@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "../components/ui/sonner";
 import { applyDomPreferences, useThemeStore } from "../store/theme.store";
+import { applyDomLocale, useLocaleStore } from "../store/locale.store";
 import { useRealtimeNotifications } from "../hooks/useRealtimeNotifications";
 
 function useApplyThemePreferences() {
@@ -31,6 +32,14 @@ function useApplyThemePreferences() {
       unsubscribe();
       media.removeEventListener("change", onMediaChange);
     };
+  }, []);
+}
+
+function useApplyLocalePreference() {
+  useEffect(() => {
+    applyDomLocale(useLocaleStore.getState().locale);
+    const unsubscribe = useLocaleStore.subscribe((state) => applyDomLocale(state.locale));
+    return unsubscribe;
   }, []);
 }
 
@@ -148,6 +157,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useApplyThemePreferences();
+  useApplyLocalePreference();
   useRealtimeNotifications();
 
   return (

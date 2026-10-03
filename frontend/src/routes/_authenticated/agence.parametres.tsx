@@ -18,6 +18,7 @@ import {
   User,
 } from "lucide-react";
 import { useThemeStore } from "@/store/theme.store";
+import { useLocaleStore, type Locale } from "@/store/locale.store";
 
 const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: "default", label: "Par défaut" },
@@ -147,6 +148,7 @@ function AgencySettingsPage() {
   const currentTheme = useThemeStore((state) => state.theme);
   const currentFont = useThemeStore((state) => state.font);
   const currentTextSize = useThemeStore((state) => state.textSize);
+  const currentLocale = useLocaleStore((state) => state.locale);
   const settingsQuery = useQuery({
     queryKey: ["agency", "settings"],
     queryFn: getSettings,
@@ -174,6 +176,10 @@ function AgencySettingsPage() {
     useThemeStore.getState().setTheme(settingsQuery.data.theme);
     useThemeStore.getState().setFont(settingsQuery.data.font);
     useThemeStore.getState().setTextSize(settingsQuery.data.textSize);
+    const language = settingsQuery.data.language;
+    if (language && ["fr", "en", "ar", "es"].includes(language)) {
+      useLocaleStore.getState().setLocale(language as Locale);
+    }
   }, [settingsQuery.data]);
 
   const updateSettingsMutation = useMutation({
@@ -429,10 +435,11 @@ function AgencySettingsPage() {
                 <div>
                   <PreferenceRow label="Langue" description="Langue de l'interface">
                     <select
-                      value={settings?.language ?? "fr"}
-                      onChange={(event) =>
-                        updateSettingsMutation.mutate({ language: event.target.value })
-                      }
+                      value={currentLocale}
+                      onChange={(event) => {
+                        useLocaleStore.getState().setLocale(event.target.value as Locale);
+                        updateSettingsMutation.mutate({ language: event.target.value });
+                      }}
                       className="rounded-md border border-border bg-transparent px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-primary/50"
                     >
                       {LANGUAGE_OPTIONS.map((option) => (

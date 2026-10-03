@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { CircleUserRound, Menu } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
+import { useTranslation } from "@/i18n/useTranslation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +40,7 @@ export function MarketingHeader({
   const token = useAuthStore((state) => state.token);
   const role = useAuthStore((state) => state.role);
   const dashboardPath = role === "agency" ? "/agence/tableau-de-bord" : "/client/tableau-de-bord";
+  const { t } = useTranslation();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/85 backdrop-blur-md">
@@ -53,19 +55,19 @@ export function MarketingHeader({
                 params={{ slug: "matching-intelligent" }}
                 className="text-[14.5px] font-medium text-foreground/80 transition-colors hover:text-foreground"
               >
-                Fonctionnalités
+                {t("header.features")}
               </Link>
               <Link
                 to="/comment-ca-marche"
                 className="text-[14.5px] font-medium text-foreground/80 transition-colors hover:text-foreground"
               >
-                Comment ça marche
+                {t("header.howItWorks")}
               </Link>
               <Link
                 to="/a-propos"
                 className="text-[14.5px] font-medium text-foreground/80 transition-colors hover:text-foreground"
               >
-                À propos
+                {t("header.about")}
               </Link>
             </nav>
 
@@ -74,23 +76,23 @@ export function MarketingHeader({
                 to="/agences"
                 className="hidden rounded-md px-3 py-2 text-[14px] font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-foreground sm:inline-flex"
               >
-                Trouvez l'agence idéale
+                {t("header.findAgency")}
               </Link>
               <Link
                 to="/projets"
                 className="hidden rounded-md px-3 py-2 text-[14px] font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-foreground sm:inline-flex"
               >
-                Trouvez le projet idéal
+                {t("header.findProject")}
               </Link>
               <Link
                 to="/postuler-un-projet"
                 className="rounded-md bg-primary px-3.5 py-2 text-[14px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow"
               >
-                Postuler un projet
+                {t("header.applyProject")}
               </Link>
               <Link
                 to={token ? dashboardPath : "/connexion"}
-                aria-label="Mon compte"
+                aria-label={t("common.account")}
                 className="ml-1 flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
               >
                 <CircleUserRound className="h-[22px] w-[22px]" strokeWidth={1.5} />
@@ -99,7 +101,7 @@ export function MarketingHeader({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    aria-label="Menu"
+                    aria-label={t("common.menu")}
                     className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground lg:hidden"
                   >
                     <Menu className="h-[22px] w-[22px]" strokeWidth={1.5} />
@@ -108,20 +110,20 @@ export function MarketingHeader({
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
                     <Link to="/fonctionnalites/$slug" params={{ slug: "matching-intelligent" }}>
-                      Fonctionnalités
+                      {t("header.features")}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/comment-ca-marche">Comment ça marche</Link>
+                    <Link to="/comment-ca-marche">{t("header.howItWorks")}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/a-propos">À propos</Link>
+                    <Link to="/a-propos">{t("header.about")}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/agences">Trouvez l'agence idéale</Link>
+                    <Link to="/agences">{t("header.findAgency")}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/projets">Trouvez le projet idéal</Link>
+                    <Link to="/projets">{t("header.findProject")}</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -138,7 +140,7 @@ export function MarketingHeader({
                     : "rounded-md px-4 py-1.5 text-[14px] font-semibold text-foreground/75 transition-colors hover:bg-accent hover:text-foreground"
                 }
               >
-                Trouvez l'agence idéale
+                {t("header.findAgency")}
               </Link>
               <Link
                 to="/projets"
@@ -148,26 +150,26 @@ export function MarketingHeader({
                     : "rounded-md px-4 py-1.5 text-[14px] font-semibold text-foreground/75 transition-colors hover:bg-accent hover:text-foreground"
                 }
               >
-                Trouvez le projet idéal
+                {t("header.findProject")}
               </Link>
             </nav>
 
             <div className="ml-auto flex items-center gap-3">
               {applyDisabled ? (
                 <span className="hidden cursor-not-allowed items-center rounded-md px-4 py-2 text-[14px] font-semibold text-muted-foreground/50 sm:inline-flex">
-                  Postuler un projet
+                  {t("header.applyProject")}
                 </span>
               ) : (
                 <Link
                   to="/postuler-un-projet"
                   className="hidden rounded-md bg-primary px-4 py-2 text-[14px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow sm:inline-flex"
                 >
-                  Postuler un projet
+                  {t("header.applyProject")}
                 </Link>
               )}
               <Link
                 to={token ? dashboardPath : "/connexion"}
-                aria-label="Mon compte"
+                aria-label={t("common.account")}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
               >
                 <CircleUserRound className="h-[22px] w-[22px]" strokeWidth={1.5} />
@@ -177,7 +179,7 @@ export function MarketingHeader({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    aria-label="Menu"
+                    aria-label={t("common.menu")}
                     className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground md:hidden"
                   >
                     <Menu className="h-[22px] w-[22px]" strokeWidth={1.5} />
@@ -185,19 +187,19 @@ export function MarketingHeader({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
-                    <Link to="/agences">Trouvez l'agence idéale</Link>
+                    <Link to="/agences">{t("header.findAgency")}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/projets">Trouvez le projet idéal</Link>
+                    <Link to="/projets">{t("header.findProject")}</Link>
                   </DropdownMenuItem>
                   {!applyDisabled ? (
                     <DropdownMenuItem asChild>
-                      <Link to="/postuler-un-projet">Postuler un projet</Link>
+                      <Link to="/postuler-un-projet">{t("header.applyProject")}</Link>
                     </DropdownMenuItem>
                   ) : null}
                   <DropdownMenuItem asChild>
                     <Link to={token ? dashboardPath : "/connexion"}>
-                      {token ? "Mon tableau de bord" : "Se connecter"}
+                      {token ? t("common.dashboard") : t("common.login")}
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
