@@ -540,6 +540,12 @@ def report_inactivity(project=None, message=None):
 	claims = require_active_agency()
 	assert_agency_member(claims["sub"], claims["agency_id"])
 
+	winning_agency = frappe.db.get_value(
+		"Opportunity", {"project": project, "status": ["in", ["Gagnée", "En pause"]]}, "agency"
+	)
+	if winning_agency != claims["agency_id"]:
+		frappe.throw(_("Accès non autorisé à ce projet"), frappe.PermissionError)
+
 	from platform_core.platform_core.doctype.projectsuspension.projectsuspension import request_suspension
 
 	suspension = request_suspension(project, requested_by="Agency", category="Litige", justification=message)

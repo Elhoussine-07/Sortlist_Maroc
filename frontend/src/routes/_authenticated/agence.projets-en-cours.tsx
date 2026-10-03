@@ -19,6 +19,7 @@ import {
   CircleDot,
   CircleCheck,
   XCircle,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -30,6 +31,7 @@ import { DataTable, type Column } from "@/components/common/DataTable";
 import type { Project } from "@/lib/types";
 import { ActionModal } from "@/components/common/ActionModal";
 import { getAgencyProjects, reviewClient } from "@/services/agency-projects.service";
+import { reportProblem } from "@/services/disputes.service";
 import { ApiError } from "@/services/http";
 
 export const Route = createFileRoute("/_authenticated/agence/projets-en-cours")({
@@ -135,6 +137,7 @@ function describeRemainingTime(expectedEndDate: string | null | undefined): stri
 function buildColumns(
   onViewDetails: (project: Project) => void,
   onReview: (project: Project) => void,
+  onReport: (project: Project) => void,
 ): Column<Project>[] {
   return [
     {
@@ -248,6 +251,16 @@ function buildColumns(
                 Avis
               </button>
             ))}
+          {project.status === "in_progress" ? (
+            <button
+              type="button"
+              onClick={() => onReport(project)}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-[13px] font-semibold text-foreground transition-all hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
+            >
+              <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
+              Signaler
+            </button>
+          ) : null}
         </div>
       ),
     },
@@ -265,6 +278,25 @@ function AgencyProjectsPage() {
   const [reviewTarget, setReviewTarget] = useState<Project | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+
+  const [reportTarget, setReportTarget] = useState<Project | null>(null);
+  const [reportReason, setReportReason] = useState("");
+
+  const reportMutation = useMutation({
+    mutationFn: () => {
+      if (!reportTarget) throw new Error("Aucun projet sélectionné.");
+      return reportProblem(reportTarget.id, reportReason.trim());
+    },
+    onSuccess: () => {
+      toast("Signalement envoyé — un modérateur va examiner votre demande.");
+      void queryClient.invalidateQueries({ queryKey: ["agency", "projects"] });
+      setReportTarget(null);
+      setReportReason("");
+    },
+    onError: (error) => {
+      toast(error instanceof ApiError ? error.message : "Impossible d'envoyer le signalement.");
+    },
+  });
 
   const reviewMutation = useMutation({
     mutationFn: () => {
@@ -391,7 +423,7 @@ function AgencyProjectsPage() {
 
         <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <DataTable
-            columns={buildColumns(setSelectedProject, setReviewTarget)}
+            columns={buildColumns(setSelectedProject, setReviewTarget, setReportTarget)}
             rows={projects}
             isLoading={isLoading}
           />
@@ -515,6 +547,38 @@ function AgencyProjectsPage() {
             placeholder="Partagez votre expérience avec ce client..."
           />
         </div>
+      </ActionModal>
+
+      <ActionModal
+        open={reportTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReportTarget(null);
+            setReportReason("");
+          }
+        }}
+        title="Signaler un problème"
+        description={
+          reportTarget
+            ? `Projet « ${reportTarget.title} » — ouvre un litige auprès des modérateurs (ex. client injoignable ou inactif).`
+            : ""
+        }
+        confirmLabel={reportMutation.isPending ? "Envoi..." : "Envoyer le signalement"}
+        onConfirm={() => {
+          if (!reportReason.trim()) {
+            toast("Renseignez un motif avant d'envoyer.");
+            return;
+          }
+          reportMutation.mutate();
+        }}
+      >
+        <TextAreaField
+          label="Motif"
+          rows={4}
+          value={reportReason}
+          onChange={(event) => setReportReason(event.target.value)}
+          placeholder="Expliquez la raison de ce signalement (ex. client injoignable depuis X jours)..."
+        />
       </ActionModal>
     </DashboardShell>
   );
