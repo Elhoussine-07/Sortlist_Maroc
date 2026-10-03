@@ -470,7 +470,56 @@ def get_dispute(project=None):
 		"status_label": DISPUTE_STATUS_LABELS.get(doc.status, doc.status),
 		"history": _suspension_history(doc),
 		"category": doc.category,
+		"awaiting_client_response": bool(
+			doc.status == "Requested"
+			and doc.category == "Litige"
+			and doc.requested_by == "Agency"
+			and not doc.client_response
+		),
+		"client_response": doc.client_response,
 	}
+
+@frappe.whitelist()
+def respond_to_dispute(project=None, message=None):
+	project = require_body_arg(project, "project", _("Projet manquant"))
+	message = require_body_arg(message, "message", _("Message manquant"))
+	claims = require_user_type("client")
+	client_name = require_client_profile(claims["sub"])
+
+	proj = frappe.get_doc("Project", project)
+	if proj.client != client_name:
+		frappe.throw(_("Accès non autorisé à ce projet"), frappe.PermissionError)
+
+	suspension_name = frappe.get_all(
+		"ProjectSuspension",
+		filters={"project": project, "status": "Requested", "category": "Litige", "requested_by": "Agency"},
+		order_by="creation desc",
+		limit=1,
+		pluck="name",
+	)
+	if not suspension_name:
+		frappe.throw(_("Aucun litige en attente de votre réponse pour ce projet"))
+
+	doc = frappe.get_doc("ProjectSuspension", suspension_name[0])
+	doc.client_response = message
+	doc.client_response_date = frappe.utils.now()
+	doc.save(ignore_permissions=True)
+
+	from platform_core.platform_core.notify import notify
+
+	for moderator in frappe.get_all("Has Role", filters={"role": "Moderator", "parenttype": "User"}, pluck="parent"):
+		notify(
+			recipient=moderator,
+			category="Litige",
+			title=f"Le client a répondu — litige projet « {proj.title} »",
+			body=message,
+			link=f"/admin/litiges",
+			reference_doctype="ProjectSuspension",
+			reference_name=doc.name,
+			action_required=True,
+		)
+
+	return doc.as_dict()
 
 @frappe.whitelist()
 def relaunch_search(project=None):

@@ -30,6 +30,7 @@ import {
   getDispute,
   requestSuspension,
   relaunchAgencySearch,
+  respondToDispute,
   resumeProject,
   type SuspensionCategory,
 } from "@/services/disputes.service";
@@ -289,6 +290,19 @@ function ClientProjectDetailPage() {
     disputeQuery.data.status.toLowerCase() !== "none"
       ? disputeQuery.data
       : null;
+
+  const [disputeReplyMessage, setDisputeReplyMessage] = useState("");
+  const disputeResponseMutation = useMutation({
+    mutationFn: () => respondToDispute(id, disputeReplyMessage.trim()),
+    onSuccess: () => {
+      toast("Votre réponse a été envoyée au modérateur.");
+      setDisputeReplyMessage("");
+      void disputeQuery.refetch();
+    },
+    onError: (error) => {
+      toast(error instanceof ApiError ? error.message : "Impossible d'envoyer votre réponse.");
+    },
+  });
 
   const [isSuspensionModalOpen, setIsSuspensionModalOpen] = useState(false);
   const [suspensionReason, setSuspensionReason] = useState("");
@@ -774,6 +788,45 @@ function ClientProjectDetailPage() {
                       ))}
                     </ul>
                   )}
+                  {dispute.awaitingClientResponse ? (
+                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-[13.5px] font-semibold text-amber-900">
+                        L'agence signale ne pas parvenir à vous joindre sur ce projet
+                      </p>
+                      <p className="mt-1 text-[13px] text-amber-800">
+                        Répondez pour expliquer la situation — un modérateur examinera votre
+                        réponse avant de trancher.
+                      </p>
+                      <TextAreaField
+                        label="Votre réponse"
+                        rows={4}
+                        value={disputeReplyMessage}
+                        onChange={(event) => setDisputeReplyMessage(event.target.value)}
+                        placeholder="Expliquez votre situation..."
+                      />
+                      <button
+                        type="button"
+                        disabled={disputeResponseMutation.isPending}
+                        onClick={() => {
+                          if (!disputeReplyMessage.trim()) {
+                            toast("Écrivez une réponse avant d'envoyer.");
+                            return;
+                          }
+                          disputeResponseMutation.mutate();
+                        }}
+                        className="mt-3 flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {disputeResponseMutation.isPending ? "Envoi..." : "Envoyer ma réponse"}
+                      </button>
+                    </div>
+                  ) : dispute.clientResponse ? (
+                    <div className="mt-4 rounded-lg border border-border bg-accent/30 p-3">
+                      <p className="text-[12px] font-semibold text-muted-foreground">
+                        Votre réponse envoyée au modérateur
+                      </p>
+                      <p className="mt-1 text-[13px]">{dispute.clientResponse}</p>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-3">

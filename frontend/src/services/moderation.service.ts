@@ -12,6 +12,9 @@ export interface ModerationCase {
   requestedBy: "client" | "agency" | "system" | null;
   justification: string;
   createdAt: string;
+  clientContactedDate: string | null;
+  clientResponse: string | null;
+  clientResponseDate: string | null;
 }
 
 function mapCase(raw: unknown): ModerationCase {
@@ -31,7 +34,14 @@ function mapCase(raw: unknown): ModerationCase {
         : null,
     justification: String(data["justification"] ?? ""),
     createdAt: String(data["creation"] ?? ""),
+    clientContactedDate: (data["clientContactedDate"] as string | null | undefined) ?? null,
+    clientResponse: (data["clientResponse"] as string | null | undefined) ?? null,
+    clientResponseDate: (data["clientResponseDate"] as string | null | undefined) ?? null,
   };
+}
+
+export async function contactDisputeClient(id: string): Promise<void> {
+  await frappeCall<unknown>("moderation.contact_dispute_client", { suspension: id });
 }
 
 export async function listPendingSuspensions(): Promise<ModerationCase[]> {

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, MessageCircle, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DashboardShell } from "@/components/layout/DashboardShell";
@@ -18,6 +18,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { ApiError } from "@/services/http";
 import {
   approveSuspensionAsModerator,
+  contactDisputeClient,
   listPendingLitigeNotices,
   listPendingSuspensions,
   refuseSuspensionAsModerator,
@@ -127,6 +128,17 @@ function AdminLitigesPage() {
     },
     onError: (error) => {
       toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer le verdict.");
+    },
+  });
+
+  const contactMutation = useMutation({
+    mutationFn: (id: string) => contactDisputeClient(id),
+    onSuccess: () => {
+      toast("Client contacté — un email et une notification lui ont été envoyés.");
+      invalidate();
+    },
+    onError: (error) => {
+      toast(error instanceof ApiError ? error.message : "Impossible de contacter le client.");
     },
   });
 
@@ -286,6 +298,41 @@ function AdminLitigesPage() {
 
                   {item.justification ? (
                     <p className="mt-3 text-[13px] text-muted-foreground">{item.justification}</p>
+                  ) : null}
+
+                  {item.category === "dispute" && item.requestedBy === "agency" ? (
+                    <div className="mt-3 rounded-md border border-border bg-accent/30 p-3">
+                      <p className="text-[12px] font-semibold text-muted-foreground">
+                        Vérification auprès du client
+                      </p>
+                      {item.clientResponse ? (
+                        <p className="mt-1.5 text-[13px]">
+                          <span className="font-semibold">Réponse du client : </span>
+                          {item.clientResponse}
+                        </p>
+                      ) : item.clientContactedDate ? (
+                        <p className="mt-1.5 text-[13px] text-muted-foreground">
+                          Client contacté le{" "}
+                          {new Date(item.clientContactedDate).toLocaleString("fr-FR")} — en
+                          attente de réponse.
+                        </p>
+                      ) : (
+                        <div className="mt-1.5 flex items-center justify-between gap-3">
+                          <p className="text-[13px] text-muted-foreground">
+                            Le client n'a pas encore été contacté au sujet de cette plainte.
+                          </p>
+                          <button
+                            type="button"
+                            disabled={contactMutation.isPending}
+                            onClick={() => contactMutation.mutate(item.id)}
+                            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-[12.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            {contactMutation.isPending ? "Envoi..." : "Contacter le client"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   ) : null}
 
                   {item.category === "dispute" ? (

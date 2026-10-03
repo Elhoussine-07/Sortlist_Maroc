@@ -31,9 +31,49 @@ def list_pending_suspensions():
 	rows = frappe.get_all(
 		"ProjectSuspension",
 		filters={"status": "Requested"},
-		fields=["name", "project", "category", "requested_by", "justification", "creation"],
+		fields=[
+			"name", "project", "category", "requested_by", "justification", "creation",
+			"client_contacted_date", "client_response", "client_response_date",
+		],
 	)
 	return [_enrich_suspension_row(row) for row in rows]
+
+@frappe.whitelist()
+def contact_dispute_client(suspension=None, message=None):
+	suspension = require_body_arg(suspension, "suspension", _("Dossier manquant"))
+	message = get_body_arg("message", message)
+	claims = _require_moderator()
+
+	doc = frappe.get_doc("ProjectSuspension", suspension)
+	if doc.category != "Litige" or doc.requested_by != "Agency":
+		frappe.throw(_("Ce dossier ne concerne pas une plainte d'agence contre un client"))
+
+	project = frappe.get_doc("Project", doc.project)
+	client_user = frappe.db.get_value("ClientProfile", project.client, "user") if project.client else None
+	if not client_user:
+		frappe.throw(_("Aucun client identifié pour ce projet"))
+
+	from platform_core.platform_core.notify import notify
+
+	notify(
+		recipient=client_user,
+		category="Litige",
+		title=f"Un modérateur vous contacte au sujet du projet « {project.title} »",
+		body=(
+			message
+			or f"L'agence signale ne pas parvenir à vous joindre : « {doc.justification} ». "
+			"Merci de répondre rapidement depuis votre espace projet pour éviter un rejet du projet."
+		),
+		link=f"/client/mes-projets/{project.name}",
+		reference_doctype="ProjectSuspension",
+		reference_name=doc.name,
+		channel="Both",
+		action_required=True,
+	)
+
+	doc.client_contacted_date = frappe.utils.now()
+	doc.save(ignore_permissions=True)
+	return doc.as_dict()
 
 @frappe.whitelist()
 def approve_suspension(suspension=None):

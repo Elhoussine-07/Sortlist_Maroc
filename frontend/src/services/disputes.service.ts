@@ -50,6 +50,8 @@ export async function getDispute(projectId: string): Promise<{
   statusLabel: string;
   history: HistoryEntry[];
   category: string | null;
+  awaitingClientResponse: boolean;
+  clientResponse: string | null;
 }> {
   const raw = await frappeCall<unknown>("project.get_dispute", { project: projectId });
   const data = camelizeKeys(raw) as Record<string, unknown>;
@@ -58,7 +60,17 @@ export async function getDispute(projectId: string): Promise<{
     statusLabel: String(data["statusLabel"] ?? data["status"] ?? ""),
     history: Array.isArray(data["history"]) ? (data["history"] as HistoryEntry[]) : [],
     category: (data["category"] as string | null | undefined) ?? null,
+    awaitingClientResponse: Boolean(data["awaitingClientResponse"] ?? false),
+    clientResponse: (data["clientResponse"] as string | null | undefined) ?? null,
   };
+}
+
+export async function respondToDispute(
+  projectId: string,
+  message: string,
+): Promise<{ status: "sent" }> {
+  await frappeCall<unknown>("project.respond_to_dispute", { project: projectId, message });
+  return { status: "sent" };
 }
 
 export async function resumeProject(projectId: string): Promise<{ projectId: string }> {

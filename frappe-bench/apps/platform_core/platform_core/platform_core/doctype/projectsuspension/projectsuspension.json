@@ -18,7 +18,10 @@
   "agency_response",
   "agency_response_date",
   "agency_notice_deadline",
-  "litige_notice_status"
+  "litige_notice_status",
+  "client_contacted_date",
+  "client_response",
+  "client_response_date"
  ],
  "fields": [
   {
@@ -122,6 +125,23 @@
    "fieldtype": "Select",
    "label": "Statut du pr\u00e9avis agence (litige fond\u00e9)",
    "options": "\nPending\nResponded\nExpired\nClosed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "client_contacted_date",
+   "fieldtype": "Datetime",
+   "label": "Client contact\u00e9 le (mod\u00e9rateur)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "client_response",
+   "fieldtype": "Text",
+   "label": "R\u00e9ponse du client"
+  },
+  {
+   "fieldname": "client_response_date",
+   "fieldtype": "Datetime",
+   "label": "R\u00e9pondu le (client)",
    "read_only": 1
   }
  ],
