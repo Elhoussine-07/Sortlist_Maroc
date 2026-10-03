@@ -65,6 +65,296 @@ import {
 import { ApiError } from "@/services/http";
 import { useAuthStore } from "@/store/auth.store";
 import { useBriefingStore, type BriefingBrief } from "@/store/briefing.store";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const BRIEFING_TEXT = {
+  "Urgent (7 jours)": { en: "Urgent (7 days)", ar: "عاجل (7 أيام)", es: "Urgente (7 días)" },
+  "Normal (30 jours)": {
+    en: "Standard (30 days)",
+    ar: "عادي (30 يومًا)",
+    es: "Normal (30 días)",
+  },
+  "Flexible (60 jours)": {
+    en: "Flexible (60 days)",
+    ar: "مرن (60 يومًا)",
+    es: "Flexible (60 días)",
+  },
+  "Catégorie du besoin": { en: "Need category", ar: "فئة الاحتياج", es: "Categoría de la necesidad" },
+  "Type de prestation recherchée": {
+    en: "Type of service you're looking for",
+    ar: "نوع الخدمة المطلوبة",
+    es: "Tipo de servicio buscado",
+  },
+  "Description du besoin": {
+    en: "Description of the need",
+    ar: "وصف الاحتياج",
+    es: "Descripción de la necesidad",
+  },
+  "Détails de votre projet": {
+    en: "Details of your project",
+    ar: "تفاصيل مشروعك",
+    es: "Detalles de su proyecto",
+  },
+  Budget: { en: "Budget", ar: "الميزانية", es: "Presupuesto" },
+  "Enveloppe budgétaire": { en: "Budget range", ar: "النطاق المالي", es: "Rango presupuestario" },
+  Localisation: { en: "Location", ar: "الموقع", es: "Ubicación" },
+  "Lieu d'exécution": { en: "Place of execution", ar: "مكان التنفيذ", es: "Lugar de ejecución" },
+  "Délai de réalisation": {
+    en: "Delivery timeline",
+    ar: "المهلة الزمنية للإنجاز",
+    es: "Plazo de realización",
+  },
+  "Calendrier souhaité": {
+    en: "Desired timeline",
+    ar: "الجدول الزمني المرغوب",
+    es: "Calendario deseado",
+  },
+  "Titre du projet": { en: "Project title", ar: "عنوان المشروع", es: "Título del proyecto" },
+  "Nom de votre projet": {
+    en: "Name of your project",
+    ar: "اسم مشروعك",
+    es: "Nombre de su proyecto",
+  },
+  "Recommencer le Smart Briefing ? Les réponses déjà saisies seront perdues.": {
+    en: "Restart the Smart Briefing? Answers already entered will be lost.",
+    ar: "هل تريد إعادة بدء Smart Briefing؟ ستُفقد الإجابات التي تم إدخالها بالفعل.",
+    es: "¿Reiniciar el Smart Briefing? Se perderán las respuestas ya introducidas.",
+  },
+  Recommencer: { en: "Start over", ar: "إعادة البدء", es: "Reiniciar" },
+  "Enregistrer brouillon": { en: "Save draft", ar: "حفظ المسودة", es: "Guardar borrador" },
+  "Mon compte": { en: "My account", ar: "حسابي", es: "Mi cuenta" },
+  "Impossible de charger ce brouillon.": {
+    en: "Unable to load this draft.",
+    ar: "تعذر تحميل هذه المسودة.",
+    es: "No se pudo cargar este borrador.",
+  },
+  "Impossible de charger la shortlist.": {
+    en: "Unable to load the shortlist.",
+    ar: "تعذر تحميل القائمة المختصرة.",
+    es: "No se pudo cargar la preselección.",
+  },
+  "Votre projet est publié ! Il est maintenant visible par les agences.": {
+    en: "Your project is published! It is now visible to agencies.",
+    ar: "تم نشر مشروعك! أصبح الآن مرئيًا للوكالات.",
+    es: "¡Su proyecto está publicado! Ahora es visible para las agencias.",
+  },
+  "Impossible de publier le projet.": {
+    en: "Unable to publish the project.",
+    ar: "تعذر نشر المشروع.",
+    es: "No se pudo publicar el proyecto.",
+  },
+  "Vous êtes connecté(e) : reprenez votre questionnaire, il a été conservé.": {
+    en: "You're signed in: resume your questionnaire, it has been saved.",
+    ar: "لقد سجّلت الدخول: تابع استبيانك، فقد تم حفظه.",
+    es: "Ha iniciado sesión: continúe su cuestionario, se ha guardado.",
+  },
+  "Description reformulée et budget suggéré (modifiables à l'étape suivante).": {
+    en: "Description rewritten and budget suggested (editable in the next step).",
+    ar: "تمت إعادة صياغة الوصف واقتراح ميزانية (قابلة للتعديل في الخطوة التالية).",
+    es: "Descripción reformulada y presupuesto sugerido (editable en el siguiente paso).",
+  },
+  "Description reformulée par l'IA.": {
+    en: "Description rewritten by AI.",
+    ar: "تمت إعادة صياغة الوصف بواسطة الذكاء الاصطناعي.",
+    es: "Descripción reformulada por la IA.",
+  },
+  "Impossible de contacter l'assistant IA.": {
+    en: "Unable to reach the AI assistant.",
+    ar: "تعذر الاتصال بالمساعد الذكي.",
+    es: "No se pudo contactar al asistente de IA.",
+  },
+  "Brouillon enregistré.": {
+    en: "Draft saved.",
+    ar: "تم حفظ المسودة.",
+    es: "Borrador guardado.",
+  },
+  "Impossible d'enregistrer le brouillon.": {
+    en: "Unable to save the draft.",
+    ar: "تعذر حفظ المسودة.",
+    es: "No se pudo guardar el borrador.",
+  },
+  "CDC généré ! Votre projet a été publié et est déjà visible des agences.": {
+    en: "Spec generated! Your project has been published and is already visible to agencies.",
+    ar: "تم إنشاء كراسة الشروط! تم نشر مشروعك وهو مرئي بالفعل للوكالات.",
+    es: "¡Pliego generado! Su proyecto ha sido publicado y ya es visible para las agencias.",
+  },
+  "Impossible de générer le CDC.": {
+    en: "Unable to generate the spec.",
+    ar: "تعذر إنشاء كراسة الشروط.",
+    es: "No se pudo generar el pliego.",
+  },
+  "Message envoyé à l'agence.": {
+    en: "Message sent to the agency.",
+    ar: "تم إرسال الرسالة إلى الوكالة.",
+    es: "Mensaje enviado a la agencia.",
+  },
+  "Envoi impossible.": {
+    en: "Unable to send.",
+    ar: "تعذر الإرسال.",
+    es: "No se pudo enviar.",
+  },
+  "Résumé de votre CDC": {
+    en: "Summary of your spec",
+    ar: "ملخص كراسة الشروط الخاصة بك",
+    es: "Resumen de su pliego",
+  },
+  "(temps réel)": { en: "(real-time)", ar: "(لحظي)", es: "(en tiempo real)" },
+  "À compléter": { en: "To be completed", ar: "يجب إكماله", es: "Por completar" },
+  "Une étape = un champ. Vous pourrez revenir modifier certaines réponses depuis le récapitulatif final.":
+    {
+      en: "One step equals one field. You'll be able to go back and edit your answers from the final summary.",
+      ar: "كل خطوة تمثل حقلاً واحدًا. يمكنك العودة لتعديل بعض الإجابات من الملخص النهائي.",
+      es: "Un paso equivale a un campo. Podrá volver a modificar ciertas respuestas desde el resumen final.",
+    },
+  Précédent: { en: "Back", ar: "السابق", es: "Anterior" },
+  Passer: { en: "Skip", ar: "تخطي", es: "Omitir" },
+  Suivant: { en: "Next", ar: "التالي", es: "Siguiente" },
+  Terminer: { en: "Finish", ar: "إنهاء", es: "Finalizar" },
+  "Catégorie de prestation": { en: "Service category", ar: "فئة الخدمة", es: "Categoría del servicio" },
+  "(optionnel)": { en: "(optional)", ar: "(اختياري)", es: "(opcional)" },
+  "Sélectionnez la catégorie qui correspond le mieux à votre projet": {
+    en: "Select the category that best matches your project",
+    ar: "اختر الفئة الأنسب لمشروعك",
+    es: "Seleccione la categoría que mejor se ajuste a su proyecto",
+  },
+  "→": { en: "→", ar: "←", es: "→" },
+  "Sélectionner une catégorie...": {
+    en: "Select a category...",
+    ar: "اختر فئة...",
+    es: "Seleccionar una categoría...",
+  },
+  "Chargement du catalogue...": {
+    en: "Loading catalog...",
+    ar: "جارٍ تحميل الكتالوج...",
+    es: "Cargando catálogo...",
+  },
+  "Aucune catégorie disponible pour le moment — vous pouvez passer cette étape.": {
+    en: "No category available at the moment — you can skip this step.",
+    ar: "لا توجد فئة متاحة حاليًا — يمكنك تخطي هذه الخطوة.",
+    es: "No hay ninguna categoría disponible por el momento; puede omitir este paso.",
+  },
+  "Effacer la sélection": { en: "Clear selection", ar: "مسح التحديد", es: "Borrar selección" },
+  "(toutes)": { en: "(all)", ar: "(الكل)", es: "(todas)" },
+  "Décrivez votre besoin": {
+    en: "Describe your need",
+    ar: "صف احتياجك",
+    es: "Describa su necesidad",
+  },
+  "Décrivez votre projet en détail : objectifs, cibles, contraintes, périmètre...": {
+    en: "Describe your project in detail: objectives, target audience, constraints, scope...",
+    ar: "صف مشروعك بالتفصيل: الأهداف، الجمهور المستهدف، القيود، النطاق...",
+    es: "Describa su proyecto en detalle: objetivos, público objetivo, restricciones, alcance...",
+  },
+  "Minimum 20 caractères pour une description complète": {
+    en: "Minimum 20 characters for a complete description",
+    ar: "20 حرفًا كحد أدنى للحصول على وصف كامل",
+    es: "Mínimo 20 caracteres para una descripción completa",
+  },
+  caractères: { en: "characters", ar: "حرف", es: "caracteres" },
+  "Assistance IA : reformulation + suggestion de budget": {
+    en: "AI assistance: rewriting + budget suggestion",
+    ar: "مساعدة الذكاء الاصطناعي: إعادة صياغة + اقتراح ميزانية",
+    es: "Asistencia de IA: reformulación + sugerencia de presupuesto",
+  },
+  "Connectez-vous pour l'assistance IA": {
+    en: "Sign in for AI assistance",
+    ar: "سجّل الدخول للاستفادة من المساعدة الذكية",
+    es: "Inicie sesión para la asistencia de IA",
+  },
+  "Budget minimum (€)": {
+    en: "Minimum budget (€)",
+    ar: "الميزانية الدنيا (€)",
+    es: "Presupuesto mínimo (€)",
+  },
+  "Budget maximum (€)": {
+    en: "Maximum budget (€)",
+    ar: "الميزانية القصوى (€)",
+    es: "Presupuesto máximo (€)",
+  },
+  "Champ optionnel — vous pouvez passer cette étape si vous ne connaissez pas encore votre budget.":
+    {
+      en: "Optional field — you can skip this step if you don't know your budget yet.",
+      ar: "حقل اختياري — يمكنك تخطي هذه الخطوة إذا كنت لا تعرف ميزانيتك بعد.",
+      es: "Campo opcional: puede omitir este paso si aún no conoce su presupuesto.",
+    },
+  "Ville, pays, ou « à distance »": {
+    en: "City, country, or “remote”",
+    ar: "المدينة، البلد، أو «عن بُعد»",
+    es: "Ciudad, país, o «a distancia»",
+  },
+  "Champ optionnel — vous pouvez passer cette étape.": {
+    en: "Optional field — you can skip this step.",
+    ar: "حقل اختياري — يمكنك تخطي هذه الخطوة.",
+    es: "Campo opcional: puede omitir este paso.",
+  },
+  "Ou préciser un nombre de jours": {
+    en: "Or specify a number of days",
+    ar: "أو حدد عدد الأيام",
+    es: "O especifique un número de días",
+  },
+  Jours: { en: "Days", ar: "أيام", es: "Días" },
+  "Ex: Refonte site e-commerce, Création d'application mobile...": {
+    en: "E.g.: E-commerce website redesign, Mobile app development...",
+    ar: "مثال: إعادة تصميم موقع تجارة إلكترونية، تطوير تطبيق جوال...",
+    es: "Ej.: Rediseño de sitio e-commerce, Creación de app móvil...",
+  },
+  "Ce titre apparaîtra dans votre tableau de bord. S'il est laissé vide, un titre automatique sera attribué.":
+    {
+      en: "This title will appear on your dashboard. If left blank, an automatic title will be assigned.",
+      ar: "سيظهر هذا العنوان في لوحة التحكم الخاصة بك. إذا تُرك فارغًا، سيتم تعيين عنوان تلقائي.",
+      es: "Este título aparecerá en su panel. Si se deja vacío, se asignará un título automático.",
+    },
+  "Votre brief est prêt !": {
+    en: "Your brief is ready!",
+    ar: "ملخص مشروعك جاهز!",
+    es: "¡Su brief está listo!",
+  },
+  "Voici le récapitulatif de votre cahier des charges. Cliquez sur une étape ci-dessus pour la modifier.":
+    {
+      en: "Here is the summary of your spec. Click a step above to edit it.",
+      ar: "إليك ملخص كراسة الشروط الخاصة بك. انقر على إحدى الخطوات أعلاه لتعديلها.",
+      es: "Aquí tiene el resumen de su pliego. Haga clic en un paso de arriba para modificarlo.",
+    },
+  "La description et le délai de réalisation sont obligatoires. Cliquez sur ces étapes ci-dessus pour les compléter avant de générer le CDC.":
+    {
+      en: "The description and the delivery timeline are required. Click these steps above to complete them before generating the spec.",
+      ar: "الوصف والمهلة الزمنية للإنجاز إلزاميان. انقر على هاتين الخطوتين أعلاه لإكمالهما قبل إنشاء كراسة الشروط.",
+      es: "La descripción y el plazo de realización son obligatorios. Haga clic en estos pasos de arriba para completarlos antes de generar el pliego.",
+    },
+  Modifier: { en: "Edit", ar: "تعديل", es: "Modificar" },
+  "Générer le CDC (PDF)": {
+    en: "Generate spec (PDF)",
+    ar: "إنشاء كراسة الشروط (PDF)",
+    es: "Generar pliego (PDF)",
+  },
+  "Publier le projet": { en: "Publish the project", ar: "نشر المشروع", es: "Publicar el proyecto" },
+  "« Générer le CDC » publie automatiquement votre projet aux agences. « Publier le projet » est le point d'entrée normal.":
+    {
+      en: "“Generate spec” automatically publishes your project to agencies. “Publish the project” is the standard entry point.",
+      ar: "«إنشاء كراسة الشروط» ينشر مشروعك تلقائيًا للوكالات. «نشر المشروع» هو نقطة الدخول المعتادة.",
+      es: "«Generar pliego» publica automáticamente su proyecto a las agencias. «Publicar el proyecto» es el punto de entrada habitual.",
+    },
+  "Agences recommandées": {
+    en: "Recommended agencies",
+    ar: "الوكالات الموصى بها",
+    es: "Agencias recomendadas",
+  },
+  "Sélection générée par l'IA pour votre projet": {
+    en: "Selection generated by AI for your project",
+    ar: "اختيار تم إنشاؤه بواسطة الذكاء الاصطناعي لمشروعك",
+    es: "Selección generada por IA para su proyecto",
+  },
+  "Aucune agence recommandée pour le moment.": {
+    en: "No agency recommended at the moment.",
+    ar: "لا توجد وكالة موصى بها حاليًا.",
+    es: "Ninguna agencia recomendada por el momento.",
+  },
+  Contactée: { en: "Contacted", ar: "تم التواصل", es: "Contactada" },
+  Contacter: { en: "Contact", ar: "تواصل", es: "Contactar" },
+  "Voir profil": { en: "View profile", ar: "عرض الملف", es: "Ver perfil" },
+  "Voir mes projets": { en: "View my projects", ar: "عرض مشاريعي", es: "Ver mis proyectos" },
+  "Nouveau projet": { en: "New project", ar: "مشروع جديد", es: "Nuevo proyecto" },
+} satisfies PageTextDict;
 
 const DELAY_PRESETS: Array<{ label: string; days: number; icon: typeof Clock }> = [
   { label: "Urgent (7 jours)", days: 7, icon: Clock },
@@ -139,6 +429,7 @@ function redirectToLoginPreservingDraft() {
 }
 
 export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | undefined } = {}) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   const token = useAuthStore((state) => state.token);
 
   const currentBrief = useBriefingStore((state) => state.currentBrief);
@@ -220,7 +511,9 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          toast(error instanceof ApiError ? error.message : "Impossible de charger ce brouillon.");
+          toast(
+            error instanceof ApiError ? error.message : tt("Impossible de charger ce brouillon."),
+          );
         }
       })
       .finally(() => {
@@ -250,7 +543,7 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
       const items = await getProjectShortlist(id);
       setShortlist(items);
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible de charger la shortlist.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de charger la shortlist."));
     } finally {
       setIsLoadingShortlist(false);
     }
@@ -274,10 +567,10 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
       }
 
       setPublishedProjectId(finalProjectId);
-      toast("Votre projet est publié ! Il est maintenant visible par les agences.");
+      toast(tt("Votre projet est publié ! Il est maintenant visible par les agences."));
       await loadShortlist(finalProjectId);
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible de publier le projet.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de publier le projet."));
     } finally {
       setIsPublishing(false);
     }
@@ -289,7 +582,7 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
     if (ready) {
       void runPublish();
     } else {
-      toast("Vous êtes connecté(e) : reprenez votre questionnaire, il a été conservé.");
+      toast(tt("Vous êtes connecté(e) : reprenez votre questionnaire, il a été conservé."));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPublishRequested]);
@@ -334,12 +627,16 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
       }
       updateBrief(patch);
       toast(
-        patch.budget_min != null || patch.budget_max != null
-          ? "Description reformulée et budget suggéré (modifiables à l'étape suivante)."
-          : "Description reformulée par l'IA.",
+        tt(
+          patch.budget_min != null || patch.budget_max != null
+            ? "Description reformulée et budget suggéré (modifiables à l'étape suivante)."
+            : "Description reformulée par l'IA.",
+        ),
       );
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible de contacter l'assistant IA.");
+      toast(
+        error instanceof ApiError ? error.message : tt("Impossible de contacter l'assistant IA."),
+      );
     } finally {
       setIsEnriching(false);
     }
@@ -359,9 +656,11 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
           : await createProject(payload);
       setProjectId(project.id);
       setProjectStatus("draft");
-      toast("Brouillon enregistré.");
+      toast(tt("Brouillon enregistré."));
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer le brouillon.");
+      toast(
+        error instanceof ApiError ? error.message : tt("Impossible d'enregistrer le brouillon."),
+      );
     } finally {
       setIsSavingDraft(false);
     }
@@ -383,9 +682,9 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
       link.href = url;
       link.download = `cdc-${newProjectId}.pdf`;
       link.click();
-      toast("CDC généré ! Votre projet a été publié et est déjà visible des agences.");
+      toast(tt("CDC généré ! Votre projet a été publié et est déjà visible des agences."));
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible de générer le CDC.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de générer le CDC."));
     } finally {
       setIsGeneratingCdc(false);
     }
@@ -405,9 +704,9 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
     try {
       await contactAgencies(publishedProjectId, [agencyId], undefined);
       setContactedAgencyIds((ids) => [...ids, agencyId]);
-      toast("Message envoyé à l'agence.");
+      toast(tt("Message envoyé à l'agence."));
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Envoi impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Envoi impossible."));
     } finally {
       setContactingAgencyId(null);
     }
@@ -450,7 +749,9 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                   onClick={() => {
                     if (
                       window.confirm(
-                        "Recommencer le Smart Briefing ? Les réponses déjà saisies seront perdues.",
+                        tt(
+                          "Recommencer le Smart Briefing ? Les réponses déjà saisies seront perdues.",
+                        ),
                       )
                     ) {
                       resetBriefing();
@@ -459,7 +760,7 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                   className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-4 py-2 text-[14px] font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 shadow-sm"
                 >
                   <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  Recommencer
+                  {tt("Recommencer")}
                 </button>
               ) : null}
               <button
@@ -473,11 +774,11 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                 ) : (
                   <Save className="h-3.5 w-3.5" strokeWidth={1.8} />
                 )}
-                Enregistrer brouillon
+                {tt("Enregistrer brouillon")}
               </button>
               <Link
                 to={token ? "/client/tableau-de-bord" : "/connexion"}
-                aria-label="Mon compte"
+                aria-label={tt("Mon compte")}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 transition-all hover:bg-indigo-100 hover:scale-105"
               >
                 <CircleUserRound className="h-[20px] w-[20px]" strokeWidth={1.8} />
@@ -529,11 +830,11 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                     {currentStepData?.icon && <currentStepData.icon className="h-5 w-5" />}
                   </div>
                   <h2 className="text-xl font-bold text-slate-900">
-                    {currentStepData?.label || ""}
+                    {currentStepData?.label ? tt(currentStepData.label) : ""}
                   </h2>
                 </div>
                 <p className="mt-2 text-sm text-slate-500 ml-13">
-                  {currentStepData?.description || ""}
+                  {currentStepData?.description ? tt(currentStepData.description) : ""}
                 </p>
               </div>
 
@@ -571,7 +872,7 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                   className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-5 py-2.5 text-[14px] font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-40 shadow-sm"
                 >
                   <ChevronLeft className="h-4 w-4" strokeWidth={1.8} />
-                  Précédent
+                  {tt("Précédent")}
                 </button>
                 <div className="flex items-center gap-2">
                   {isStepSkippable(step) ? (
@@ -581,7 +882,7 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                       className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-[14px] font-semibold text-slate-500 transition-all hover:bg-slate-50 hover:border-slate-300"
                     >
                       <SkipForward className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      Passer
+                      {tt("Passer")}
                     </button>
                   ) : null}
                   <button
@@ -590,7 +891,7 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                     disabled={!canGoNext}
                     className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-[14px] font-semibold text-white transition-all hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {step === 6 ? "Terminer" : "Suivant"}
+                    {step === 6 ? tt("Terminer") : tt("Suivant")}
                     <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
                   </button>
                 </div>
@@ -602,8 +903,10 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
                   <FileText className="h-4 w-4" strokeWidth={1.8} />
                 </span>
-                Résumé de votre CDC
-                <span className="ml-1 text-sm font-normal text-slate-400">(temps réel)</span>
+                {tt("Résumé de votre CDC")}
+                <span className="ml-1 text-sm font-normal text-slate-400">
+                  {tt("(temps réel)")}
+                </span>
               </h2>
 
               <div className="mt-6 space-y-5">
@@ -631,13 +934,13 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                         <row.icon className="h-4 w-4" strokeWidth={1.6} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-700">{row.label}</p>
+                        <p className="text-sm font-semibold text-slate-700">{tt(row.label)}</p>
                         {displayValue ? (
                           <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed text-slate-600">
                             {displayValue}
                           </p>
                         ) : (
-                          <p className="mt-0.5 text-sm text-slate-400 italic">À compléter</p>
+                          <p className="mt-0.5 text-sm text-slate-400 italic">{tt("À compléter")}</p>
                         )}
                         {subValue ? <p className="text-sm text-slate-400">{subValue}</p> : null}
                       </div>
@@ -659,8 +962,9 @@ export function SmartBriefing({ resumeProjectId }: { resumeProjectId?: string | 
                 <p className="flex items-start gap-2 text-sm leading-relaxed text-slate-600">
                   <Lock className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" strokeWidth={1.8} />
                   <span>
-                    Une étape = un champ. Vous pourrez revenir modifier certaines réponses depuis le
-                    récapitulatif final.
+                    {tt(
+                      "Une étape = un champ. Vous pourrez revenir modifier certaines réponses depuis le récapitulatif final.",
+                    )}
                   </span>
                 </p>
               </div>
@@ -683,12 +987,13 @@ function CategoryStep({
   categories: CategoryOption[];
   isLoadingCategories: boolean;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   return (
     <div className="space-y-6">
       <div>
         <label className="block text-sm font-semibold text-slate-700">
-          Catégorie de prestation
-          <span className="ml-2 text-sm font-normal text-slate-400">(optionnel)</span>
+          {tt("Catégorie de prestation")}
+          <span className="ml-2 text-sm font-normal text-slate-400">{tt("(optionnel)")}</span>
         </label>
         <CategoryCascadeMenu
           categories={categories}
@@ -700,7 +1005,7 @@ function CategoryStep({
           }
         />
         <p className="mt-2 text-sm text-slate-400">
-          Sélectionnez la catégorie qui correspond le mieux à votre projet
+          {tt("Sélectionnez la catégorie qui correspond le mieux à votre projet")}
         </p>
       </div>
     </div>
@@ -720,6 +1025,7 @@ function CategoryCascadeMenu({
   selectedSubCategoryId: string | undefined;
   onSelect: (categoryId: string | undefined, subCategoryId: string | undefined) => void;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   const selectedCategory =
     categories.find((category) => category.id === selectedCategoryId) ?? null;
   const selectedSub =
@@ -727,15 +1033,15 @@ function CategoryCascadeMenu({
 
   const label = selectedCategory
     ? selectedSub
-      ? `${selectedCategory.name} → ${selectedSub.name}`
+      ? `${selectedCategory.name} ${tt("→")} ${selectedSub.name}`
       : selectedCategory.name
-    : "Sélectionner une catégorie...";
+    : tt("Sélectionner une catégorie...");
 
   if (isLoadingCategories) {
     return (
       <div className="mt-3 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
         <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
-        <p className="text-sm text-slate-500">Chargement du catalogue...</p>
+        <p className="text-sm text-slate-500">{tt("Chargement du catalogue...")}</p>
       </div>
     );
   }
@@ -743,7 +1049,7 @@ function CategoryCascadeMenu({
     return (
       <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
         <p className="text-sm text-slate-500">
-          Aucune catégorie disponible pour le moment — vous pouvez passer cette étape.
+          {tt("Aucune catégorie disponible pour le moment — vous pouvez passer cette étape.")}
         </p>
       </div>
     );
@@ -771,7 +1077,7 @@ function CategoryCascadeMenu({
                 onClick={() => onSelect(undefined, undefined)}
                 className="rounded-lg text-sm text-slate-400 hover:bg-slate-50"
               >
-                Effacer la sélection
+                {tt("Effacer la sélection")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
@@ -787,7 +1093,7 @@ function CategoryCascadeMenu({
                     onClick={() => onSelect(category.id, undefined)}
                     className="rounded-lg text-sm font-medium text-indigo-600"
                   >
-                    {category.name} (toutes)
+                    {category.name} {tt("(toutes)")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {category.subCategories.map((sub) => (

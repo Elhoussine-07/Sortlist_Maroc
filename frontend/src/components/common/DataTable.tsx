@@ -1,6 +1,15 @@
 import type { ReactNode } from "react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { TableSkeleton } from "@/components/common/Skeletons";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const DATA_TABLE_TEXT = {
+  "Aucune donnée disponible": {
+    en: "No data available",
+    ar: "لا توجد بيانات متاحة",
+    es: "No hay datos disponibles",
+  },
+} satisfies PageTextDict;
 
 export interface Column<T> {
   key: string;
@@ -22,6 +31,7 @@ export function DataTable<T extends { id: string }>({
   isLoading?: boolean;
   emptyMessage?: string;
 }) {
+  const { tt } = usePageText(DATA_TABLE_TEXT);
   const template = columns.map((column) => column.width ?? "minmax(0,1fr)").join(" ");
 
   return (
@@ -43,7 +53,7 @@ export function DataTable<T extends { id: string }>({
         </div>
       ) : rows.length === 0 ? (
         <div className="p-5">
-          <EmptyState message={emptyMessage} />
+          <EmptyState message={tt(emptyMessage)} />
         </div>
       ) : (
         <ul className="divide-y divide-border">

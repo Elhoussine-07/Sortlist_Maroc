@@ -27,6 +27,7 @@ import {
   getWorkflowStages,
   type WorkflowStep,
 } from "@/services/workflow.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/agence/workflow")({
   head: () => ({
@@ -46,6 +47,114 @@ export const Route = createFileRoute("/_authenticated/agence/workflow")({
   }),
   component: AgencyWorkflowPage,
 });
+
+const PAGE_TEXT = {
+  Toutes: {
+    en: "All",
+    ar: "الكل",
+    es: "Todas",
+  },
+  Devis: {
+    en: "Quotes",
+    ar: "عروض الأسعار",
+    es: "Presupuestos",
+  },
+  Négociation: {
+    en: "Negotiation",
+    ar: "التفاوض",
+    es: "Negociación",
+  },
+  Signature: {
+    en: "Signature",
+    ar: "التوقيع",
+    es: "Firma",
+  },
+  "Devis envoyé": {
+    en: "Quote sent",
+    ar: "تم إرسال العرض",
+    es: "Presupuesto enviado",
+  },
+  Opportunité: {
+    en: "Opportunity",
+    ar: "الفرصة",
+    es: "Oportunidad",
+  },
+  Étape: {
+    en: "Stage",
+    ar: "المرحلة",
+    es: "Etapa",
+  },
+  "Temps restant": {
+    en: "Time remaining",
+    ar: "الوقت المتبقي",
+    es: "Tiempo restante",
+  },
+  "Aucune donnée disponible": {
+    en: "No data available",
+    ar: "لا توجد بيانات متاحة",
+    es: "No hay datos disponibles",
+  },
+  Workflow: {
+    en: "Workflow",
+    ar: "سير العمل",
+    es: "Flujo de trabajo",
+  },
+  "Suivez chaque étape de traitement de vos opportunités.": {
+    en: "Track every stage of your opportunity pipeline.",
+    ar: "تتبع كل مرحلة من مراحل معالجة فرصك.",
+    es: "Haz seguimiento de cada etapa de tus oportunidades.",
+  },
+  "Étapes du workflow": {
+    en: "Workflow stages",
+    ar: "مراحل سير العمل",
+    es: "Etapas del flujo de trabajo",
+  },
+  "Répartition de vos opportunités par étape.": {
+    en: "Breakdown of your opportunities by stage.",
+    ar: "توزيع فرصك حسب المرحلة.",
+    es: "Distribución de tus oportunidades por etapa.",
+  },
+  "Rechercher une opportunité...": {
+    en: "Search for an opportunity...",
+    ar: "ابحث عن فرصة...",
+    es: "Buscar una oportunidad...",
+  },
+  opportunité: {
+    en: "opportunity",
+    ar: "فرصة",
+    es: "oportunidad",
+  },
+  opportunités: {
+    en: "opportunities",
+    ar: "فرص",
+    es: "oportunidades",
+  },
+  "Trier par :": {
+    en: "Sort by:",
+    ar: "ترتيب حسب:",
+    es: "Ordenar por:",
+  },
+  "Plus récentes": {
+    en: "Most recent",
+    ar: "الأحدث",
+    es: "Más recientes",
+  },
+  "Plus anciennes": {
+    en: "Oldest",
+    ar: "الأقدم",
+    es: "Más antiguas",
+  },
+  "Pour accepter une opportunité ou envoyer un devis, rendez-vous sur l'écran": {
+    en: "To accept an opportunity or send a quote, head to the",
+    ar: "لقبول فرصة أو إرسال عرض سعر، توجه إلى شاشة",
+    es: "Para aceptar una oportunidad o enviar un presupuesto, ve a la pantalla",
+  },
+  Opportunités: {
+    en: "Opportunities",
+    ar: "الفرص",
+    es: "Oportunidades",
+  },
+} satisfies PageTextDict;
 
 const STEP_TABS: { value: string; label: string }[] = [
   { value: "all", label: "Toutes" },
@@ -100,77 +209,80 @@ function getStepIcon(step: string): LucideIcon {
   return config.icon;
 }
 
-const COLUMNS: Column<Opportunity>[] = [
-  {
-    key: "item",
-    header: "Opportunité",
-    width: "minmax(0,2.2fr)",
-    render: (item) => (
-      <div className="flex min-w-0 items-start gap-3">
-        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
-          <Workflow className="h-[18px] w-[18px]" strokeWidth={1.6} />
+function buildColumns(tt: (source: string) => string): Column<Opportunity>[] {
+  return [
+    {
+      key: "item",
+      header: tt("Opportunité"),
+      width: "minmax(0,2.2fr)",
+      render: (item) => (
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary shadow-sm">
+            <Workflow className="h-[18px] w-[18px]" strokeWidth={1.6} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
+              {item.projectTitle}
+            </p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
+              {item.companyName}
+            </p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
-            {item.projectTitle}
-          </p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-            {item.companyName}
-          </p>
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: "stage",
-    header: "Étape",
-    render: (item) => {
-      const config = getStageConfig(item.step || item.rawStatus || "");
-      const Icon = config.icon;
-      return (
-        <span
-          className={`
+      ),
+    },
+    {
+      key: "stage",
+      header: tt("Étape"),
+      render: (item) => {
+        const config = getStageConfig(item.step || item.rawStatus || "");
+        const Icon = config.icon;
+        return (
+          <span
+            className={`
             inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold
             ${config.bg} ${config.text} border ${config.border}
             shadow-sm transition-all hover:scale-105
           `}
-        >
-          <Icon className="h-3 w-3" strokeWidth={2} />
-          {config.label}
-        </span>
-      );
+          >
+            <Icon className="h-3 w-3" strokeWidth={2} />
+            {tt(config.label)}
+          </span>
+        );
+      },
     },
-  },
-  {
-    key: "quote",
-    header: "Devis",
-    render: (item) => (
-      <p className="truncate text-[14px] font-bold text-primary">
-        {item.quoteAmount === null ? "—" : `${item.quoteAmount.toLocaleString()} €`}
-      </p>
-    ),
-  },
-  {
-    key: "remaining",
-    header: "Temps restant",
-    render: (item) => {
-      const hours = item.remainingHours;
-      if (hours === null) return <p className="truncate text-[13px] text-muted-foreground">—</p>;
-      const isUrgent = hours <= 24;
-      return (
-        <p
-          className={`flex items-center gap-1.5 text-[13px] ${isUrgent ? "text-rose-600 font-semibold" : "text-muted-foreground"}`}
-        >
-          <Timer className="h-3.5 w-3.5" strokeWidth={1.6} />
-          <span className="truncate">{hours} h</span>
+    {
+      key: "quote",
+      header: tt("Devis"),
+      render: (item) => (
+        <p className="truncate text-[14px] font-bold text-primary">
+          {item.quoteAmount === null ? "—" : `${item.quoteAmount.toLocaleString()} €`}
         </p>
-      );
+      ),
     },
-  },
-];
+    {
+      key: "remaining",
+      header: tt("Temps restant"),
+      render: (item) => {
+        const hours = item.remainingHours;
+        if (hours === null) return <p className="truncate text-[13px] text-muted-foreground">—</p>;
+        const isUrgent = hours <= 24;
+        return (
+          <p
+            className={`flex items-center gap-1.5 text-[13px] ${isUrgent ? "text-rose-600 font-semibold" : "text-muted-foreground"}`}
+          >
+            <Timer className="h-3.5 w-3.5" strokeWidth={1.6} />
+            <span className="truncate">{hours} h</span>
+          </p>
+        );
+      },
+    },
+  ];
+}
 
 function AgencyWorkflowPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const stagesQuery = useQuery({
     queryKey: ["agency", "workflow", "stages"],
     queryFn: getWorkflowStages,
@@ -206,6 +318,9 @@ function AgencyWorkflowPage() {
   }
 
   const totalItems = items.length;
+  const columns = buildColumns(tt);
+  const stepTabs = STEP_TABS.map((tab) => ({ ...tab, label: tt(tab.label) }));
+  const opportunityWord = totalItems !== 1 ? tt("opportunités") : tt("opportunité");
 
   return (
     <DashboardShell role="agency">
@@ -219,16 +334,16 @@ function AgencyWorkflowPage() {
               <Workflow className="h-[22px] w-[22px]" strokeWidth={1.6} />
             </div>
             <div>
-              <h1 className="font-display text-[24px] font-bold tracking-tight">Workflow</h1>
+              <h1 className="font-display text-[24px] font-bold tracking-tight">{tt("Workflow")}</h1>
               <p className="mt-1 text-[14px] text-muted-foreground">
-                Suivez chaque étape de traitement de vos opportunités.
+                {tt("Suivez chaque étape de traitement de vos opportunités.")}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary">
               <TrendingUp className="inline h-3.5 w-3.5 mr-1" />
-              {totalItems} opportunité{totalItems !== 1 ? "s" : ""}
+              {totalItems} {opportunityWord}
             </span>
           </div>
         </div>
@@ -238,9 +353,9 @@ function AgencyWorkflowPage() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
-                <h2 className="text-[16px] font-bold">Étapes du workflow</h2>
+                <h2 className="text-[16px] font-bold">{tt("Étapes du workflow")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Répartition de vos opportunités par étape.
+                  {tt("Répartition de vos opportunités par étape.")}
                 </p>
               </div>
             </div>
@@ -249,7 +364,7 @@ function AgencyWorkflowPage() {
               {isStagesLoading ? (
                 <StackSkeleton count={4} />
               ) : stages.length === 0 ? (
-                <EmptyState message="Aucune donnée disponible" />
+                <EmptyState message={tt("Aucune donnée disponible")} />
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {stages.map((stage) => {
@@ -286,7 +401,7 @@ function AgencyWorkflowPage() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Rechercher une opportunité..."
+              placeholder={tt("Rechercher une opportunité...")}
               className="w-full rounded-xl border border-border bg-card px-10 py-3 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-md transition-all"
             />
           </div>
@@ -295,7 +410,7 @@ function AgencyWorkflowPage() {
         {/* ✅ TABS MODERNISÉS */}
         <div className="mt-6">
           <StatusTabs
-            tabs={STEP_TABS}
+            tabs={stepTabs}
             value={activeStage}
             onChange={setActiveStage}
             counts={counts}
@@ -305,21 +420,21 @@ function AgencyWorkflowPage() {
         {/* ✅ COMPTEUR + TRI */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">
-            {totalItems} opportunité{totalItems !== 1 ? "s" : ""}
+            {totalItems} {opportunityWord}
           </p>
           <button
             onClick={() => setSortDirection((current) => (current === "recent" ? "old" : "recent"))}
             type="button"
             className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
           >
-            Trier par : {sortDirection === "recent" ? "Plus récentes" : "Plus anciennes"}
+            {tt("Trier par :")} {sortDirection === "recent" ? tt("Plus récentes") : tt("Plus anciennes")}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
           </button>
         </div>
 
         {/* ✅ TABLEAU MODERNISÉ */}
         <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <DataTable columns={COLUMNS} rows={items} isLoading={isItemsLoading} />
+          <DataTable columns={columns} rows={items} isLoading={isItemsLoading} />
         </div>
 
         <ListPagination page={page} totalPages={totalPages} />
@@ -327,12 +442,12 @@ function AgencyWorkflowPage() {
         {/* ✅ LIEN VERS OPPORTUNITÉS */}
         <div className="mt-6 rounded-lg border border-border bg-accent/30 p-4 text-center">
           <p className="text-[13px] text-muted-foreground">
-            Pour accepter une opportunité ou envoyer un devis, rendez-vous sur l'écran{" "}
+            {tt("Pour accepter une opportunité ou envoyer un devis, rendez-vous sur l'écran")}{" "}
             <Link
               to="/agence/opportunites"
               className="inline-flex items-center gap-1 font-semibold text-primary transition-colors hover:underline"
             >
-              Opportunités
+              {tt("Opportunités")}
               <ChevronDown className="h-3.5 w-3.5 rotate-[-90deg]" strokeWidth={1.8} />
             </Link>
           </p>

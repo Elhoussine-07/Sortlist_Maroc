@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 import type { UserRole } from "@/lib/types";
 import { useAuthStore } from "@/store/auth.store";
 import { useAgencyStore } from "@/store/agency.store";
@@ -187,7 +188,67 @@ function seedGradient(seed: string): string {
   return `linear-gradient(135deg, hsl(${hue} 72% 56%), hsl(${(hue + 42) % 360} 72% 44%))`;
 }
 
+const DASHBOARD_SHELL_TEXT = {
+  "Tableau de bord": { en: "Dashboard", ar: "لوحة التحكم", es: "Panel de control" },
+  "Mon profil": { en: "My profile", ar: "ملفي الشخصي", es: "Mi perfil" },
+  "Postuler un projet": { en: "Submit a project", ar: "تقديم مشروع", es: "Enviar un proyecto" },
+  "Mes projets": { en: "My projects", ar: "مشاريعي", es: "Mis proyectos" },
+  Collaborations: { en: "Collaborations", ar: "التعاونات", es: "Colaboraciones" },
+  "Agences favorites": { en: "Favorite agencies", ar: "الوكالات المفضلة", es: "Agencias favoritas" },
+  "Historique des notifications": {
+    en: "Notification history",
+    ar: "سجل الإشعارات",
+    es: "Historial de notificaciones",
+  },
+  Paramètres: { en: "Settings", ar: "الإعدادات", es: "Configuración" },
+  Opportunités: { en: "Opportunities", ar: "الفرص", es: "Oportunidades" },
+  "Mes prospections": {
+    en: "My prospecting",
+    ar: "عمليات التنقيب الخاصة بي",
+    es: "Mi prospección",
+  },
+  Workflow: { en: "Workflow", ar: "سير العمل", es: "Flujo de trabajo" },
+  "Projets en cours": { en: "Ongoing projects", ar: "المشاريع الجارية", es: "Proyectos en curso" },
+  Suspension: { en: "Suspension", ar: "التعليق", es: "Suspensión" },
+  Prospection: { en: "Prospecting", ar: "التنقيب", es: "Prospección" },
+  Analytics: { en: "Analytics", ar: "التحليلات", es: "Analítica" },
+  Facturation: { en: "Billing", ar: "الفوترة", es: "Facturación" },
+  "Profil agence": { en: "Agency profile", ar: "ملف الوكالة", es: "Perfil de la agencia" },
+  Invitations: { en: "Invitations", ar: "الدعوات", es: "Invitaciones" },
+  "Litiges & suspensions": {
+    en: "Disputes & suspensions",
+    ar: "النزاعات والتعليقات",
+    es: "Litigios y suspensiones",
+  },
+  "Avis & comptes": { en: "Reviews & accounts", ar: "التقييمات والحسابات", es: "Reseñas y cuentas" },
+  Principal: { en: "Main", ar: "الرئيسية", es: "Principal" },
+  Projets: { en: "Projects", ar: "المشاريع", es: "Proyectos" },
+  Activité: { en: "Activity", ar: "النشاط", es: "Actividad" },
+  Performance: { en: "Performance", ar: "الأداء", es: "Rendimiento" },
+  Agence: { en: "Agency", ar: "الوكالة", es: "Agencia" },
+  Modération: { en: "Moderation", ar: "الإشراف", es: "Moderación" },
+  Compte: { en: "Account", ar: "الحساب", es: "Cuenta" },
+  Autres: { en: "Other", ar: "أخرى", es: "Otros" },
+  "Client (Entreprise)": { en: "Client (Company)", ar: "عميل (شركة)", es: "Cliente (Empresa)" },
+  Administration: { en: "Administration", ar: "الإدارة", es: "Administración" },
+  "Découvrir la plateforme": {
+    en: "Discover the platform",
+    ar: "اكتشف المنصة",
+    es: "Descubre la plataforma",
+  },
+  Notifications: { en: "Notifications", ar: "الإشعارات", es: "Notificaciones" },
+  "Mon compte": { en: "My account", ar: "حسابي", es: "Mi cuenta" },
+  "Se déconnecter": { en: "Log out", ar: "تسجيل الخروج", es: "Cerrar sesión" },
+  "Besoin d'aide ?": { en: "Need help?", ar: "تحتاج مساعدة؟", es: "¿Necesitas ayuda?" },
+  "Consulter notre centre d'aide": {
+    en: "Visit our help center",
+    ar: "زيارة مركز المساعدة",
+    es: "Consultar nuestro centro de ayuda",
+  },
+} satisfies PageTextDict;
+
 export function DashboardShell({ role, children }: { role: UserRole; children: ReactNode }) {
+  const { tt } = usePageText(DASHBOARD_SHELL_TEXT);
   const navigate = useNavigate();
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
@@ -221,7 +282,11 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
   const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   const roleLabel =
-    role === "client" ? "Client (Entreprise)" : role === "agency" ? "Agence" : "Administration";
+    role === "client"
+      ? tt("Client (Entreprise)")
+      : role === "agency"
+        ? tt("Agence")
+        : tt("Administration");
 
   return (
     <div className="min-h-screen bg-background">
@@ -240,8 +305,8 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
             <button
               onClick={() => setIsDemoOpen(true)}
               type="button"
-              aria-label="Découvrir la plateforme"
-              title="Découvrir la plateforme"
+              aria-label={tt("Découvrir la plateforme")}
+              title={tt("Découvrir la plateforme")}
               className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
             >
               <PlayCircle className="h-[21px] w-[21px]" strokeWidth={1.6} />
@@ -259,7 +324,7 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
                 })
               }
               type="button"
-              aria-label="Notifications"
+              aria-label={tt("Notifications")}
               className="relative flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
             >
               <Bell className="h-[21px] w-[21px]" strokeWidth={1.6} />
@@ -308,13 +373,13 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>{user?.displayName ?? "Mon compte"}</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.displayName ?? tt("Mon compte")}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {role !== "admin" ? (
                   <DropdownMenuItem asChild className="gap-2">
                     <Link to={role === "client" ? "/client/parametres" : "/agence/parametres"}>
                       <Settings className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-                      Paramètres
+                      {tt("Paramètres")}
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
@@ -327,7 +392,7 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
                   }}
                 >
                   <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-                  Se déconnecter
+                  {tt("Se déconnecter")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -342,7 +407,7 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
               <div key={group.section}>
                 {navGroups.length > 1 ? (
                   <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    {group.section}
+                    {tt(group.section)}
                   </p>
                 ) : null}
                 <div className="space-y-0.5">
@@ -359,7 +424,7 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
                         }
                       >
                         <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.7} />
-                        <span className="truncate">{item.label}</span>
+                        <span className="truncate">{tt(item.label)}</span>
                       </Link>
                     );
                   })}
@@ -371,13 +436,13 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
           <div className="mt-6 rounded-lg border border-border p-3.5">
             <p className="flex items-center gap-2 text-[14px] font-semibold">
               <CircleHelp className="h-4 w-4 text-primary" strokeWidth={1.7} />
-              Besoin d'aide ?
+              {tt("Besoin d'aide ?")}
             </p>
             <a
               href="/centre-aide"
               className="mt-1.5 flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Consulter notre centre d'aide
+              {tt("Consulter notre centre d'aide")}
               <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
             </a>
           </div>
@@ -392,7 +457,49 @@ export function DashboardShell({ role, children }: { role: UserRole; children: R
   );
 }
 
+const AGENCY_SWITCHER_TEXT = {
+  "Agence changée": { en: "Agency changed", ar: "تم تغيير الوكالة", es: "Agencia cambiada" },
+  "Impossible de changer d'agence.": {
+    en: "Unable to change agency.",
+    ar: "تعذر تغيير الوكالة.",
+    es: "No se pudo cambiar de agencia.",
+  },
+  "Demande envoyée": { en: "Request sent", ar: "تم إرسال الطلب", es: "Solicitud enviada" },
+  "Le propriétaire de l'agence doit approuver votre demande.": {
+    en: "The agency owner must approve your request.",
+    ar: "يجب على مالك الوكالة الموافقة على طلبك.",
+    es: "El propietario de la agencia debe aprobar tu solicitud.",
+  },
+  "Envoi de la demande impossible.": {
+    en: "Unable to send the request.",
+    ar: "تعذر إرسال الطلب.",
+    es: "No se pudo enviar la solicitud.",
+  },
+  "Mes agences": { en: "My agencies", ar: "وكالاتي", es: "Mis agencias" },
+  "Vos agences": { en: "Your agencies", ar: "وكالاتك", es: "Tus agencias" },
+  "Aucune agence trouvée.": {
+    en: "No agency found.",
+    ar: "لم يتم العثور على وكالة.",
+    es: "No se encontró ninguna agencia.",
+  },
+  Moi: { en: "Me", ar: "أنا", es: "Yo" },
+  "Rejoindre une agence": { en: "Join an agency", ar: "الانضمام إلى وكالة", es: "Unirse a una agencia" },
+  "Envoyez une demande de rattachement au propriétaire de l'agence.": {
+    en: "Send a membership request to the agency owner.",
+    ar: "أرسل طلب انضمام إلى مالك الوكالة.",
+    es: "Envía una solicitud de afiliación al propietario de la agencia.",
+  },
+  "Envoi...": { en: "Sending...", ar: "جارٍ الإرسال...", es: "Enviando..." },
+  "Envoyer la demande": { en: "Send request", ar: "إرسال الطلب", es: "Enviar solicitud" },
+  "Nom ou identifiant de l'agence": {
+    en: "Agency name or ID",
+    ar: "اسم الوكالة أو المعرف",
+    es: "Nombre o identificador de la agencia",
+  },
+} satisfies PageTextDict;
+
 function AgencySwitcher() {
+  const { tt } = usePageText(AGENCY_SWITCHER_TEXT);
   const queryClient = useQueryClient();
   const activeAgencyId = useAgencyStore((state) => state.activeAgencyId);
   const setActiveAgency = useAgencyStore((state) => state.setActiveAgency);
@@ -419,12 +526,12 @@ function AgencySwitcher() {
     onSuccess: (_result, agencyId) => {
       setActiveAgency(agencyId);
       void queryClient.invalidateQueries();
-      toast("Agence changée", {
+      toast(tt("Agence changée"), {
         description: agencies?.find((agency) => agency.id === agencyId)?.name,
       });
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de changer d'agence.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de changer d'agence."));
     },
   });
 
@@ -436,14 +543,14 @@ function AgencySwitcher() {
       return requestToJoinAgency(targetId);
     },
     onSuccess: () => {
-      toast("Demande envoyée", {
-        description: "Le propriétaire de l'agence doit approuver votre demande.",
+      toast(tt("Demande envoyée"), {
+        description: tt("Le propriétaire de l'agence doit approuver votre demande."),
       });
       setIsJoinOpen(false);
       setJoinQuery("");
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Envoi de la demande impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Envoi de la demande impossible."));
     },
   });
 
@@ -468,15 +575,17 @@ function AgencySwitcher() {
               <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.7} />
             )}
             <span className="hidden max-w-[140px] truncate sm:block">
-              {activeAgency?.name ?? "Mes agences"}
+              {activeAgency?.name ?? tt("Mes agences")}
             </span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
-          <DropdownMenuLabel>Vos agences</DropdownMenuLabel>
+          <DropdownMenuLabel>{tt("Vos agences")}</DropdownMenuLabel>
           {agencies === undefined || agencies.length === 0 ? (
-            <p className="px-2 py-1.5 text-[13px] text-muted-foreground">Aucune agence trouvée.</p>
+            <p className="px-2 py-1.5 text-[13px] text-muted-foreground">
+              {tt("Aucune agence trouvée.")}
+            </p>
           ) : (
             agencies.map((agency) => (
               <DropdownMenuItem
@@ -501,7 +610,7 @@ function AgencySwitcher() {
                       distinguer des agences rejointes comme membre. */}
                   {agency.membership === "owner" ? (
                     <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                      Moi
+                      {tt("Moi")}
                     </span>
                   ) : null}
                 </span>
@@ -514,7 +623,7 @@ function AgencySwitcher() {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setIsJoinOpen(true)} className="gap-2">
             <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-            Rejoindre une agence
+            {tt("Rejoindre une agence")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -522,9 +631,9 @@ function AgencySwitcher() {
       <ActionModal
         open={isJoinOpen}
         onOpenChange={setIsJoinOpen}
-        title="Rejoindre une agence"
-        description="Envoyez une demande de rattachement au propriétaire de l'agence."
-        confirmLabel={joinMutation.isPending ? "Envoi..." : "Envoyer la demande"}
+        title={tt("Rejoindre une agence")}
+        description={tt("Envoyez une demande de rattachement au propriétaire de l'agence.")}
+        confirmLabel={joinMutation.isPending ? tt("Envoi...") : tt("Envoyer la demande")}
         onConfirm={() => {
           if (joinQuery.trim()) {
             joinMutation.mutate(joinQuery);
@@ -532,7 +641,7 @@ function AgencySwitcher() {
         }}
       >
         <TextField
-          label="Nom ou identifiant de l'agence"
+          label={tt("Nom ou identifiant de l'agence")}
           value={joinQuery}
           onChange={(event) => setJoinQuery(event.target.value)}
         />

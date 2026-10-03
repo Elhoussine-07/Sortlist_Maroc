@@ -29,6 +29,7 @@ import { CountrySelect, type SelectedCountry } from "@/components/common/Country
 import { registerClient, requestEmailCode } from "@/services/auth.service";
 import { ApiError } from "@/services/http";
 import { useAuthStore } from "@/store/auth.store";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/inscription-client")({
   head: () => ({
@@ -62,7 +63,221 @@ const registrationSchema = z.object({
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
 
+const PAGE_TEXT = {
+  "Informations": {
+    en: "Information",
+    ar: "المعلومات",
+    es: "Información",
+  },
+  "Vérification": {
+    en: "Verification",
+    ar: "التحقق",
+    es: "Verificación",
+  },
+  "Renseignez votre email d'abord.": {
+    en: "Please enter your email first.",
+    ar: "يرجى إدخال بريدك الإلكتروني أولاً.",
+    es: "Indica primero tu correo electrónico.",
+  },
+  "Code envoyé par email.": {
+    en: "Code sent by email.",
+    ar: "تم إرسال الرمز عبر البريد الإلكتروني.",
+    es: "Código enviado por correo electrónico.",
+  },
+  "Vérifiez votre boîte de réception.": {
+    en: "Check your inbox.",
+    ar: "تحقق من صندوق الوارد الخاص بك.",
+    es: "Revisa tu bandeja de entrada.",
+  },
+  "Envoi du code impossible.": {
+    en: "Unable to send the code.",
+    ar: "تعذّر إرسال الرمز.",
+    es: "No se pudo enviar el código.",
+  },
+  "Compte client créé avec succès !": {
+    en: "Client account created successfully!",
+    ar: "تم إنشاء حساب العميل بنجاح!",
+    es: "¡Cuenta de cliente creada con éxito!",
+  },
+  "Inscription impossible. Vérifiez vos informations.": {
+    en: "Registration failed. Please check your information.",
+    ar: "تعذّر التسجيل. يرجى التحقق من معلوماتك.",
+    es: "No se pudo completar el registro. Verifica tu información.",
+  },
+  "Inscription client": {
+    en: "Client registration",
+    ar: "تسجيل العميل",
+    es: "Registro de cliente",
+  },
+  "Créez votre compte pour déposer vos projets en quelques clics.": {
+    en: "Create your account to post your projects in just a few clicks.",
+    ar: "أنشئ حسابك لنشر مشاريعك في خطوات بسيطة.",
+    es: "Crea tu cuenta para publicar tus proyectos en pocos clics.",
+  },
+  "Erreur d'inscription": {
+    en: "Registration error",
+    ar: "خطأ في التسجيل",
+    es: "Error de registro",
+  },
+  "Étape": {
+    en: "Step",
+    ar: "الخطوة",
+    es: "Paso",
+  },
+  "sur 2": {
+    en: "of 2",
+    ar: "من 2",
+    es: "de 2",
+  },
+  "Renseignez vos informations personnelles pour créer votre compte client.": {
+    en: "Enter your personal details to create your client account.",
+    ar: "أدخل بياناتك الشخصية لإنشاء حساب العميل الخاص بك.",
+    es: "Introduce tus datos personales para crear tu cuenta de cliente.",
+  },
+  "Prénom": {
+    en: "First name",
+    ar: "الاسم الأول",
+    es: "Nombre",
+  },
+  "Jean": {
+    en: "John",
+    ar: "محمد",
+    es: "Juan",
+  },
+  "Nom": {
+    en: "Last name",
+    ar: "اسم العائلة",
+    es: "Apellido",
+  },
+  "Dupont": {
+    en: "Smith",
+    ar: "العلوي",
+    es: "García",
+  },
+  "Raison sociale (optionnel)": {
+    en: "Company name (optional)",
+    ar: "اسم الشركة (اختياري)",
+    es: "Razón social (opcional)",
+  },
+  "Ma Société SAS": {
+    en: "My Company Inc.",
+    ar: "شركتي ش.م.م",
+    es: "Mi Empresa S.L.",
+  },
+  "Pays": {
+    en: "Country",
+    ar: "البلد",
+    es: "País",
+  },
+  "Indicatif": {
+    en: "Dial code",
+    ar: "رمز الاتصال",
+    es: "Prefijo",
+  },
+  "Téléphone": {
+    en: "Phone",
+    ar: "الهاتف",
+    es: "Teléfono",
+  },
+  "06 12 34 56 78": {
+    en: "06 12 34 56 78",
+    ar: "06 12 34 56 78",
+    es: "06 12 34 56 78",
+  },
+  "E-mail": {
+    en: "Email",
+    ar: "البريد الإلكتروني",
+    es: "Correo electrónico",
+  },
+  "Mot de passe": {
+    en: "Password",
+    ar: "كلمة المرور",
+    es: "Contraseña",
+  },
+  "Minimum 8 caractères": {
+    en: "Minimum 8 characters",
+    ar: "8 أحرف على الأقل",
+    es: "Mínimo 8 caracteres",
+  },
+  "Code envoyé à": {
+    en: "Code sent to",
+    ar: "تم إرسال الرمز إلى",
+    es: "Código enviado a",
+  },
+  "Vérification par e-mail": {
+    en: "Email verification",
+    ar: "التحقق عبر البريد الإلكتروني",
+    es: "Verificación por correo electrónico",
+  },
+  "Vérifiez vos spams si vous ne l'avez pas reçu.": {
+    en: "Check your spam folder if you haven't received it.",
+    ar: "تحقق من مجلد الرسائل غير المرغوب فيها إن لم تستلمه.",
+    es: "Revisa tu carpeta de spam si no lo has recibido.",
+  },
+  "Un code de vérification vous sera envoyé par email.": {
+    en: "A verification code will be sent to you by email.",
+    ar: "سيتم إرسال رمز تحقق إليك عبر البريد الإلكتروني.",
+    es: "Se te enviará un código de verificación por correo electrónico.",
+  },
+  "Code de vérification": {
+    en: "Verification code",
+    ar: "رمز التحقق",
+    es: "Código de verificación",
+  },
+  "Ex. 123456": {
+    en: "E.g. 123456",
+    ar: "مثال: 123456",
+    es: "Ej. 123456",
+  },
+  "Renvoyer le code": {
+    en: "Resend code",
+    ar: "إعادة إرسال الرمز",
+    es: "Reenviar código",
+  },
+  "Précédent": {
+    en: "Back",
+    ar: "السابق",
+    es: "Anterior",
+  },
+  "Veuillez remplir tous les champs correctement.": {
+    en: "Please fill in all fields correctly.",
+    ar: "يرجى ملء جميع الحقول بشكل صحيح.",
+    es: "Por favor, completa todos los campos correctamente.",
+  },
+  "Veuillez renseigner votre email.": {
+    en: "Please enter your email.",
+    ar: "يرجى إدخال بريدك الإلكتروني.",
+    es: "Por favor, indica tu correo electrónico.",
+  },
+  "Suivant": {
+    en: "Next",
+    ar: "التالي",
+    es: "Siguiente",
+  },
+  "Création...": {
+    en: "Creating...",
+    ar: "جارٍ الإنشاء...",
+    es: "Creando...",
+  },
+  "Créer mon compte client": {
+    en: "Create my client account",
+    ar: "إنشاء حساب العميل الخاص بي",
+    es: "Crear mi cuenta de cliente",
+  },
+  "Vous avez déjà un compte ?": {
+    en: "Already have an account?",
+    ar: "لديك حساب بالفعل؟",
+    es: "¿Ya tienes una cuenta?",
+  },
+  "Se connecter": {
+    en: "Log in",
+    ar: "تسجيل الدخول",
+    es: "Iniciar sesión",
+  },
+} satisfies PageTextDict;
+
 function ClientRegistrationPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
@@ -94,17 +309,17 @@ function ClientRegistrationPage() {
   const handleSendCode = async () => {
     const emailValue = form.getValues("email");
     if (!emailValue) {
-      toast.error("Renseignez votre email d'abord.");
+      toast.error(tt("Renseignez votre email d'abord."));
       return;
     }
     try {
       await requestEmailCode(emailValue);
       setCodeSent(true);
-      toast.success("Code envoyé par email.", {
-        description: "Vérifiez votre boîte de réception.",
+      toast.success(tt("Code envoyé par email."), {
+        description: tt("Vérifiez votre boîte de réception."),
       });
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Envoi du code impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Envoi du code impossible."));
     }
   };
 
@@ -128,13 +343,13 @@ function ClientRegistrationPage() {
       setUser(user);
       setStoreRole(detectedRole);
 
-      toast.success("Compte client créé avec succès !");
+      toast.success(tt("Compte client créé avec succès !"));
       navigate({ to: "/client/tableau-de-bord" });
     } catch (error) {
       const errorMsg =
         error instanceof ApiError
           ? error.message
-          : "Inscription impossible. Vérifiez vos informations.";
+          : tt("Inscription impossible. Vérifiez vos informations.");
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -157,10 +372,10 @@ function ClientRegistrationPage() {
           </div>
           <div>
             <h1 className="font-display text-[30px] font-bold tracking-tight sm:text-[34px]">
-              Inscription client
+              {tt("Inscription client")}
             </h1>
             <p className="mt-1 text-[14px] text-muted-foreground">
-              Créez votre compte pour déposer vos projets en quelques clics.
+              {tt("Créez votre compte pour déposer vos projets en quelques clics.")}
             </p>
           </div>
         </div>
@@ -171,7 +386,7 @@ function ClientRegistrationPage() {
             <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" strokeWidth={1.8} />
             <div>
               <p className="text-[13px] font-semibold text-red-700 dark:text-red-300">
-                Erreur d'inscription
+                {tt("Erreur d'inscription")}
               </p>
               <p className="text-[13px] text-red-600/80 dark:text-red-400/80">{errorMessage}</p>
             </div>
@@ -201,7 +416,7 @@ function ClientRegistrationPage() {
                     <p
                       className={`text-[12px] font-medium ${item.id <= step ? "text-foreground" : "text-muted-foreground"}`}
                     >
-                      {item.label}
+                      {tt(item.label)}
                     </p>
                   </div>
                 </div>
@@ -223,8 +438,12 @@ function ClientRegistrationPage() {
             <StepIcon className="h-4 w-4" strokeWidth={1.7} />
           </div>
           <div>
-            <p className="text-[12px] font-medium text-muted-foreground">Étape {step} sur 2</p>
-            <p className="text-[14px] font-semibold">{STEPS.find((s) => s.id === step)?.label}</p>
+            <p className="text-[12px] font-medium text-muted-foreground">
+              {tt("Étape")} {step} {tt("sur 2")}
+            </p>
+            <p className="text-[14px] font-semibold">
+              {tt(STEPS.find((s) => s.id === step)?.label ?? "")}
+            </p>
           </div>
         </div>
 
@@ -234,30 +453,30 @@ function ClientRegistrationPage() {
             <div className="space-y-5">
               <div className="rounded-lg border border-border bg-accent/20 p-4">
                 <p className="text-[13px] text-muted-foreground">
-                  Renseignez vos informations personnelles pour créer votre compte client.
+                  {tt("Renseignez vos informations personnelles pour créer votre compte client.")}
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextField
-                  label="Prénom"
-                  placeholder="Jean"
+                  label={tt("Prénom")}
+                  placeholder={tt("Jean")}
                   error={form.formState.errors.firstName?.message}
                   {...form.register("firstName")}
                 />
                 <TextField
-                  label="Nom"
-                  placeholder="Dupont"
+                  label={tt("Nom")}
+                  placeholder={tt("Dupont")}
                   error={form.formState.errors.lastName?.message}
                   {...form.register("lastName")}
                 />
                 <TextField
-                  label="Raison sociale (optionnel)"
-                  placeholder="Ma Société SAS"
+                  label={tt("Raison sociale (optionnel)")}
+                  placeholder={tt("Ma Société SAS")}
                   error={form.formState.errors.companyName?.message}
                   {...form.register("companyName")}
                 />
                 <CountrySelect
-                  label="Pays"
+                  label={tt("Pays")}
                   value={form.watch("country")}
                   error={form.formState.errors.country?.message}
                   onSelect={(country: SelectedCountry) => {
@@ -267,20 +486,20 @@ function ClientRegistrationPage() {
                 />
                 <div className="grid grid-cols-[88px_1fr] gap-2">
                   <TextField
-                    label="Indicatif"
+                    label={tt("Indicatif")}
                     readOnly
                     error={form.formState.errors.phoneCountryCode?.message}
                     {...form.register("phoneCountryCode")}
                   />
                   <TextField
-                    label="Téléphone"
-                    placeholder="06 12 34 56 78"
+                    label={tt("Téléphone")}
+                    placeholder={tt("06 12 34 56 78")}
                     error={form.formState.errors.phone?.message}
                     {...form.register("phone")}
                   />
                 </div>
                 <TextField
-                  label="E-mail"
+                  label={tt("E-mail")}
                   placeholder="contact@email.com"
                   type="email"
                   error={form.formState.errors.email?.message}
@@ -288,9 +507,9 @@ function ClientRegistrationPage() {
                 />
               </div>
               <TextField
-                label="Mot de passe"
+                label={tt("Mot de passe")}
                 type="password"
-                placeholder="Minimum 8 caractères"
+                placeholder={tt("Minimum 8 caractères")}
                 error={form.formState.errors.password?.message}
                 {...form.register("password")}
               />
@@ -324,19 +543,19 @@ function ClientRegistrationPage() {
                       codeSent ? "text-emerald-700 dark:text-emerald-300" : ""
                     }`}
                   >
-                    {codeSent ? `Code envoyé à ${email}` : "Vérification par e-mail"}
+                    {codeSent ? `${tt("Code envoyé à")} ${email}` : tt("Vérification par e-mail")}
                   </p>
                   <p className="text-[12px] text-muted-foreground">
                     {codeSent
-                      ? "Vérifiez vos spams si vous ne l'avez pas reçu."
-                      : "Un code de vérification vous sera envoyé par email."}
+                      ? tt("Vérifiez vos spams si vous ne l'avez pas reçu.")
+                      : tt("Un code de vérification vous sera envoyé par email.")}
                   </p>
                 </div>
               </div>
 
               <TextField
-                label="Code de vérification"
-                placeholder="Ex. 123456"
+                label={tt("Code de vérification")}
+                placeholder={tt("Ex. 123456")}
                 error={form.formState.errors.verificationCode?.message}
                 {...form.register("verificationCode")}
               />
@@ -346,7 +565,7 @@ function ClientRegistrationPage() {
                 type="button"
                 className="text-[13.5px] font-semibold text-primary underline-offset-2 hover:underline transition-colors"
               >
-                Renvoyer le code
+                {tt("Renvoyer le code")}
               </button>
             </div>
           )}
@@ -360,7 +579,7 @@ function ClientRegistrationPage() {
               className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2.5 text-[13.5px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Précédent
+              {tt("Précédent")}
             </button>
 
             {step === 1 ? (
@@ -382,13 +601,13 @@ function ClientRegistrationPage() {
 
                   if (hasErrors) {
                     form.trigger(fields as never);
-                    toast.error("Veuillez remplir tous les champs correctement.");
+                    toast.error(tt("Veuillez remplir tous les champs correctement."));
                     return;
                   }
 
                   const emailValue = form.getValues("email");
                   if (!emailValue) {
-                    toast.error("Veuillez renseigner votre email.");
+                    toast.error(tt("Veuillez renseigner votre email."));
                     return;
                   }
 
@@ -397,7 +616,7 @@ function ClientRegistrationPage() {
                 }}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md"
               >
-                Suivant
+                {tt("Suivant")}
                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
               </button>
             ) : (
@@ -409,12 +628,12 @@ function ClientRegistrationPage() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Création...
+                    {tt("Création...")}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Créer mon compte client
+                    {tt("Créer mon compte client")}
                   </>
                 )}
               </button>
@@ -424,12 +643,12 @@ function ClientRegistrationPage() {
 
         {/* Lien connexion */}
         <p className="mt-8 text-center text-[13.5px] text-muted-foreground">
-          Vous avez déjà un compte ?{" "}
+          {tt("Vous avez déjà un compte ?")}{" "}
           <Link
             to="/connexion"
             className="font-semibold text-primary underline-offset-2 hover:underline transition-colors"
           >
-            Se connecter
+            {tt("Se connecter")}
           </Link>
         </p>
       </main>

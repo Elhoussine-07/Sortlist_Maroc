@@ -18,10 +18,314 @@ import type { Agency } from "@/lib/types";
 import { searchAgencies, type AgencySearchParams } from "@/services/agencies.service";
 import { ApiError } from "@/services/http";
 import { toast } from "sonner";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 interface AgencesSearch {
   country?: string | undefined;
 }
+
+const PAGE_TEXT = {
+  "Trouvez l'agence idéale": {
+    en: "Find the ideal agency",
+    ar: "ابحث عن الوكالة المثالية",
+    es: "Encuentra la agencia ideal",
+  },
+  "Agences basées en": {
+    en: "Agencies based in",
+    ar: "وكالات مقرها في",
+    es: "Agencias ubicadas en",
+  },
+  "Filtrez par secteur pour affiner les recommandations.": {
+    en: "Filter by sector to refine the recommendations.",
+    ar: "صفِّ النتائج حسب القطاع لتحسين التوصيات.",
+    es: "Filtra por sector para afinar las recomendaciones.",
+  },
+  "Postuler un projet": {
+    en: "Submit a project",
+    ar: "أرسل مشروعًا",
+    es: "Enviar un proyecto",
+  },
+  "Décrivez le type d'agence que vous cherchez...": {
+    en: "Describe the type of agency you're looking for...",
+    ar: "صف نوع الوكالة التي تبحث عنها...",
+    es: "Describe el tipo de agencia que buscas...",
+  },
+  "Filtres": {
+    en: "Filters",
+    ar: "عوامل التصفية",
+    es: "Filtros",
+  },
+  "Catégorie": {
+    en: "Category",
+    ar: "الفئة",
+    es: "Categoría",
+  },
+  "Sous-catégorie": {
+    en: "Subcategory",
+    ar: "الفئة الفرعية",
+    es: "Subcategoría",
+  },
+  "Pays : ": {
+    en: "Country: ",
+    ar: "البلد: ",
+    es: "País: ",
+  },
+  "Tri : ": {
+    en: "Sort: ",
+    ar: "الترتيب: ",
+    es: "Orden: ",
+  },
+  "Tout réinitialiser": {
+    en: "Reset all",
+    ar: "إعادة تعيين الكل",
+    es: "Restablecer todo",
+  },
+  "{count} agence trouvée": {
+    en: "{count} agency found",
+    ar: "تم العثور على {count} وكالة",
+    es: "{count} agencia encontrada",
+  },
+  "{count} agences trouvées": {
+    en: "{count} agencies found",
+    ar: "تم العثور على {count} وكالة",
+    es: "{count} agencias encontradas",
+  },
+  "Trier par": {
+    en: "Sort by",
+    ar: "الترتيب حسب",
+    es: "Ordenar por",
+  },
+  "Aucune agence à afficher. Essayez d'élargir vos filtres.": {
+    en: "No agencies to display. Try broadening your filters.",
+    ar: "لا توجد وكالات لعرضها. حاول توسيع نطاق عوامل التصفية.",
+    es: "No hay agencias para mostrar. Intenta ampliar tus filtros.",
+  },
+  "avis": {
+    en: "reviews",
+    ar: "تقييمات",
+    es: "reseñas",
+  },
+  "Situé à": {
+    en: "Located in",
+    ar: "يقع في",
+    es: "Ubicada en",
+  },
+  "Note moyenne :": {
+    en: "Average rating:",
+    ar: "التقييم المتوسط:",
+    es: "Valoración media:",
+  },
+  "Voir le profil": {
+    en: "View profile",
+    ar: "عرض الملف الشخصي",
+    es: "Ver perfil",
+  },
+  "Contacter": {
+    en: "Contact",
+    ar: "تواصل",
+    es: "Contactar",
+  },
+  "Pagination": {
+    en: "Pagination",
+    ar: "ترقيم الصفحات",
+    es: "Paginación",
+  },
+  "Précédent": {
+    en: "Previous",
+    ar: "السابق",
+    es: "Anterior",
+  },
+  "Suivant": {
+    en: "Next",
+    ar: "التالي",
+    es: "Siguiente",
+  },
+  "Recherche d'agences impossible.": {
+    en: "Unable to search for agencies.",
+    ar: "تعذّر البحث عن الوكالات.",
+    es: "No se pudo realizar la búsqueda de agencias.",
+  },
+  "Pertinence": {
+    en: "Relevance",
+    ar: "الأكثر صلة",
+    es: "Relevancia",
+  },
+  "Note": {
+    en: "Rating",
+    ar: "التقييم",
+    es: "Valoración",
+  },
+  "Plus récentes": {
+    en: "Most recent",
+    ar: "الأحدث",
+    es: "Más recientes",
+  },
+  "Marketing digital": {
+    en: "Digital marketing",
+    ar: "التسويق الرقمي",
+    es: "Marketing digital",
+  },
+  "Développement web": {
+    en: "Web development",
+    ar: "تطوير الويب",
+    es: "Desarrollo web",
+  },
+  "Design & branding": {
+    en: "Design & branding",
+    ar: "التصميم والهوية البصرية",
+    es: "Diseño y branding",
+  },
+  "Communication": {
+    en: "Communication",
+    ar: "الاتصال",
+    es: "Comunicación",
+  },
+  "Juridique": {
+    en: "Legal",
+    ar: "الخدمات القانونية",
+    es: "Legal",
+  },
+  "Finance & comptabilité": {
+    en: "Finance & accounting",
+    ar: "المالية والمحاسبة",
+    es: "Finanzas y contabilidad",
+  },
+  "Ressources humaines": {
+    en: "Human resources",
+    ar: "الموارد البشرية",
+    es: "Recursos humanos",
+  },
+  "Conseil en stratégie": {
+    en: "Strategy consulting",
+    ar: "الاستشارات الاستراتيجية",
+    es: "Consultoría estratégica",
+  },
+  "SEO": {
+    en: "SEO",
+    ar: "تحسين محركات البحث (SEO)",
+    es: "SEO",
+  },
+  "Publicité en ligne": {
+    en: "Online advertising",
+    ar: "الإعلانات عبر الإنترنت",
+    es: "Publicidad en línea",
+  },
+  "Réseaux sociaux": {
+    en: "Social media",
+    ar: "وسائل التواصل الاجتماعي",
+    es: "Redes sociales",
+  },
+  "Stratégie de contenu": {
+    en: "Content strategy",
+    ar: "استراتيجية المحتوى",
+    es: "Estrategia de contenido",
+  },
+  "Sites vitrines": {
+    en: "Showcase websites",
+    ar: "مواقع تعريفية",
+    es: "Sitios web corporativos",
+  },
+  "Applications sur mesure": {
+    en: "Custom applications",
+    ar: "تطبيقات مخصصة",
+    es: "Aplicaciones a medida",
+  },
+  "E-commerce": {
+    en: "E-commerce",
+    ar: "التجارة الإلكترونية",
+    es: "Comercio electrónico",
+  },
+  "Identité visuelle": {
+    en: "Visual identity",
+    ar: "الهوية البصرية",
+    es: "Identidad visual",
+  },
+  "UX/UI": {
+    en: "UX/UI",
+    ar: "تجربة وواجهة المستخدم (UX/UI)",
+    es: "UX/UI",
+  },
+  "Design produit": {
+    en: "Product design",
+    ar: "تصميم المنتج",
+    es: "Diseño de producto",
+  },
+  "Relations presse": {
+    en: "Press relations",
+    ar: "العلاقات الصحفية",
+    es: "Relaciones con la prensa",
+  },
+  "Événementiel": {
+    en: "Event management",
+    ar: "تنظيم الفعاليات",
+    es: "Eventos",
+  },
+  "Communication de marque": {
+    en: "Brand communication",
+    ar: "اتصال العلامة التجارية",
+    es: "Comunicación de marca",
+  },
+  "Conseil juridique": {
+    en: "Legal advisory",
+    ar: "الاستشارات القانونية",
+    es: "Asesoría legal",
+  },
+  "Contrats": {
+    en: "Contracts",
+    ar: "العقود",
+    es: "Contratos",
+  },
+  "Conformité": {
+    en: "Compliance",
+    ar: "الامتثال",
+    es: "Cumplimiento normativo",
+  },
+  "Gestion comptable": {
+    en: "Accounting management",
+    ar: "الإدارة المحاسبية",
+    es: "Gestión contable",
+  },
+  "Fiscalité": {
+    en: "Taxation",
+    ar: "الضرائب",
+    es: "Fiscalidad",
+  },
+  "Pilotage financier": {
+    en: "Financial management",
+    ar: "الإدارة المالية",
+    es: "Gestión financiera",
+  },
+  "Recrutement": {
+    en: "Recruitment",
+    ar: "التوظيف",
+    es: "Reclutamiento",
+  },
+  "Formation": {
+    en: "Training",
+    ar: "التدريب",
+    es: "Formación",
+  },
+  "Gestion des talents": {
+    en: "Talent management",
+    ar: "إدارة المواهب",
+    es: "Gestión del talento",
+  },
+  "Stratégie de croissance": {
+    en: "Growth strategy",
+    ar: "استراتيجية النمو",
+    es: "Estrategia de crecimiento",
+  },
+  "Transformation": {
+    en: "Transformation",
+    ar: "التحول",
+    es: "Transformación",
+  },
+  "Accompagnement": {
+    en: "Advisory support",
+    ar: "المواكبة والدعم",
+    es: "Acompañamiento",
+  },
+} satisfies PageTextDict;
 
 export const Route = createFileRoute("/agences")({
   validateSearch: (search: Record<string, unknown>): AgencesSearch => ({
@@ -161,6 +465,7 @@ function Rating({ value }: { value: number }) {
 }
 
 function SearchAgenciesPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const { country: countryFromUrl } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -202,7 +507,9 @@ function SearchAgenciesPage() {
           setTotalPages(result.totalPages);
         })
         .catch((error: unknown) => {
-          toast(error instanceof ApiError ? error.message : "Recherche d'agences impossible.");
+          toast(
+            error instanceof ApiError ? error.message : tt("Recherche d'agences impossible."),
+          );
 
           setAgencies([]);
           setFoundCount(0);
@@ -265,13 +572,13 @@ function SearchAgenciesPage() {
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-[24px] font-bold tracking-tight sm:text-[28px]">
-              Trouvez l'agence idéale
+              {tt("Trouvez l'agence idéale")}
             </h1>
 
             <p className="mt-1.5 text-[13.5px] text-muted-foreground">
               {country
-                ? `Agences basées en ${country}. Filtrez par secteur pour affiner les recommandations.`
-                : "Filtrez par secteur pour affiner les recommandations."}
+                ? `${tt("Agences basées en")} ${country}. ${tt("Filtrez par secteur pour affiner les recommandations.")}`
+                : tt("Filtrez par secteur pour affiner les recommandations.")}
             </p>
           </div>
 
@@ -280,7 +587,7 @@ function SearchAgenciesPage() {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-[14px] font-semibold text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:opacity-90"
           >
             <Send className="h-4 w-4" strokeWidth={1.8} />
-            Postuler un projet
+            {tt("Postuler un projet")}
           </Link>
         </div>
 
@@ -294,7 +601,7 @@ function SearchAgenciesPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Décrivez le type d'agence que vous cherchez..."
+            placeholder={tt("Décrivez le type d'agence que vous cherchez...")}
             className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground focus:outline-none"
           />
 
@@ -309,7 +616,7 @@ function SearchAgenciesPage() {
             }
           >
             <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.8} />
-            Filtres
+            {tt("Filtres")}
             {activeFilterCount > 0 ? (
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 {activeFilterCount}
@@ -325,7 +632,7 @@ function SearchAgenciesPage() {
           <div className="mt-4 rounded-2xl border border-border bg-background p-5 shadow-sm sm:p-6">
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Catégorie
+                {tt("Catégorie")}
               </p>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -342,7 +649,7 @@ function SearchAgenciesPage() {
                         : "border-border text-foreground/80 hover:border-primary/30 hover:bg-accent")
                     }
                   >
-                    {item.label}
+                    {tt(item.label)}
                   </button>
                 ))}
               </div>
@@ -351,7 +658,7 @@ function SearchAgenciesPage() {
             {category ? (
               <div className="mt-6 border-t border-border pt-5">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  Sous-catégorie
+                  {tt("Sous-catégorie")}
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -368,7 +675,7 @@ function SearchAgenciesPage() {
                           : "border-border text-foreground/80 hover:border-primary/30 hover:bg-accent")
                       }
                     >
-                      {label}
+                      {tt(label)}
                     </button>
                   ))}
                 </div>
@@ -385,20 +692,20 @@ function SearchAgenciesPage() {
             {query ? <FilterPill label={`"${query}"`} onRemove={() => setQuery("")} /> : null}
 
             {category ? (
-              <FilterPill label={category} onRemove={() => selectCategory(category)} />
+              <FilterPill label={tt(category)} onRemove={() => selectCategory(category)} />
             ) : null}
 
             {subCategory ? (
-              <FilterPill label={subCategory} onRemove={() => selectSubCategory(subCategory)} />
+              <FilterPill label={tt(subCategory)} onRemove={() => selectSubCategory(subCategory)} />
             ) : null}
 
             {country ? (
-              <FilterPill label={`Pays : ${country}`} onRemove={() => setCountry("")} />
+              <FilterPill label={`${tt("Pays : ")}${country}`} onRemove={() => setCountry("")} />
             ) : null}
 
             {sort !== "relevance" ? (
               <FilterPill
-                label={"Tri : " + (SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "")}
+                label={tt("Tri : ") + tt(SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "")}
                 onRemove={() => setSort("relevance")}
               />
             ) : null}
@@ -408,7 +715,7 @@ function SearchAgenciesPage() {
               onClick={resetFilters}
               className="ml-1 text-[12.5px] font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >
-              Tout réinitialiser
+              {tt("Tout réinitialiser")}
             </button>
           </div>
         ) : null}
@@ -418,13 +725,15 @@ function SearchAgenciesPage() {
         ============================================================ */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border pb-4">
           <p className="truncate text-[14px] font-semibold">
-            {foundCount ?? 0} agence
-            {(foundCount ?? 0) > 1 ? "s" : ""} trouvée
-            {(foundCount ?? 0) > 1 ? "s" : ""}
+            {(
+              (foundCount ?? 0) > 1
+                ? tt("{count} agences trouvées")
+                : tt("{count} agence trouvée")
+            ).replace("{count}", String(foundCount ?? 0))}
           </p>
 
           <label className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground">
-            Trier par
+            {tt("Trier par")}
             <span className="relative flex items-center">
               <select
                 value={sort}
@@ -433,7 +742,7 @@ function SearchAgenciesPage() {
               >
                 {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {tt(option.label)}
                   </option>
                 ))}
               </select>
@@ -453,7 +762,9 @@ function SearchAgenciesPage() {
           {isLoading ? (
             <CardGridSkeleton count={8} />
           ) : agencies.length === 0 ? (
-            <EmptyState message="Aucune agence à afficher. Essayez d'élargir vos filtres." />
+            <EmptyState
+              message={tt("Aucune agence à afficher. Essayez d'élargir vos filtres.")}
+            />
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {agencies.map((agency) => (
@@ -487,7 +798,7 @@ function SearchAgenciesPage() {
                       <span>{agency.rating}</span>
 
                       <span className="font-normal text-muted-foreground">
-                        ({agency.reviewsCount} avis)
+                        ({agency.reviewsCount} {tt("avis")})
                       </span>
                     </p>
 
@@ -507,7 +818,9 @@ function SearchAgenciesPage() {
                         <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
                       </span>
 
-                      <span className="min-w-0 truncate">Situé à {agency.location}</span>
+                      <span className="min-w-0 truncate">
+                        {tt("Situé à")} {agency.location}
+                      </span>
                     </div>
 
                     {/* Note */}
@@ -517,7 +830,7 @@ function SearchAgenciesPage() {
                       </span>
 
                       <span>
-                        Note moyenne :{" "}
+                        {tt("Note moyenne :")}{" "}
                         <strong className="font-semibold text-foreground">{agency.rating}</strong>
                       </span>
                     </div>
@@ -528,7 +841,9 @@ function SearchAgenciesPage() {
                         <Star className="h-3.5 w-3.5" strokeWidth={1.8} />
                       </span>
 
-                      <span>{agency.reviewsCount} avis</span>
+                      <span>
+                        {agency.reviewsCount} {tt("avis")}
+                      </span>
                     </div>
 
                     {/* Boutons */}
@@ -538,7 +853,7 @@ function SearchAgenciesPage() {
                         params={{ id: agency.id }}
                         className="flex w-full items-center justify-center rounded-md bg-foreground px-4 py-2.5 text-center text-[13.5px] font-semibold text-background transition-all hover:-translate-y-0.5 hover:opacity-90"
                       >
-                        Voir le profil
+                        {tt("Voir le profil")}
                       </Link>
 
                       <Link
@@ -546,7 +861,7 @@ function SearchAgenciesPage() {
                         params={{ id: agency.id }}
                         className="flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-background px-4 py-2.5 text-center text-[13.5px] font-semibold transition-colors hover:bg-accent"
                       >
-                        Contacter
+                        {tt("Contacter")}
                       </Link>
                     </div>
                   </div>
@@ -588,6 +903,7 @@ function Pagination({
   totalPages: number | null;
   onChange: (page: number) => void;
 }) {
+  const { tt } = usePageText(PAGE_TEXT);
   const pages = totalPages ?? 1;
 
   const windowSize = Math.min(5, pages);
@@ -597,7 +913,10 @@ function Pagination({
   const visible = Array.from({ length: end - start + 1 }, (_, i) => start + i);
 
   return (
-    <nav aria-label="Pagination" className="mt-12 flex flex-wrap items-center justify-center gap-3">
+    <nav
+      aria-label={tt("Pagination")}
+      className="mt-12 flex flex-wrap items-center justify-center gap-3"
+    >
       <button
         type="button"
         onClick={() => onChange(Math.max(1, page - 1))}
@@ -605,7 +924,7 @@ function Pagination({
         className="flex items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       >
         <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
-        Précédent
+        {tt("Précédent")}
       </button>
 
       {start > 1 ? (
@@ -657,7 +976,7 @@ function Pagination({
         disabled={page === pages}
         className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-[13.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Suivant
+        {tt("Suivant")}
         <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
       </button>
     </nav>

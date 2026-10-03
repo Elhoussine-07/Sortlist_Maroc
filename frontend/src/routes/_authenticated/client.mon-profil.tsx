@@ -30,6 +30,270 @@ import {
   verifyPhoneOtp,
 } from "@/services/profile.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const PAGE_TEXT = {
+  "Prénom du contact": {
+    en: "Contact first name",
+    ar: "الاسم الأول لجهة الاتصال",
+    es: "Nombre del contacto",
+  },
+  "Nom du contact": {
+    en: "Contact last name",
+    ar: "اسم عائلة جهة الاتصال",
+    es: "Apellido del contacto",
+  },
+  "Raison sociale": {
+    en: "Company name",
+    ar: "الاسم التجاري",
+    es: "Razón social",
+  },
+  "Téléphone": {
+    en: "Phone",
+    ar: "الهاتف",
+    es: "Teléfono",
+  },
+  "Logo de l'entreprise": {
+    en: "Company logo",
+    ar: "شعار الشركة",
+    es: "Logotipo de la empresa",
+  },
+  "Pays": {
+    en: "Country",
+    ar: "البلد",
+    es: "País",
+  },
+  "Identifiant légal": {
+    en: "Legal ID",
+    ar: "المعرّف القانوني",
+    es: "Identificador legal",
+  },
+  "Secteur d'activité": {
+    en: "Industry",
+    ar: "قطاع النشاط",
+    es: "Sector de actividad",
+  },
+  "Profil mis à jour avec succès": {
+    en: "Profile updated successfully",
+    ar: "تم تحديث الملف الشخصي بنجاح",
+    es: "Perfil actualizado correctamente",
+  },
+  "Impossible d'enregistrer le profil.": {
+    en: "Unable to save the profile.",
+    ar: "تعذّر حفظ الملف الشخصي.",
+    es: "No se pudo guardar el perfil.",
+  },
+  "Identité vérifiée : votre score de confiance a été mis à jour.": {
+    en: "Identity verified: your trust score has been updated.",
+    ar: "تم التحقق من الهوية: تم تحديث درجة الثقة الخاصة بك.",
+    es: "Identidad verificada: se actualizó tu puntuación de confianza.",
+  },
+  "Format d'identifiant invalide. Format attendu : ": {
+    en: "Invalid ID format. Expected format: ",
+    ar: "صيغة المعرّف غير صحيحة. الصيغة المتوقعة: ",
+    es: "Formato de identificador no válido. Formato esperado: ",
+  },
+  "Format d'identifiant invalide pour le pays renseigné.": {
+    en: "Invalid ID format for the selected country.",
+    ar: "صيغة المعرّف غير صالحة بالنسبة للبلد المحدد.",
+    es: "Formato de identificador no válido para el país indicado.",
+  },
+  "Vérification de l'identité impossible.": {
+    en: "Unable to verify identity.",
+    ar: "تعذّر التحقق من الهوية.",
+    es: "No se pudo verificar la identidad.",
+  },
+  "Code envoyé par e-mail (valable 5 minutes).": {
+    en: "Code sent by email (valid for 5 minutes).",
+    ar: "تم إرسال الرمز عبر البريد الإلكتروني (صالح لمدة 5 دقائق).",
+    es: "Código enviado por correo electrónico (válido 5 minutos).",
+  },
+  "Envoi du code impossible.": {
+    en: "Unable to send the code.",
+    ar: "تعذّر إرسال الرمز.",
+    es: "No se pudo enviar el código.",
+  },
+  "Téléphone vérifié : votre score de confiance a été mis à jour.": {
+    en: "Phone verified: your trust score has been updated.",
+    ar: "تم التحقق من الهاتف: تم تحديث درجة الثقة الخاصة بك.",
+    es: "Teléfono verificado: se actualizó tu puntuación de confianza.",
+  },
+  "Code invalide ou expiré.": {
+    en: "Invalid or expired code.",
+    ar: "الرمز غير صالح أو منتهي الصلاحية.",
+    es: "Código no válido o caducado.",
+  },
+  "Le logo doit être une image (PNG, JPG, SVG...).": {
+    en: "The logo must be an image (PNG, JPG, SVG...).",
+    ar: "يجب أن يكون الشعار صورة (PNG أو JPG أو SVG...).",
+    es: "El logotipo debe ser una imagen (PNG, JPG, SVG...).",
+  },
+  "Image trop lourde (4 Mo maximum).": {
+    en: "Image too large (4 MB maximum).",
+    ar: "حجم الصورة كبير جدًا (الحد الأقصى 4 ميغابايت).",
+    es: "Imagen demasiado pesada (4 MB como máximo).",
+  },
+  "Mon profil": {
+    en: "My profile",
+    ar: "ملفي الشخصي",
+    es: "Mi perfil",
+  },
+  "Gérez les informations de votre entreprise.": {
+    en: "Manage your company information.",
+    ar: "أدر معلومات شركتك.",
+    es: "Gestiona la información de tu empresa.",
+  },
+  "Identité vérifiée": {
+    en: "Identity verified",
+    ar: "تم التحقق من الهوية",
+    es: "Identidad verificada",
+  },
+  "Informations entreprise": {
+    en: "Company information",
+    ar: "معلومات الشركة",
+    es: "Información de la empresa",
+  },
+  "Ces informations sont visibles par les agences que vous contactez.": {
+    en: "This information is visible to the agencies you contact.",
+    ar: "هذه المعلومات مرئية للوكالات التي تتواصل معها.",
+    es: "Esta información es visible para las agencias que contactas.",
+  },
+  "Changer le logo": {
+    en: "Change logo",
+    ar: "تغيير الشعار",
+    es: "Cambiar logotipo",
+  },
+  "PNG, JPG ou SVG, 4 Mo maximum. Affiché sur votre profil et vos échanges avec les agences.": {
+    en: "PNG, JPG or SVG, 4 MB maximum. Shown on your profile and in your exchanges with agencies.",
+    ar: "PNG أو JPG أو SVG، بحد أقصى 4 ميغابايت. يظهر في ملفك الشخصي وفي تبادلاتك مع الوكالات.",
+    es: "PNG, JPG o SVG, 4 MB como máximo. Se muestra en tu perfil y en tus intercambios con las agencias.",
+  },
+  "Type d'identifiant légal": {
+    en: "Legal ID type",
+    ar: "نوع المعرّف القانوني",
+    es: "Tipo de identificador legal",
+  },
+  "Vérifié": {
+    en: "Verified",
+    ar: "موثّق",
+    es: "Verificado",
+  },
+  "Numéro de téléphone": {
+    en: "Phone number",
+    ar: "رقم الهاتف",
+    es: "Número de teléfono",
+  },
+  "Ex. 06 12 34 56 78": {
+    en: "E.g. 06 12 34 56 78",
+    ar: "مثال: 06 12 34 56 78",
+    es: "Ej. 06 12 34 56 78",
+  },
+  "Renvoyer le code": {
+    en: "Resend code",
+    ar: "إعادة إرسال الرمز",
+    es: "Reenviar código",
+  },
+  "Vérifier mon numéro": {
+    en: "Verify my number",
+    ar: "تحقق من رقمي",
+    es: "Verificar mi número",
+  },
+  "Code reçu par e-mail": {
+    en: "Code received by email",
+    ar: "الرمز المستلم عبر البريد الإلكتروني",
+    es: "Código recibido por correo electrónico",
+  },
+  "Ex. 123456": {
+    en: "E.g. 123456",
+    ar: "مثال: 123456",
+    es: "Ej. 123456",
+  },
+  "Valider le code": {
+    en: "Confirm code",
+    ar: "تأكيد الرمز",
+    es: "Validar código",
+  },
+  "Enregistrement...": {
+    en: "Saving...",
+    ar: "جارٍ الحفظ...",
+    es: "Guardando...",
+  },
+  "Enregistrer les modifications": {
+    en: "Save changes",
+    ar: "حفظ التعديلات",
+    es: "Guardar los cambios",
+  },
+  "Vérification...": {
+    en: "Verifying...",
+    ar: "جارٍ التحقق...",
+    es: "Verificando...",
+  },
+  "Revérifier mon identité": {
+    en: "Re-verify my identity",
+    ar: "إعادة التحقق من هويتي",
+    es: "Volver a verificar mi identidad",
+  },
+  "Vérifier mon identité": {
+    en: "Verify my identity",
+    ar: "التحقق من هويتي",
+    es: "Verificar mi identidad",
+  },
+  "Score de confiance": {
+    en: "Trust score",
+    ar: "درجة الثقة",
+    es: "Puntuación de confianza",
+  },
+  "Calculé à partir de la complétion du profil et de votre activité.": {
+    en: "Calculated from your profile completion and your activity.",
+    ar: "يُحتسب بناءً على نسبة اكتمال ملفك الشخصي ونشاطك.",
+    es: "Se calcula a partir de la finalización de tu perfil y tu actividad.",
+  },
+  "Aucune donnée disponible": {
+    en: "No data available",
+    ar: "لا توجد بيانات متاحة",
+    es: "No hay datos disponibles",
+  },
+  "Complétion du profil": {
+    en: "Profile completion",
+    ar: "اكتمال الملف الشخصي",
+    es: "Finalización del perfil",
+  },
+  "Renseignez les champs manquants pour améliorer votre visibilité.": {
+    en: "Fill in the missing fields to improve your visibility.",
+    ar: "أكمل الحقول الناقصة لتحسين ظهورك.",
+    es: "Completa los campos que faltan para mejorar tu visibilidad.",
+  },
+  "Votre profil est complet !": {
+    en: "Your profile is complete!",
+    ar: "ملفك الشخصي مكتمل!",
+    es: "¡Tu perfil está completo!",
+  },
+  "Avis reçus": {
+    en: "Reviews received",
+    ar: "التقييمات المستلمة",
+    es: "Reseñas recibidas",
+  },
+  "Avis laissés par les agences avec lesquelles vous avez collaboré.": {
+    en: "Reviews left by the agencies you have worked with.",
+    ar: "تقييمات تركتها الوكالات التي تعاملت معها.",
+    es: "Reseñas dejadas por las agencias con las que has colaborado.",
+  },
+  "Aucun avis reçu pour le moment": {
+    en: "No reviews received yet",
+    ar: "لا توجد تقييمات مستلمة حتى الآن",
+    es: "Aún no se han recibido reseñas",
+  },
+  "Agence": {
+    en: "Agency",
+    ar: "وكالة",
+    es: "Agencia",
+  },
+  "Projet : ": {
+    en: "Project: ",
+    ar: "المشروع: ",
+    es: "Proyecto: ",
+  },
+} satisfies PageTextDict;
 
 export const Route = createFileRoute("/_authenticated/client/mon-profil")({
   head: () => ({
@@ -113,6 +377,7 @@ function computeMissingFields(profile: {
 }
 
 function ClientProfilePage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const profileQuery = useQuery({
     queryKey: ["client", "profile"],
@@ -158,11 +423,11 @@ function ClientProfilePage() {
     mutationFn: (values: Partial<typeof profile> & CompanyForm) => updateClientProfile(values),
     onSuccess: (updated) => {
       queryClient.setQueryData(["client", "profile"], updated);
-      toast.success("Profil mis à jour avec succès");
+      toast.success(tt("Profil mis à jour avec succès"));
     },
     onError: (error) => {
       toast.error(
-        error instanceof ApiError ? error.message : "Impossible d'enregistrer le profil.",
+        error instanceof ApiError ? error.message : tt("Impossible d'enregistrer le profil."),
       );
     },
   });

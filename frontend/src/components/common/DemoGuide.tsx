@@ -5,6 +5,84 @@ import { getDemoGuide, setDemoProgress, type DemoGuideStep } from "@/services/de
 import { ApiError } from "@/services/http";
 import { EmptyState } from "@/components/common/EmptyState";
 import { StackSkeleton } from "@/components/common/Skeletons";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const DEMO_GUIDE_TEXT = {
+  Bienvenue: { en: "Welcome", ar: "مرحبًا", es: "Bienvenido" },
+  "Postuler un projet (Smart Briefing IA)": {
+    en: "Submit a project (AI Smart Briefing)",
+    ar: "تقديم مشروع (الموجز الذكي بالذكاء الاصطناعي)",
+    es: "Publicar un proyecto (Smart Briefing con IA)",
+  },
+  "Suivre Mes Projets": {
+    en: "Track My Projects",
+    ar: "متابعة مشاريعي",
+    es: "Seguir Mis Proyectos",
+  },
+  "Actions rapides : Unicast & Multicast": {
+    en: "Quick actions: Unicast & Multicast",
+    ar: "إجراءات سريعة: فردية وجماعية",
+    es: "Acciones rápidas: Unicast y Multicast",
+  },
+  "Collaborations & avis": {
+    en: "Collaborations & reviews",
+    ar: "التعاونات والتقييمات",
+    es: "Colaboraciones y reseñas",
+  },
+  "Compléter votre profil (PQI)": {
+    en: "Complete your profile (PQI)",
+    ar: "إكمال ملفك الشخصي (PQI)",
+    es: "Completa tu perfil (PQI)",
+  },
+  "Gérer vos Opportunités": {
+    en: "Manage your Opportunities",
+    ar: "إدارة فرصك",
+    es: "Gestionar tus Oportunidades",
+  },
+  "Analytics & Prospection": {
+    en: "Analytics & Prospecting",
+    ar: "التحليلات والاستكشاف",
+    es: "Analítica y Prospección",
+  },
+  Facturation: { en: "Billing", ar: "الفوترة", es: "Facturación" },
+  "Traiter les litiges & suspensions": {
+    en: "Handle disputes & suspensions",
+    ar: "معالجة النزاعات وحالات التعليق",
+    es: "Gestionar disputas y suspensiones",
+  },
+  "Guide de démarrage —": {
+    en: "Getting started guide —",
+    ar: "دليل البدء —",
+    es: "Guía de inicio —",
+  },
+  Agence: { en: "Agency", ar: "الوكالة", es: "Agencia" },
+  Administration: { en: "Administration", ar: "الإدارة", es: "Administración" },
+  Client: { en: "Client", ar: "العميل", es: "Cliente" },
+  "Fermer le guide": {
+    en: "Close the guide",
+    ar: "إغلاق الدليل",
+    es: "Cerrar la guía",
+  },
+  "Aucune étape de démonstration disponible.": {
+    en: "No demo steps available.",
+    ar: "لا توجد خطوات تجريبية متاحة.",
+    es: "No hay pasos de demostración disponibles.",
+  },
+  "Guide affiché en mode hors-ligne (impossible de contacter le serveur).": {
+    en: "Guide shown in offline mode (unable to reach the server).",
+    ar: "يتم عرض الدليل في وضع عدم الاتصال (تعذر الاتصال بالخادم).",
+    es: "Guía mostrada en modo sin conexión (no se pudo contactar con el servidor).",
+  },
+  "Regarder la vidéo": { en: "Watch the video", ar: "مشاهدة الفيديو", es: "Ver el video" },
+  "Étape {n} sur {total}": {
+    en: "Step {n} of {total}",
+    ar: "الخطوة {n} من {total}",
+    es: "Paso {n} de {total}",
+  },
+  Précédent: { en: "Previous", ar: "السابق", es: "Anterior" },
+  Terminer: { en: "Finish", ar: "إنهاء", es: "Finalizar" },
+  Suivant: { en: "Next", ar: "التالي", es: "Siguiente" },
+} satisfies PageTextDict;
 
 const FALLBACK_VIDEO_URL = "https://player.vimeo.com/video/000000000";
 
@@ -38,6 +116,7 @@ export function DemoGuide({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { tt } = usePageText(DEMO_GUIDE_TEXT);
   const [steps, setSteps] = useState<DemoGuideStep[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,17 +155,19 @@ export function DemoGuide({
       <div className="w-full max-w-[640px] rounded-lg border border-border bg-background shadow-xl">
         <header className="flex items-center justify-between border-b border-border px-6 py-4">
           <p className="text-[15px] font-bold">
-            Guide de démarrage —{" "}
-            {accountType === "agency"
-              ? "Agence"
-              : accountType === "admin"
-                ? "Administration"
-                : "Client"}
+            {tt("Guide de démarrage —")}{" "}
+            {tt(
+              accountType === "agency"
+                ? "Agence"
+                : accountType === "admin"
+                  ? "Administration"
+                  : "Client",
+            )}
           </p>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            aria-label="Fermer le guide"
+            aria-label={tt("Fermer le guide")}
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="h-4 w-4" strokeWidth={1.8} />
@@ -97,12 +178,12 @@ export function DemoGuide({
           {isLoading ? (
             <StackSkeleton count={2} />
           ) : steps.length === 0 ? (
-            <EmptyState message="Aucune étape de démonstration disponible." />
+            <EmptyState message={tt("Aucune étape de démonstration disponible.")} />
           ) : (
             <>
               {hasError ? (
                 <p className="mb-3 text-[12.5px] text-muted-foreground">
-                  Guide affiché en mode hors-ligne (impossible de contacter le serveur).
+                  {tt("Guide affiché en mode hors-ligne (impossible de contacter le serveur).")}
                 </p>
               ) : null}
 
@@ -115,12 +196,14 @@ export function DemoGuide({
                     className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <PlayCircle className="h-10 w-10" strokeWidth={1.5} />
-                    <span className="text-[12.5px]">Regarder la vidéo</span>
+                    <span className="text-[12.5px]">{tt("Regarder la vidéo")}</span>
                   </a>
                 ) : null}
               </div>
 
-              <p className="mt-4 text-[14px] font-bold">{activeStep?.title}</p>
+              <p className="mt-4 text-[14px] font-bold">
+                {activeStep ? tt(activeStep.title) : null}
+              </p>
 
               <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-accent">
                 <div
@@ -129,7 +212,9 @@ export function DemoGuide({
                 />
               </div>
               <p className="mt-1.5 text-[12px] text-muted-foreground">
-                Étape {currentStep + 1} sur {steps.length}
+                {tt("Étape {n} sur {total}")
+                  .replace("{n}", String(currentStep + 1))
+                  .replace("{total}", String(steps.length))}
               </p>
 
               <div className="mt-6 flex items-center justify-between gap-3">
@@ -140,7 +225,7 @@ export function DemoGuide({
                   className="flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-[13.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  Précédent
+                  {tt("Précédent")}
                 </button>
                 {currentStep === steps.length - 1 ? (
                   <button
@@ -148,7 +233,7 @@ export function DemoGuide({
                     onClick={() => onOpenChange(false)}
                     className="rounded-md bg-primary px-4 py-2 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                   >
-                    Terminer
+                    {tt("Terminer")}
                   </button>
                 ) : (
                   <button
@@ -156,7 +241,7 @@ export function DemoGuide({
                     onClick={() => goTo(currentStep + 1)}
                     className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                   >
-                    Suivant
+                    {tt("Suivant")}
                     <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.8} />
                   </button>
                 )}

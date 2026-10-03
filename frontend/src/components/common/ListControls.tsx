@@ -1,4 +1,16 @@
 import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const LIST_CONTROLS_TEXT = {
+  "Filtre indisponible pour le moment": {
+    en: "Filter currently unavailable",
+    ar: "عامل التصفية غير متوفر حاليًا",
+    es: "Filtro no disponible por el momento",
+  },
+  Pagination: { en: "Pagination", ar: "التنقل بين الصفحات", es: "Paginación" },
+  Précédent: { en: "Previous", ar: "السابق", es: "Anterior" },
+  Suivant: { en: "Next", ar: "التالي", es: "Siguiente" },
+} satisfies PageTextDict;
 
 export function FilterSelect({
   label,
@@ -13,6 +25,7 @@ export function FilterSelect({
   value?: string;
   onChange?: (value: string) => void;
 }) {
+  const { tt } = usePageText(LIST_CONTROLS_TEXT);
   const hasOptions = Boolean(options && options.length > 0 && onChange);
 
   if (hasOptions) {
@@ -41,7 +54,7 @@ export function FilterSelect({
       <button
         type="button"
         disabled
-        title="Filtre indisponible pour le moment"
+        title={tt("Filtre indisponible pour le moment")}
         className="mt-1 flex w-full items-center justify-between gap-2 text-left text-[14px] text-muted-foreground opacity-60"
       >
         {placeholder}
@@ -60,12 +73,16 @@ export function ListPagination({
   totalPages: number | null;
   onPageChange?: (page: number) => void;
 }) {
+  const { tt } = usePageText(LIST_CONTROLS_TEXT);
   const pages = totalPages ?? 1;
   const visible = Array.from({ length: Math.min(5, pages) }, (_, i) => i + 1);
   const canNavigate = Boolean(onPageChange) && pages > 1;
 
   return (
-    <nav aria-label="Pagination" className="mt-10 flex flex-wrap items-center justify-center gap-3">
+    <nav
+      aria-label={tt("Pagination")}
+      className="mt-10 flex flex-wrap items-center justify-center gap-3"
+    >
       <button
         onClick={() => onPageChange?.(Math.max(1, page - 1))}
         type="button"
@@ -73,7 +90,7 @@ export function ListPagination({
         className="flex items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       >
         <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
-        Précédent
+        {tt("Précédent")}
       </button>
 
       {visible.map((p) => (
@@ -112,7 +129,7 @@ export function ListPagination({
         disabled={!canNavigate || page >= pages}
         className="flex items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Suivant
+        {tt("Suivant")}
         <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
       </button>
     </nav>

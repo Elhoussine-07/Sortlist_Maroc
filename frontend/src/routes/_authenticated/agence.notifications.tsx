@@ -16,6 +16,7 @@ import {
   markAsRead,
 } from "@/services/notifications.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/agence/notifications")({
   head: () => ({
@@ -47,7 +48,161 @@ const TABS = [
 
 const PAGE_SIZE = 20;
 
+const PAGE_TEXT = {
+  "Impossible de marquer cette notification comme lue.": {
+    en: "Unable to mark this notification as read.",
+    ar: "تعذّر وضع علامة \"مقروء\" على هذا الإشعار.",
+    es: "No se pudo marcar esta notificación como leída.",
+  },
+  "Toutes les notifications ont été marquées comme lues": {
+    en: "All notifications have been marked as read",
+    ar: "تم وضع علامة \"مقروء\" على جميع الإشعارات",
+    es: "Todas las notificaciones se marcaron como leídas",
+  },
+  "Impossible de marquer les notifications comme lues.": {
+    en: "Unable to mark notifications as read.",
+    ar: "تعذّر وضع علامة \"مقروء\" على الإشعارات.",
+    es: "No se pudieron marcar las notificaciones como leídas.",
+  },
+  "Toutes": {
+    en: "All",
+    ar: "الكل",
+    es: "Todas",
+  },
+  "Non lues": {
+    en: "Unread",
+    ar: "غير مقروءة",
+    es: "No leídas",
+  },
+  "Lues": {
+    en: "Read",
+    ar: "مقروءة",
+    es: "Leídas",
+  },
+  "Notification": {
+    en: "Notification",
+    ar: "الإشعار",
+    es: "Notificación",
+  },
+  "Statut": {
+    en: "Status",
+    ar: "الحالة",
+    es: "Estado",
+  },
+  "Date": {
+    en: "Date",
+    ar: "التاريخ",
+    es: "Fecha",
+  },
+  "Action": {
+    en: "Action",
+    ar: "الإجراء",
+    es: "Acción",
+  },
+  "Lue": {
+    en: "Read",
+    ar: "مقروءة",
+    es: "Leída",
+  },
+  "Non lue": {
+    en: "Unread",
+    ar: "غير مقروءة",
+    es: "No leída",
+  },
+  "Marquer comme lue": {
+    en: "Mark as read",
+    ar: "وضع علامة كمقروء",
+    es: "Marcar como leída",
+  },
+  "Fermer": {
+    en: "Close",
+    ar: "إغلاق",
+    es: "Cerrar",
+  },
+  "Voir le lien associé": {
+    en: "View related link",
+    ar: "عرض الرابط المرتبط",
+    es: "Ver el enlace asociado",
+  },
+  "✅ Lue": {
+    en: "✅ Read",
+    ar: "✅ مقروءة",
+    es: "✅ Leída",
+  },
+  "⏳ Non lue": {
+    en: "⏳ Unread",
+    ar: "⏳ غير مقروءة",
+    es: "⏳ No leída",
+  },
+  "Historique des notifications": {
+    en: "Notification history",
+    ar: "سجل الإشعارات",
+    es: "Historial de notificaciones",
+  },
+  "Retrouvez toutes les notifications reçues sur le compte de votre agence.": {
+    en: "Find all the notifications received on your agency account.",
+    ar: "اطّلع على جميع الإشعارات الواردة على حساب وكالتك.",
+    es: "Encuentra todas las notificaciones recibidas en la cuenta de tu agencia.",
+  },
+  "Tout marquer comme lu": {
+    en: "Mark all as read",
+    ar: "وضع علامة على الكل كمقروء",
+    es: "Marcar todo como leído",
+  },
+  "Rechercher une notification...": {
+    en: "Search for a notification...",
+    ar: "ابحث عن إشعار...",
+    es: "Buscar una notificación...",
+  },
+  "Type": {
+    en: "Type",
+    ar: "النوع",
+    es: "Tipo",
+  },
+  "Tous les types": {
+    en: "All types",
+    ar: "جميع الأنواع",
+    es: "Todos los tipos",
+  },
+  "Période": {
+    en: "Period",
+    ar: "الفترة",
+    es: "Período",
+  },
+  "Toutes les périodes": {
+    en: "All periods",
+    ar: "جميع الفترات",
+    es: "Todos los períodos",
+  },
+  "Tous les statuts": {
+    en: "All statuses",
+    ar: "جميع الحالات",
+    es: "Todos los estados",
+  },
+  "notifications": {
+    en: "notifications",
+    ar: "إشعارات",
+    es: "notificaciones",
+  },
+  "Trier par :": {
+    en: "Sort by:",
+    ar: "ترتيب حسب:",
+    es: "Ordenar por:",
+  },
+  "Plus récentes": {
+    en: "Most recent",
+    ar: "الأحدث",
+    es: "Más recientes",
+  },
+  "Plus anciennes": {
+    en: "Oldest",
+    ar: "الأقدم",
+    es: "Más antiguas",
+  },
+} satisfies PageTextDict;
+
 function AgencyNotificationsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const setStoreNotifications = useNotificationsStore((state) => state.setNotifications);
   const setStoreUnreadCount = useNotificationsStore((state) => state.setUnreadCount);
@@ -92,7 +247,7 @@ function AgencyNotificationsPage() {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : "Impossible de marquer cette notification comme lue.",
+          : tt("Impossible de marquer cette notification comme lue."),
       );
     },
   });
@@ -101,13 +256,13 @@ function AgencyNotificationsPage() {
     mutationFn: () => markAllAsRead(),
     onSuccess: () => {
       invalidateNotifications();
-      toast.success("Toutes les notifications ont été marquées comme lues");
+      toast.success(tt("Toutes les notifications ont été marquées comme lues"));
     },
     onError: (error) => {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : "Impossible de marquer les notifications comme lues.",
+          : tt("Impossible de marquer les notifications comme lues."),
       );
     },
   });
@@ -127,7 +282,7 @@ function AgencyNotificationsPage() {
     () => [
       {
         key: "notification",
-        header: "Notification",
+        header: tt("Notification"),
         width: "minmax(0,2.4fr)",
         render: (notification) => (
           <div
@@ -171,18 +326,18 @@ function AgencyNotificationsPage() {
       },
       {
         key: "status",
-        header: "Statut",
+        header: tt("Statut"),
         width: "minmax(0,1fr)",
         render: (notification) => (
           <StatusBadge
-            label={notification.read ? "Lue" : "Non lue"}
+            label={notification.read ? tt("Lue") : tt("Non lue")}
             variant={notification.read ? "success" : "warning"}
           />
         ),
       },
       {
         key: "date",
-        header: "Date",
+        header: tt("Date"),
         width: "minmax(0,1fr)",
         render: (notification) => (
           <p className="truncate text-[13px] text-muted-foreground">{notification.createdAt}</p>
@@ -190,7 +345,7 @@ function AgencyNotificationsPage() {
       },
       {
         key: "action",
-        header: "Action",
+        header: tt("Action"),
         width: "minmax(0,1fr)",
         render: (notification) =>
           notification.read ? (
@@ -205,12 +360,12 @@ function AgencyNotificationsPage() {
               disabled={markReadMutation.isPending}
               className="rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent hover:border-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Marquer comme lue
+              {tt("Marquer comme lue")}
             </button>
           ),
       },
     ],
-    [markReadMutation],
+    [markReadMutation, tt],
   );
 
   const [query, setQuery] = useState("");
@@ -315,7 +470,7 @@ function AgencyNotificationsPage() {
                           : "bg-yellow-50 text-yellow-700"
                       }`}
                     >
-                      {selectedNotification.read ? "✅ Lue" : "⏳ Non lue"}
+                      {selectedNotification.read ? tt("✅ Lue") : tt("⏳ Non lue")}
                     </span>
                   </div>
                 )}
@@ -327,7 +482,7 @@ function AgencyNotificationsPage() {
                       rel="noopener noreferrer"
                       className="text-sm text-blue-500 hover:underline inline-flex items-center gap-1"
                     >
-                      Voir le lien associé
+                      {tt("Voir le lien associé")}
                       <svg
                         className="h-3.5 w-3.5"
                         fill="none"
@@ -350,7 +505,7 @@ function AgencyNotificationsPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                 >
-                  Fermer
+                  {tt("Fermer")}
                 </button>
               </div>
             </div>
@@ -359,9 +514,11 @@ function AgencyNotificationsPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div className="min-w-0">
-            <h1 className="text-[24px] font-bold tracking-tight">Historique des notifications</h1>
+            <h1 className="text-[24px] font-bold tracking-tight">
+              {tt("Historique des notifications")}
+            </h1>
             <p className="mt-1 text-[14px] text-muted-foreground">
-              Retrouvez toutes les notifications reçues sur le compte de votre agence.
+              {tt("Retrouvez toutes les notifications reçues sur le compte de votre agence.")}
             </p>
           </div>
           <button
@@ -371,7 +528,7 @@ function AgencyNotificationsPage() {
             className="flex items-center justify-center gap-1.5 rounded-md border border-border px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60 sm:justify-self-end"
           >
             <CheckCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
-            Tout marquer comme lu
+            {tt("Tout marquer comme lu")}
           </button>
         </div>
 
@@ -379,13 +536,13 @@ function AgencyNotificationsPage() {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Rechercher une notification..."
+            placeholder={tt("Rechercher une notification...")}
           />
         </div>
 
         <div className="mt-6">
           <StatusTabs
-            tabs={TABS}
+            tabs={TABS.map((tab) => ({ ...tab, label: tt(tab.label) }))}
             value={activeTab}
             onChange={(value) => {
               setActiveTab(value);
@@ -396,19 +553,21 @@ function AgencyNotificationsPage() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          <FilterSelect label="Type" placeholder="Tous les types" />
-          <FilterSelect label="Période" placeholder="Toutes les périodes" />
-          <FilterSelect label="Statut" placeholder="Tous les statuts" />
+          <FilterSelect label={tt("Type")} placeholder={tt("Tous les types")} />
+          <FilterSelect label={tt("Période")} placeholder={tt("Toutes les périodes")} />
+          <FilterSelect label={tt("Statut")} placeholder={tt("Tous les statuts")} />
         </div>
 
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-          <p className="truncate text-[14px] font-semibold">{total} notifications</p>
+          <p className="truncate text-[14px] font-semibold">
+            {total} {tt("notifications")}
+          </p>
           <button
             onClick={() => setSortDirection((current) => (current === "recent" ? "old" : "recent"))}
             type="button"
             className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
           >
-            Trier par : {sortDirection === "recent" ? "Plus récentes" : "Plus anciennes"}
+            {tt("Trier par :")} {sortDirection === "recent" ? tt("Plus récentes") : tt("Plus anciennes")}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
           </button>
         </div>

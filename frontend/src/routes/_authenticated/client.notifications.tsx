@@ -16,6 +16,7 @@ import {
   markAsRead,
 } from "@/services/notifications.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/client/notifications")({
   head: () => ({
@@ -78,6 +79,80 @@ type SortValue = (typeof SORT_OPTIONS)[number]["value"];
 
 const PAGE_SIZE = 20;
 
+const PAGE_TEXT = {
+  Toutes: { en: "All", ar: "الكل", es: "Todas" },
+  "Non lues": { en: "Unread", ar: "غير مقروءة", es: "No leídas" },
+  Lues: { en: "Read", ar: "مقروءة", es: "Leídas" },
+  Devis: { en: "Quote", ar: "عرض السعر", es: "Presupuesto" },
+  Facture: { en: "Invoice", ar: "الفاتورة", es: "Factura" },
+  Projet: { en: "Project", ar: "المشروع", es: "Proyecto" },
+  Suspension: { en: "Suspension", ar: "التعليق", es: "Suspensión" },
+  "Agences intéressées": {
+    en: "Interested agencies",
+    ar: "الوكالات المهتمة",
+    es: "Agencias interesadas",
+  },
+  "Plus récentes": { en: "Most recent", ar: "الأحدث", es: "Más recientes" },
+  "Plus anciennes": { en: "Oldest", ar: "الأقدم", es: "Más antiguas" },
+  "Ce mois": { en: "This month", ar: "هذا الشهر", es: "Este mes" },
+  "Cette année": { en: "This year", ar: "هذه السنة", es: "Este año" },
+  "Impossible de marquer cette notification comme lue.": {
+    en: "Unable to mark this notification as read.",
+    ar: "تعذّر تحديد هذا الإشعار كمقروء.",
+    es: "No se pudo marcar esta notificación como leída.",
+  },
+  "Impossible de marquer les notifications comme lues.": {
+    en: "Unable to mark notifications as read.",
+    ar: "تعذّر تحديد الإشعارات كمقروءة.",
+    es: "No se pudieron marcar las notificaciones como leídas.",
+  },
+  "Toutes les notifications ont été marquées comme lues": {
+    en: "All notifications have been marked as read",
+    ar: "تم تحديد جميع الإشعارات كمقروءة",
+    es: "Todas las notificaciones se han marcado como leídas",
+  },
+  Notification: { en: "Notification", ar: "الإشعار", es: "Notificación" },
+  Statut: { en: "Status", ar: "الحالة", es: "Estado" },
+  Date: { en: "Date", ar: "التاريخ", es: "Fecha" },
+  Action: { en: "Action", ar: "الإجراء", es: "Acción" },
+  Lue: { en: "Read", ar: "مقروءة", es: "Leída" },
+  "Non lue": { en: "Unread", ar: "غير مقروءة", es: "No leída" },
+  "Voir le profil": { en: "View profile", ar: "عرض الملف", es: "Ver perfil" },
+  "Marquer comme lue": { en: "Mark as read", ar: "تحديد كمقروء", es: "Marcar como leída" },
+  "✅ Lue": { en: "✅ Read", ar: "✅ مقروءة", es: "✅ Leída" },
+  "⏳ Non lue": { en: "⏳ Unread", ar: "⏳ غير مقروءة", es: "⏳ No leída" },
+  "Voir le lien associé": {
+    en: "View related link",
+    ar: "عرض الرابط المرتبط",
+    es: "Ver enlace asociado",
+  },
+  Fermer: { en: "Close", ar: "إغلاق", es: "Cerrar" },
+  "Historique des notifications": {
+    en: "Notification history",
+    ar: "سجل الإشعارات",
+    es: "Historial de notificaciones",
+  },
+  "Retrouvez toutes les notifications reçues sur votre compte.": {
+    en: "Find all the notifications received on your account.",
+    ar: "اعثر على جميع الإشعارات التي تلقّيتها في حسابك.",
+    es: "Encuentra todas las notificaciones recibidas en tu cuenta.",
+  },
+  "Tout marquer comme lu": {
+    en: "Mark all as read",
+    ar: "تحديد الكل كمقروء",
+    es: "Marcar todo como leído",
+  },
+  "Rechercher une notification...": {
+    en: "Search a notification...",
+    ar: "ابحث عن إشعار...",
+    es: "Buscar una notificación...",
+  },
+  Type: { en: "Type", ar: "النوع", es: "Tipo" },
+  "Tous les types": { en: "All types", ar: "جميع الأنواع", es: "Todos los tipos" },
+  notifications: { en: "notifications", ar: "إشعارات", es: "notificaciones" },
+  "Trier par :": { en: "Sort by:", ar: "ترتيب حسب:", es: "Ordenar por:" },
+} satisfies PageTextDict;
+
 function isWithinCurrentMonth(dateStr: string): boolean {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return false;
@@ -92,6 +167,7 @@ function isWithinCurrentYear(dateStr: string): boolean {
 }
 
 function ClientNotificationsPage() {
+  const { tt, locale } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const setStoreNotifications = useNotificationsStore((state) => state.setNotifications);
   const setStoreUnreadCount = useNotificationsStore((state) => state.setUnreadCount);
@@ -136,7 +212,7 @@ function ClientNotificationsPage() {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : "Impossible de marquer cette notification comme lue.",
+          : tt("Impossible de marquer cette notification comme lue."),
       );
     },
   });
@@ -145,13 +221,13 @@ function ClientNotificationsPage() {
     mutationFn: () => markAllAsRead(),
     onSuccess: () => {
       invalidateNotifications();
-      toast.success("Toutes les notifications ont été marquées comme lues");
+      toast.success(tt("Toutes les notifications ont été marquées comme lues"));
     },
     onError: (error) => {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : "Impossible de marquer les notifications comme lues.",
+          : tt("Impossible de marquer les notifications comme lues."),
       );
     },
   });
@@ -171,7 +247,7 @@ function ClientNotificationsPage() {
     () => [
       {
         key: "notification",
-        header: "Notification",
+        header: tt("Notification"),
         width: "minmax(0,2.4fr)",
         render: (notification) => (
           <div
@@ -215,18 +291,18 @@ function ClientNotificationsPage() {
       },
       {
         key: "status",
-        header: "Statut",
+        header: tt("Statut"),
         width: "minmax(0,1fr)",
         render: (notification) => (
           <StatusBadge
-            label={notification.read ? "Lue" : "Non lue"}
+            label={notification.read ? tt("Lue") : tt("Non lue")}
             variant={notification.read ? "success" : "warning"}
           />
         ),
       },
       {
         key: "date",
-        header: "Date",
+        header: tt("Date"),
         width: "minmax(0,1fr)",
         render: (notification) => (
           <p className="truncate text-[13px] text-muted-foreground">{notification.createdAt}</p>
@@ -234,7 +310,7 @@ function ClientNotificationsPage() {
       },
       {
         key: "action",
-        header: "Action",
+        header: tt("Action"),
         width: "minmax(0,1.6fr)",
         render: (notification) => {
           const showViewProfile =
@@ -252,7 +328,7 @@ function ClientNotificationsPage() {
                   }}
                   className="rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent hover:border-primary/30"
                 >
-                  Voir le profil
+                  {tt("Voir le profil")}
                 </a>
               ) : null}
               {notification.read ? null : (
@@ -265,7 +341,7 @@ function ClientNotificationsPage() {
                   disabled={markReadMutation.isPending}
                   className="rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent hover:border-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Marquer comme lue
+                  {tt("Marquer comme lue")}
                 </button>
               )}
               {notification.read && !showViewProfile ? (

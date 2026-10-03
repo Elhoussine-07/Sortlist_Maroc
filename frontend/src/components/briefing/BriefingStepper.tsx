@@ -1,4 +1,17 @@
 import { Check } from "lucide-react";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const BRIEFING_STEPPER_TEXT = {
+  Catégorie: { en: "Category", ar: "فئة", es: "Categoría" },
+  "du besoin": { en: "of the need", ar: "الاحتياج", es: "de la necesidad" },
+  Description: { en: "Description", ar: "وصف", es: "Descripción" },
+  Budget: { en: "Budget", ar: "الميزانية", es: "Presupuesto" },
+  Localisation: { en: "Location", ar: "الموقع", es: "Ubicación" },
+  "Délai de": { en: "Delivery", ar: "مدة", es: "Plazo de" },
+  réalisation: { en: "timeline", ar: "الإنجاز", es: "ejecución" },
+  "Titre du": { en: "Project", ar: "عنوان", es: "Título del" },
+  projet: { en: "title", ar: "المشروع", es: "proyecto" },
+} satisfies PageTextDict;
 
 export const BRIEFING_STEPS = [
   { id: 1, line1: "Catégorie", line2: "du besoin" },
@@ -19,6 +32,7 @@ export function BriefingStepper({
 
   onStepClick?: ((stepId: number) => void) | undefined;
 }) {
+  const { tt } = usePageText(BRIEFING_STEPPER_TEXT);
   return (
     <ol className="flex items-start">
       {BRIEFING_STEPS.map((step, index) => {
@@ -55,11 +69,11 @@ export function BriefingStepper({
               />
             </div>
             <p className="mt-2 text-center text-[13px] leading-[1.35]">
-              {step.line1}
+              {tt(step.line1)}
               {step.line2 ? (
                 <>
                   <br />
-                  {step.line2}
+                  {tt(step.line2)}
                 </>
               ) : null}
             </p>

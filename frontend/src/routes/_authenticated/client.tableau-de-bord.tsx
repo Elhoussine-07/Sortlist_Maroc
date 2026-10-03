@@ -41,6 +41,290 @@ import type { Project } from "@/lib/types";
 import { ApiError } from "@/services/http";
 import { getClientDashboard, type ClientDashboardRecommendation } from "@/services/profile.service";
 import { deleteProject, getMyProjects, repostProject } from "@/services/projects.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const PAGE_TEXT = {
+  Bonjour: {
+    en: "Hello",
+    ar: "مرحبًا",
+    es: "Hola",
+  },
+  "Voici un aperçu de votre activité sur Sortlist.": {
+    en: "Here's an overview of your activity on Sortlist.",
+    ar: "فيما يلي نظرة عامة على نشاطك في Sortlist.",
+    es: "Aquí tienes un resumen de tu actividad en Sortlist.",
+  },
+  "Score de confiance": {
+    en: "Trust score",
+    ar: "درجة الثقة",
+    es: "Puntuación de confianza",
+  },
+  "Projets publiés": {
+    en: "Published projects",
+    ar: "المشاريع المنشورة",
+    es: "Proyectos publicados",
+  },
+  "Taux de réponse": {
+    en: "Response rate",
+    ar: "معدل الاستجابة",
+    es: "Tasa de respuesta",
+  },
+  "Collaborations en cours": {
+    en: "Active collaborations",
+    ar: "التعاونات الجارية",
+    es: "Colaboraciones en curso",
+  },
+  "Voir le détail": {
+    en: "View details",
+    ar: "عرض التفاصيل",
+    es: "Ver detalles",
+  },
+  "Activité récente": {
+    en: "Recent activity",
+    ar: "النشاط الأخير",
+    es: "Actividad reciente",
+  },
+  "Pas encore d'activité à afficher sur cette période.": {
+    en: "No activity to show for this period yet.",
+    ar: "لا يوجد نشاط لعرضه خلال هذه الفترة بعد.",
+    es: "Aún no hay actividad que mostrar en este período.",
+  },
+  activité: {
+    en: "activity",
+    ar: "نشاط",
+    es: "actividad",
+  },
+  activités: {
+    en: "activities",
+    ar: "أنشطة",
+    es: "actividades",
+  },
+  "Recommandations pour améliorer votre score": {
+    en: "Recommendations to improve your score",
+    ar: "توصيات لتحسين درجتك",
+    es: "Recomendaciones para mejorar tu puntuación",
+  },
+  "Tout est à jour, bravo !": {
+    en: "Everything is up to date, well done!",
+    ar: "كل شيء محدث، أحسنت!",
+    es: "Todo está al día, ¡bien hecho!",
+  },
+  "MES PROJETS RÉCENTS": {
+    en: "MY RECENT PROJECTS",
+    ar: "مشاريعي الأخيرة",
+    es: "MIS PROYECTOS RECIENTES",
+  },
+  "Voir tous mes projets": {
+    en: "View all my projects",
+    ar: "عرض جميع مشاريعي",
+    es: "Ver todos mis proyectos",
+  },
+  Projet: {
+    en: "Project",
+    ar: "المشروع",
+    es: "Proyecto",
+  },
+  Catégorie: {
+    en: "Category",
+    ar: "الفئة",
+    es: "Categoría",
+  },
+  Statut: {
+    en: "Status",
+    ar: "الحالة",
+    es: "Estado",
+  },
+  "Dernière activité": {
+    en: "Last activity",
+    ar: "آخر نشاط",
+    es: "Última actividad",
+  },
+  Action: {
+    en: "Action",
+    ar: "الإجراء",
+    es: "Acción",
+  },
+  "Aucun projet récent à afficher.": {
+    en: "No recent projects to show.",
+    ar: "لا توجد مشاريع حديثة لعرضها.",
+    es: "No hay proyectos recientes que mostrar.",
+  },
+  "ACTIONS RAPIDES": {
+    en: "QUICK ACTIONS",
+    ar: "إجراءات سريعة",
+    es: "ACCIONES RÁPIDAS",
+  },
+  "Postuler un projet": {
+    en: "Submit a project",
+    ar: "نشر مشروع",
+    es: "Publicar un proyecto",
+  },
+  "Déposez un nouveau projet et trouvez les meilleures agences.": {
+    en: "Post a new project and find the best agencies.",
+    ar: "انشر مشروعًا جديدًا وابحث عن أفضل الوكالات.",
+    es: "Publica un nuevo proyecto y encuentra las mejores agencias.",
+  },
+  "Générer un CDC avec IA": {
+    en: "Generate a brief with AI",
+    ar: "إنشاء دفتر شروط بالذكاء الاصطناعي",
+    es: "Generar un brief con IA",
+  },
+  "Créez un cahier des charges complet et optimisé avec l'intelligence artificielle.": {
+    en: "Create a complete, optimized project brief using artificial intelligence.",
+    ar: "أنشئ دفتر شروط كاملاً ومحسّنًا باستخدام الذكاء الاصطناعي.",
+    es: "Crea un pliego de condiciones completo y optimizado con inteligencia artificial.",
+  },
+  "Contacter une agence": {
+    en: "Contact an agency",
+    ar: "الاتصال بوكالة",
+    es: "Contactar a una agencia",
+  },
+  "Recherchez et contactez l'agence idéale pour votre projet.": {
+    en: "Search for and contact the ideal agency for your project.",
+    ar: "ابحث عن الوكالة المثالية لمشروعك وتواصل معها.",
+    es: "Busca y contacta a la agencia ideal para tu proyecto.",
+  },
+  "Voir mes collaborations": {
+    en: "View my collaborations",
+    ar: "عرض تعاوناتي",
+    es: "Ver mis colaboraciones",
+  },
+  "Suivez l'avancement de vos collaborations en cours.": {
+    en: "Track the progress of your ongoing collaborations.",
+    ar: "تابع تقدم تعاوناتك الجارية.",
+    es: "Haz seguimiento del progreso de tus colaboraciones en curso.",
+  },
+  "Besoin d'aide ?": {
+    en: "Need help?",
+    ar: "هل تحتاج إلى مساعدة؟",
+    es: "¿Necesitas ayuda?",
+  },
+  "Consulter notre centre d'aide": {
+    en: "Visit our help center",
+    ar: "زيارة مركز المساعدة",
+    es: "Consultar nuestro centro de ayuda",
+  },
+  Ouvrir: {
+    en: "Open",
+    ar: "فتح",
+    es: "Abrir",
+  },
+  Brouillon: {
+    en: "Draft",
+    ar: "مسودة",
+    es: "Borrador",
+  },
+  Publié: {
+    en: "Published",
+    ar: "منشور",
+    es: "Publicado",
+  },
+  "En cours": {
+    en: "In progress",
+    ar: "قيد التنفيذ",
+    es: "En curso",
+  },
+  Terminé: {
+    en: "Completed",
+    ar: "منتهٍ",
+    es: "Finalizado",
+  },
+  Archivé: {
+    en: "Archived",
+    ar: "مؤرشف",
+    es: "Archivado",
+  },
+  "En attente": {
+    en: "Pending",
+    ar: "قيد الانتظار",
+    es: "Pendiente",
+  },
+  "Plus d'actions": {
+    en: "More actions",
+    ar: "مزيد من الإجراءات",
+    es: "Más acciones",
+  },
+  "Republication...": {
+    en: "Reposting...",
+    ar: "جارٍ إعادة النشر...",
+    es: "Republicando...",
+  },
+  Repostuler: {
+    en: "Repost",
+    ar: "إعادة النشر",
+    es: "Volver a publicar",
+  },
+  Supprimer: {
+    en: "Delete",
+    ar: "حذف",
+    es: "Eliminar",
+  },
+  "Supprimer ce projet ?": {
+    en: "Delete this project?",
+    ar: "هل تريد حذف هذا المشروع؟",
+    es: "¿Eliminar este proyecto?",
+  },
+  "« {title} » sera définitivement supprimé. Cette action est irréversible.": {
+    en: "“{title}” will be permanently deleted. This action cannot be undone.",
+    ar: "سيتم حذف «{title}» نهائيًا. لا يمكن التراجع عن هذا الإجراء.",
+    es: "«{title}» se eliminará definitivamente. Esta acción no se puede deshacer.",
+  },
+  "Suppression...": {
+    en: "Deleting...",
+    ar: "جارٍ الحذف...",
+    es: "Eliminando...",
+  },
+  "Supprimer définitivement": {
+    en: "Delete permanently",
+    ar: "حذف نهائي",
+    es: "Eliminar definitivamente",
+  },
+  "Réf.": {
+    en: "Ref.",
+    ar: "مرجع",
+    es: "Ref.",
+  },
+  "Nouveau projet": {
+    en: "New project",
+    ar: "مشروع جديد",
+    es: "Proyecto nuevo",
+  },
+  "Non catégorisé": {
+    en: "Uncategorized",
+    ar: "غير مصنف",
+    es: "Sin categoría",
+  },
+  Reprendre: {
+    en: "Resume",
+    ar: "متابعة",
+    es: "Continuar",
+  },
+  Voir: {
+    en: "View",
+    ar: "عرض",
+    es: "Ver",
+  },
+  "Projet republié auprès des agences pertinentes.": {
+    en: "Project reposted to relevant agencies.",
+    ar: "تمت إعادة نشر المشروع للوكالات المعنية.",
+    es: "Proyecto vuelto a publicar para las agencias pertinentes.",
+  },
+  "Impossible de republier ce projet.": {
+    en: "Unable to repost this project.",
+    ar: "تعذّرت إعادة نشر هذا المشروع.",
+    es: "No se pudo volver a publicar este proyecto.",
+  },
+  "Projet supprimé.": {
+    en: "Project deleted.",
+    ar: "تم حذف المشروع.",
+    es: "Proyecto eliminado.",
+  },
+  "Impossible de supprimer ce projet.": {
+    en: "Unable to delete this project.",
+    ar: "تعذّر حذف هذا المشروع.",
+    es: "No se pudo eliminar este proyecto.",
+  },
+} satisfies PageTextDict;
 
 export const Route = createFileRoute("/_authenticated/client/tableau-de-bord")({
   head: () => ({
@@ -82,7 +366,10 @@ const EMPTY_STATS: ClientDashboardStats = {
 };
 
 function ClientDashboardPage() {
+  const { tt, locale } = usePageText(PAGE_TEXT);
   const user = useAuthStore((state) => state.user);
+  const dateLocale =
+    locale === "en" ? "en-US" : locale === "ar" ? "ar-MA" : locale === "es" ? "es-ES" : "fr-FR";
 
   const dashboardQuery = useQuery({
     queryKey: ["client", "dashboard"],
@@ -116,10 +403,11 @@ function ClientDashboardPage() {
 
       <div className="mx-auto max-w-[1080px]">
         <h1 className="font-display text-[30px] font-bold tracking-tight sm:text-[32px]">
-          Bonjour{user ? `, ${user.displayName}` : ""}
+          {tt("Bonjour")}
+          {user ? `, ${user.displayName}` : ""}
         </h1>
         <p className="mt-1.5 text-[14px] text-muted-foreground">
-          Voici un aperçu de votre activité sur Sortlist.
+          {tt("Voici un aperçu de votre activité sur Sortlist.")}
         </p>
 
         {/* Stats */}
@@ -130,7 +418,7 @@ function ClientDashboardPage() {
             <div className="grid grid-cols-1 divide-y divide-border rounded-lg border border-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
               <CircularStat
                 icon={ShieldCheck}
-                label="Score de confiance"
+                label={tt("Score de confiance")}
                 value={stats.trustScore}
                 footer={
                   stats.trustScoreLabel ? (
@@ -142,20 +430,20 @@ function ClientDashboardPage() {
               />
               <StatCard
                 icon={FileText}
-                label="Projets publiés"
+                label={tt("Projets publiés")}
                 value={stats.publishedProjects === null ? "?" : String(stats.publishedProjects)}
                 footer={<DeltaLabel value={stats.publishedProjectsDelta} />}
               />
               <CircularStat
                 icon={TrendingUp}
-                label="Taux de réponse"
+                label={tt("Taux de réponse")}
                 value={stats.responseRate}
                 isPercent
                 footer={<DeltaLabel value={stats.responseRateDelta} />}
               />
               <StatCard
                 icon={Users}
-                label="Collaborations en cours"
+                label={tt("Collaborations en cours")}
                 value={
                   stats.activeCollaborations === null ? "?" : String(stats.activeCollaborations)
                 }
@@ -164,7 +452,7 @@ function ClientDashboardPage() {
                     to="/client/collaborations"
                     className="flex items-center gap-1.5 font-semibold text-primary transition-opacity hover:opacity-70"
                   >
-                    Voir le détail
+                    {tt("Voir le détail")}
                     <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
                   </Link>
                 }
@@ -176,12 +464,12 @@ function ClientDashboardPage() {
         {/* Activité récente + Recommandations */}
         <section className="mt-9 grid grid-cols-1 gap-5 lg:grid-cols-[1.3fr_1fr]">
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="text-[15px] font-bold">Activité récente</h2>
+            <h2 className="text-[15px] font-bold">{tt("Activité récente")}</h2>
             {isStatsLoading ? (
               <div className="mt-4 h-[220px] animate-pulse rounded-lg bg-muted" />
             ) : activityChart.every((point) => point.count === 0) ? (
               <div className="mt-4">
-                <EmptyState message="Pas encore d'activité à afficher sur cette période." />
+                <EmptyState message={tt("Pas encore d'activité à afficher sur cette période.")} />
               </div>
             ) : (
               <div className="mt-4 h-[220px] text-primary">
@@ -194,7 +482,7 @@ function ClientDashboardPage() {
                     <XAxis
                       dataKey="date"
                       tickFormatter={(value: string) =>
-                        new Date(value).toLocaleDateString("fr-FR", {
+                        new Date(value).toLocaleDateString(dateLocale, {
                           day: "numeric",
                           month: "short",
                         })
@@ -207,11 +495,11 @@ function ClientDashboardPage() {
                     <Tooltip
                       cursor={{ fill: "var(--accent)" }}
                       formatter={(value: number) => [
-                        `${value} activité${value > 1 ? "s" : ""}`,
+                        `${value} ${value > 1 ? tt("activités") : tt("activité")}`,
                         "",
                       ]}
                       labelFormatter={(value) =>
-                        new Date(value as string).toLocaleDateString("fr-FR", {
+                        new Date(value as string).toLocaleDateString(dateLocale, {
                           day: "numeric",
                           month: "long",
                         })
@@ -235,7 +523,9 @@ function ClientDashboardPage() {
           </div>
 
           <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="text-[15px] font-bold">Recommandations pour améliorer votre score</h2>
+            <h2 className="text-[15px] font-bold">
+              {tt("Recommandations pour améliorer votre score")}
+            </h2>
             {isStatsLoading ? (
               <div className="mt-4 space-y-3">
                 <div className="h-14 animate-pulse rounded-lg bg-muted" />
@@ -244,7 +534,7 @@ function ClientDashboardPage() {
             ) : recommendations.length === 0 ? (
               <p className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground">
                 <CircleCheck className="h-4 w-4 text-emerald-600" strokeWidth={1.8} />
-                Tout est à jour, bravo !
+                {tt("Tout est à jour, bravo !")}
               </p>
             ) : (
               <ul className="mt-3 space-y-1">
@@ -260,13 +550,13 @@ function ClientDashboardPage() {
         <section className="mt-9">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
             <h2 className="truncate text-[13.5px] font-bold tracking-wide text-muted-foreground">
-              MES PROJETS RÉCENTS
+              {tt("MES PROJETS RÉCENTS")}
             </h2>
             <Link
               to="/client/mes-projets"
               className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-primary transition-opacity hover:opacity-70"
             >
-              Voir tous mes projets
+              {tt("Voir tous mes projets")}
               <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
             </Link>
           </div>
@@ -274,19 +564,19 @@ function ClientDashboardPage() {
           <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
             <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.2fr)_auto] gap-4 border-b border-border bg-accent/40 px-5 py-3 lg:grid">
               <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Projet
+                {tt("Projet")}
               </p>
               <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Catégorie
+                {tt("Catégorie")}
               </p>
               <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Statut
+                {tt("Statut")}
               </p>
               <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Dernière activité
+                {tt("Dernière activité")}
               </p>
               <p className="text-[12.5px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Action
+                {tt("Action")}
               </p>
               <span className="w-4" />
             </div>
@@ -297,7 +587,7 @@ function ClientDashboardPage() {
               </div>
             ) : recentProjects.length === 0 ? (
               <div className="p-5">
-                <EmptyState message="Aucun projet récent à afficher." />
+                <EmptyState message={tt("Aucun projet récent à afficher.")} />
               </div>
             ) : (
               <ul className="divide-y divide-border">
@@ -314,31 +604,33 @@ function ClientDashboardPage() {
         {/* Actions rapides */}
         <section className="mt-10">
           <h2 className="text-[13.5px] font-bold tracking-wide text-muted-foreground">
-            ACTIONS RAPIDES
+            {tt("ACTIONS RAPIDES")}
           </h2>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <QuickAction
               icon={Plus}
-              title="Postuler un projet"
-              description="Déposez un nouveau projet et trouvez les meilleures agences."
+              title={tt("Postuler un projet")}
+              description={tt("Déposez un nouveau projet et trouvez les meilleures agences.")}
               to="/client/postuler-un-projet"
             />
             <QuickAction
               icon={Sparkles}
-              title="Générer un CDC avec IA"
-              description="Créez un cahier des charges complet et optimisé avec l'intelligence artificielle."
+              title={tt("Générer un CDC avec IA")}
+              description={tt(
+                "Créez un cahier des charges complet et optimisé avec l'intelligence artificielle.",
+              )}
               to="/client/postuler-un-projet"
             />
             <QuickAction
               icon={MessageCircle}
-              title="Contacter une agence"
-              description="Recherchez et contactez l'agence idéale pour votre projet."
+              title={tt("Contacter une agence")}
+              description={tt("Recherchez et contactez l'agence idéale pour votre projet.")}
               to="/agences"
             />
             <QuickAction
               icon={Users}
-              title="Voir mes collaborations"
-              description="Suivez l'avancement de vos collaborations en cours."
+              title={tt("Voir mes collaborations")}
+              description={tt("Suivez l'avancement de vos collaborations en cours.")}
               to="/client/collaborations"
             />
           </div>
@@ -347,13 +639,13 @@ function ClientDashboardPage() {
         <div className="mt-14 rounded-lg border border-border p-4">
           <p className="flex items-center gap-2 text-[13.5px] font-semibold">
             <CircleHelp className="h-4 w-4 text-primary" strokeWidth={1.8} />
-            Besoin d'aide ?
+            {tt("Besoin d'aide ?")}
           </p>
           <a
             href="/centre-aide"
             className="mt-1.5 flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
           >
-            Consulter notre centre d'aide
+            {tt("Consulter notre centre d'aide")}
             <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
           </a>
         </div>
@@ -590,31 +882,32 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
 };
 
 function ProjectRow({ project }: { project: Project }) {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const repostMutation = useMutation({
     mutationFn: () => repostProject(project.id),
     onSuccess: () => {
-      toast("Projet republié auprès des agences pertinentes.");
+      toast(tt("Projet republié auprès des agences pertinentes."));
       void queryClient.invalidateQueries({ queryKey: ["client", "dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["client", "projects"] });
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de republier ce projet.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de republier ce projet."));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteProject(project.id),
     onSuccess: () => {
-      toast("Projet supprimé.");
+      toast(tt("Projet supprimé."));
       setIsDeleteOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["client", "dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["client", "projects"] });
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de supprimer ce projet.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de supprimer ce projet."));
     },
   });
 
@@ -638,7 +931,9 @@ function ProjectRow({ project }: { project: Project }) {
           {/* ID supprimé - remplacé par un indicateur de statut léger */}
           <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-            {project.reference ? `Réf. ${project.reference.slice(0, 8)}` : "Nouveau projet"}
+            {project.reference
+              ? `${tt("Réf.")} ${project.reference.slice(0, 8)}`
+              : tt("Nouveau projet")}
           </p>
         </div>
       </div>
@@ -646,7 +941,7 @@ function ProjectRow({ project }: { project: Project }) {
       {/* Catégorie */}
       <div className="min-w-0">
         <p className="truncate text-[13px] font-medium text-foreground">
-          {project.category || "Non catégorisé"}
+          {project.category || tt("Non catégorisé")}
         </p>
         {project.subCategory && (
           <p className="truncate text-[12.5px] text-muted-foreground">{project.subCategory}</p>
@@ -663,7 +958,7 @@ function ProjectRow({ project }: { project: Project }) {
           `}
         >
           <StatusIcon className="h-3 w-3" strokeWidth={2} />
-          {statusConfig.label}
+          {tt(statusConfig.label)}
         </span>
       </div>
 
@@ -677,7 +972,7 @@ function ProjectRow({ project }: { project: Project }) {
           params={{ id: project.id }}
           className="block w-full rounded-lg border border-border bg-background px-4 py-2 text-center text-[13px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm lg:w-auto"
         >
-          {project.status === "draft" ? "📝 Reprendre" : "👁️ Voir"}
+          {project.status === "draft" ? `📝 ${tt("Reprendre")}` : `👁️ ${tt("Voir")}`}
         </Link>
       </div>
 
@@ -688,7 +983,7 @@ function ProjectRow({ project }: { project: Project }) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                aria-label="Plus d'actions"
+                aria-label={tt("Plus d'actions")}
                 className="justify-self-start rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:justify-self-center"
               >
                 <MoreVertical className="h-4 w-4" strokeWidth={1.8} />
@@ -702,7 +997,7 @@ function ProjectRow({ project }: { project: Project }) {
                   className="cursor-pointer gap-2 text-[13px]"
                 >
                   <RefreshCcw className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  {repostMutation.isPending ? "Republication..." : "Repostuler"}
+                  {repostMutation.isPending ? tt("Republication...") : tt("Repostuler")}
                 </DropdownMenuItem>
               ) : null}
               {canDelete ? (
@@ -711,7 +1006,7 @@ function ProjectRow({ project }: { project: Project }) {
                   onClick={() => setIsDeleteOpen(true)}
                 >
                   <Trash2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  Supprimer
+                  {tt("Supprimer")}
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>
@@ -721,9 +1016,13 @@ function ProjectRow({ project }: { project: Project }) {
           <ActionModal
             open={isDeleteOpen}
             onOpenChange={setIsDeleteOpen}
-            title="Supprimer ce projet ?"
-            description={`« ${project.title} » sera définitivement supprimé. Cette action est irréversible.`}
-            confirmLabel={deleteMutation.isPending ? "Suppression..." : "Supprimer définitivement"}
+            title={tt("Supprimer ce projet ?")}
+            description={tt(
+              "« {title} » sera définitivement supprimé. Cette action est irréversible.",
+            ).replace("{title}", project.title)}
+            confirmLabel={
+              deleteMutation.isPending ? tt("Suppression...") : tt("Supprimer définitivement")
+            }
             onConfirm={() => deleteMutation.mutate()}
           />
         </>
@@ -745,6 +1044,7 @@ function QuickAction({
   description: string;
   to: string;
 }) {
+  const { tt } = usePageText(PAGE_TEXT);
   return (
     <Link
       to={to}
@@ -758,7 +1058,7 @@ function QuickAction({
         <p className="mt-1 text-[13px] leading-[1.5] text-muted-foreground">{description}</p>
       </div>
       <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
-        Ouvrir
+        {tt("Ouvrir")}
         <ArrowRight
           className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
           strokeWidth={1.8}

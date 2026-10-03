@@ -35,6 +35,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import {
   FormSkeleton,
@@ -166,6 +167,454 @@ function getRandomGradient(): string {
   );
 }
 
+const PAGE_TEXT = {
+  "Modifier": {
+    en: "Edit",
+    ar: "تعديل",
+    es: "Editar",
+  },
+  "Sans titre": {
+    en: "Untitled",
+    ar: "بدون عنوان",
+    es: "Sin título",
+  },
+  "✨ Profil mis à jour avec succès": {
+    en: "✨ Profile updated successfully",
+    ar: "✨ تم تحديث الملف الشخصي بنجاح",
+    es: "✨ Perfil actualizado correctamente",
+  },
+  "Mise à jour impossible.": {
+    en: "Update failed.",
+    ar: "تعذر التحديث.",
+    es: "No se pudo actualizar.",
+  },
+  "🖼️ Logo téléchargé avec succès": {
+    en: "🖼️ Logo uploaded successfully",
+    ar: "🖼️ تم رفع الشعار بنجاح",
+    es: "🖼️ Logo subido correctamente",
+  },
+  "Téléversement du logo impossible.": {
+    en: "Logo upload failed.",
+    ar: "تعذر رفع الشعار.",
+    es: "No se pudo subir el logo.",
+  },
+  "🖼️ Photo de couverture téléchargée avec succès": {
+    en: "🖼️ Cover photo uploaded successfully",
+    ar: "🖼️ تم رفع صورة الغلاف بنجاح",
+    es: "🖼️ Foto de portada subida correctamente",
+  },
+  "Téléversement de la couverture impossible.": {
+    en: "Cover photo upload failed.",
+    ar: "تعذر رفع صورة الغلاف.",
+    es: "No se pudo subir la foto de portada.",
+  },
+  "🖼️ Image du projet téléchargée avec succès": {
+    en: "🖼️ Project image uploaded successfully",
+    ar: "🖼️ تم رفع صورة المشروع بنجاح",
+    es: "🖼️ Imagen del proyecto subida correctamente",
+  },
+  "Téléversement de l'image impossible.": {
+    en: "Image upload failed.",
+    ar: "تعذر رفع الصورة.",
+    es: "No se pudo subir la imagen.",
+  },
+  "🖼️ Photo du membre téléchargée avec succès": {
+    en: "🖼️ Member photo uploaded successfully",
+    ar: "🖼️ تم رفع صورة العضو بنجاح",
+    es: "🖼️ Foto del miembro subida correctamente",
+  },
+  "Téléversement de la photo impossible.": {
+    en: "Photo upload failed.",
+    ar: "تعذر رفع الصورة.",
+    es: "No se pudo subir la foto.",
+  },
+  "✅ Services mis à jour avec succès": {
+    en: "✅ Services updated successfully",
+    ar: "✅ تم تحديث الخدمات بنجاح",
+    es: "✅ Servicios actualizados correctamente",
+  },
+  "✅ Portfolio mis à jour avec succès": {
+    en: "✅ Portfolio updated successfully",
+    ar: "✅ تم تحديث معرض الأعمال بنجاح",
+    es: "✅ Portafolio actualizado correctamente",
+  },
+  "✅ Équipe mise à jour avec succès": {
+    en: "✅ Team updated successfully",
+    ar: "✅ تم تحديث الفريق بنجاح",
+    es: "✅ Equipo actualizado correctamente",
+  },
+  "✅ Certificats mis à jour avec succès": {
+    en: "✅ Certifications updated successfully",
+    ar: "✅ تم تحديث الشهادات بنجاح",
+    es: "✅ Certificados actualizados correctamente",
+  },
+  "Profil agence": {
+    en: "Agency profile",
+    ar: "الملف الشخصي للوكالة",
+    es: "Perfil de la agencia",
+  },
+  "Gérez la présentation publique de votre agence": {
+    en: "Manage your agency's public presentation",
+    ar: "أدر العرض العام لوكالتك",
+    es: "Gestiona la presentación pública de tu agencia",
+  },
+  "Identifiant légal vérifié": {
+    en: "Legal ID verified",
+    ar: "تم التحقق من المعرف القانوني",
+    es: "Identificador legal verificado",
+  },
+  "Présentation": {
+    en: "Overview",
+    ar: "نظرة عامة",
+    es: "Presentación",
+  },
+  "Nom, description, année de création et taille de l'équipe.": {
+    en: "Name, description, founding year, and team size.",
+    ar: "الاسم والوصف وسنة التأسيس وحجم الفريق.",
+    es: "Nombre, descripción, año de fundación y tamaño del equipo.",
+  },
+  "Aucune photo de couverture": {
+    en: "No cover photo",
+    ar: "لا توجد صورة غلاف",
+    es: "Sin foto de portada",
+  },
+  "Envoi...": {
+    en: "Uploading...",
+    ar: "جارٍ الإرسال...",
+    es: "Enviando...",
+  },
+  "Photo de couverture": {
+    en: "Cover photo",
+    ar: "صورة الغلاف",
+    es: "Foto de portada",
+  },
+  "Logo": {
+    en: "Logo",
+    ar: "الشعار",
+    es: "Logo",
+  },
+  "Nom de l'agence": {
+    en: "Agency name",
+    ar: "اسم الوكالة",
+    es: "Nombre de la agencia",
+  },
+  "Année de création": {
+    en: "Founding year",
+    ar: "سنة التأسيس",
+    es: "Año de fundación",
+  },
+  "Taille de l'équipe": {
+    en: "Team size",
+    ar: "حجم الفريق",
+    es: "Tamaño del equipo",
+  },
+  "Site web": {
+    en: "Website",
+    ar: "الموقع الإلكتروني",
+    es: "Sitio web",
+  },
+  "Localisation": {
+    en: "Location",
+    ar: "الموقع",
+    es: "Ubicación",
+  },
+  "Identifiant légal": {
+    en: "Legal ID",
+    ar: "المعرف القانوني",
+    es: "Identificador legal",
+  },
+  "Description de l'agence": {
+    en: "Agency description",
+    ar: "وصف الوكالة",
+    es: "Descripción de la agencia",
+  },
+  "COORDONNÉES": {
+    en: "CONTACT DETAILS",
+    ar: "معلومات التواصل",
+    es: "DATOS DE CONTACTO",
+  },
+  "Indicatif pays": {
+    en: "Country code",
+    ar: "رمز الدولة",
+    es: "Código de país",
+  },
+  "Téléphone": {
+    en: "Phone",
+    ar: "الهاتف",
+    es: "Teléfono",
+  },
+  "E-mail": {
+    en: "Email",
+    ar: "البريد الإلكتروني",
+    es: "Correo electrónico",
+  },
+  "Adresse": {
+    en: "Address",
+    ar: "العنوان",
+    es: "Dirección",
+  },
+  "Enregistrement...": {
+    en: "Saving...",
+    ar: "جارٍ الحفظ...",
+    es: "Guardando...",
+  },
+  "Enregistrer les modifications": {
+    en: "Save changes",
+    ar: "حفظ التغييرات",
+    es: "Guardar cambios",
+  },
+  "Prestation (Services)": {
+    en: "Services offered",
+    ar: "الخدمات المقدمة",
+    es: "Servicios ofrecidos",
+  },
+  "Services proposés, utilisés pour le matching avec les projets clients.": {
+    en: "Services offered, used to match you with client projects.",
+    ar: "الخدمات المقدمة، وتُستخدم لمطابقتك بمشاريع العملاء.",
+    es: "Servicios ofrecidos, utilizados para la coincidencia con los proyectos de los clientes.",
+  },
+  "Ajouter un service": {
+    en: "Add a service",
+    ar: "إضافة خدمة",
+    es: "Añadir un servicio",
+  },
+  "Aucun service renseigné.": {
+    en: "No services added yet.",
+    ar: "لم تتم إضافة أي خدمة بعد.",
+    es: "Aún no se ha añadido ningún servicio.",
+  },
+  "projets": {
+    en: "projects",
+    ar: "مشاريع",
+    es: "proyectos",
+  },
+  "Nom du service": {
+    en: "Service name",
+    ar: "اسم الخدمة",
+    es: "Nombre del servicio",
+  },
+  "Fourchette de prix": {
+    en: "Price range",
+    ar: "نطاق السعر",
+    es: "Rango de precios",
+  },
+  "Stack technique": {
+    en: "Tech stack",
+    ar: "التقنيات المستخدمة",
+    es: "Stack tecnológico",
+  },
+  "Compétences": {
+    en: "Skills",
+    ar: "المهارات",
+    es: "Habilidades",
+  },
+  "Description": {
+    en: "Description",
+    ar: "الوصف",
+    es: "Descripción",
+  },
+  "Terminé": {
+    en: "Done",
+    ar: "تم",
+    es: "Hecho",
+  },
+  "Retirer": {
+    en: "Remove",
+    ar: "إزالة",
+    es: "Quitar",
+  },
+  "Enregistrer les services": {
+    en: "Save services",
+    ar: "حفظ الخدمات",
+    es: "Guardar servicios",
+  },
+  "Portfolio": {
+    en: "Portfolio",
+    ar: "معرض الأعمال",
+    es: "Portafolio",
+  },
+  "Réalisations présentées aux clients.": {
+    en: "Work showcased to clients.",
+    ar: "الأعمال المعروضة على العملاء.",
+    es: "Trabajos mostrados a los clientes.",
+  },
+  "Ajouter un projet": {
+    en: "Add a project",
+    ar: "إضافة مشروع",
+    es: "Añadir un proyecto",
+  },
+  "Aucune réalisation renseignée. Ajoutez un projet réalisé pour un client — y compris un projet externe à la plateforme.": {
+    en: "No work added yet. Add a project completed for a client — including one from outside the platform.",
+    ar: "لم تتم إضافة أي عمل بعد. أضف مشروعًا أنجزته لعميل — بما في ذلك مشروع خارج المنصة.",
+    es: "Aún no se ha añadido ningún trabajo. Añade un proyecto realizado para un cliente, incluso uno externo a la plataforma.",
+  },
+  "Image du projet": {
+    en: "Project image",
+    ar: "صورة المشروع",
+    es: "Imagen del proyecto",
+  },
+  "Titre": {
+    en: "Title",
+    ar: "العنوان",
+    es: "Título",
+  },
+  "Période de collaboration": {
+    en: "Collaboration period",
+    ar: "فترة التعاون",
+    es: "Período de colaboración",
+  },
+  "Budget (€)": {
+    en: "Budget (€)",
+    ar: "الميزانية (€)",
+    es: "Presupuesto (€)",
+  },
+  "Lien vers le résultat": {
+    en: "Link to the result",
+    ar: "رابط النتيجة",
+    es: "Enlace al resultado",
+  },
+  "https://...": {
+    en: "https://...",
+    ar: "https://...",
+    es: "https://...",
+  },
+  "Enregistrer le portfolio": {
+    en: "Save portfolio",
+    ar: "حفظ معرض الأعمال",
+    es: "Guardar portafolio",
+  },
+  "Staff (Équipe)": {
+    en: "Staff (Team)",
+    ar: "الفريق (الموظفون)",
+    es: "Personal (Equipo)",
+  },
+  "Membres de l'agence affichés sur le profil public.": {
+    en: "Agency members shown on the public profile.",
+    ar: "أعضاء الوكالة الظاهرون في الملف الشخصي العام.",
+    es: "Miembros de la agencia que aparecen en el perfil público.",
+  },
+  "Ajouter un membre": {
+    en: "Add a member",
+    ar: "إضافة عضو",
+    es: "Añadir un miembro",
+  },
+  "Aucun membre renseigné.": {
+    en: "No members added yet.",
+    ar: "لم تتم إضافة أي عضو بعد.",
+    es: "Aún no se ha añadido ningún miembro.",
+  },
+  "Membre": {
+    en: "Member",
+    ar: "عضو",
+    es: "Miembro",
+  },
+  "Photo": {
+    en: "Photo",
+    ar: "الصورة",
+    es: "Foto",
+  },
+  "Collaborateur": {
+    en: "Collaborator",
+    ar: "المتعاون",
+    es: "Colaborador",
+  },
+  "Sélectionner un membre": {
+    en: "Select a member",
+    ar: "اختر عضوًا",
+    es: "Selecciona un miembro",
+  },
+  "Nom affiché": {
+    en: "Displayed name",
+    ar: "الاسم المعروض",
+    es: "Nombre mostrado",
+  },
+  "Rôle affiché": {
+    en: "Displayed role",
+    ar: "الدور المعروض",
+    es: "Rol mostrado",
+  },
+  "Enregistrer l'équipe": {
+    en: "Save team",
+    ar: "حفظ الفريق",
+    es: "Guardar equipo",
+  },
+  "Certificats": {
+    en: "Certifications",
+    ar: "الشهادات",
+    es: "Certificados",
+  },
+  "Certifications mises en avant sur le profil public.": {
+    en: "Certifications highlighted on the public profile.",
+    ar: "الشهادات المبرزة في الملف الشخصي العام.",
+    es: "Certificaciones destacadas en el perfil público.",
+  },
+  "Ajouter un certificat": {
+    en: "Add a certification",
+    ar: "إضافة شهادة",
+    es: "Añadir un certificado",
+  },
+  "Aucun certificat renseigné.": {
+    en: "No certifications added yet.",
+    ar: "لم تتم إضافة أي شهادة بعد.",
+    es: "Aún no se ha añadido ningún certificado.",
+  },
+  "Organisme émetteur": {
+    en: "Issuing organization",
+    ar: "الجهة المانحة",
+    es: "Organismo emisor",
+  },
+  "Enregistrer les certificats": {
+    en: "Save certifications",
+    ar: "حفظ الشهادات",
+    es: "Guardar certificados",
+  },
+  "Avis": {
+    en: "Reviews",
+    ar: "التقييمات",
+    es: "Reseñas",
+  },
+  "Avis déposés par vos clients sur des projets terminés.": {
+    en: "Reviews left by your clients on completed projects.",
+    ar: "التقييمات التي تركها عملاؤك على المشاريع المنجزة.",
+    es: "Reseñas dejadas por tus clientes en proyectos finalizados.",
+  },
+  "Aucun avis pour le moment.": {
+    en: "No reviews yet.",
+    ar: "لا توجد تقييمات حتى الآن.",
+    es: "Aún no hay reseñas.",
+  },
+  "Projet : ": {
+    en: "Project: ",
+    ar: "المشروع: ",
+    es: "Proyecto: ",
+  },
+  "Aperçu public": {
+    en: "Public preview",
+    ar: "المعاينة العامة",
+    es: "Vista previa pública",
+  },
+  "Ce que voient les clients sur votre fiche agence.": {
+    en: "What clients see on your agency profile.",
+    ar: "ما يراه العملاء في بطاقة وكالتك.",
+    es: "Lo que ven los clientes en la ficha de tu agencia.",
+  },
+  "Aucune donnée disponible": {
+    en: "No data available",
+    ar: "لا توجد بيانات متاحة",
+    es: "No hay datos disponibles",
+  },
+  "Créée en ": {
+    en: "Founded in ",
+    ar: "تأسست عام ",
+    es: "Fundada en ",
+  },
+  " membres": {
+    en: " members",
+    ar: " أعضاء",
+    es: " miembros",
+  },
+} satisfies PageTextDict;
+
 function CollapsedItemCard({
   title,
   subtitle,
@@ -185,6 +634,7 @@ function CollapsedItemCard({
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [gradientClass] = useState(getRandomGradient);
+  const { tt } = usePageText(PAGE_TEXT);
 
   return (
     <div
@@ -222,7 +672,7 @@ function CollapsedItemCard({
           </div>
           <div className="min-w-0">
             <p className="truncate text-[14px] font-semibold group-hover:text-primary transition-colors duration-300">
-              {title || "Sans titre"}
+              {title || tt("Sans titre")}
             </p>
             {subtitle ? (
               <p className="truncate text-[12.5px] text-muted-foreground flex items-center gap-1.5">
@@ -242,7 +692,7 @@ function CollapsedItemCard({
               className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12"
               strokeWidth={1.8}
             />
-            Modifier
+            {tt("Modifier")}
           </button>
           <button
             type="button"
@@ -296,6 +746,7 @@ const profileSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>;
 
 function AgencyProfilePage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const profileQuery = useQuery({
     queryKey: ["agency", "profile"],
@@ -345,10 +796,10 @@ function AgencyProfilePage() {
     mutationFn: updateAgencyProfile,
     onSuccess: (updated) => {
       queryClient.setQueryData(["agency", "profile"], updated);
-      toast.success("✨ Profil mis à jour avec succès");
+      toast.success(tt("✨ Profil mis à jour avec succès"));
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Mise à jour impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Mise à jour impossible."));
     },
   });
 
@@ -388,9 +839,9 @@ function AgencyProfilePage() {
     try {
       const url = await uploadFile(file);
       updateMutation.mutate({ logo: url });
-      toast.success("🖼️ Logo téléchargé avec succès");
+      toast.success(tt("🖼️ Logo téléchargé avec succès"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Téléversement du logo impossible.");
+      toast.error(error instanceof Error ? error.message : tt("Téléversement du logo impossible."));
     } finally {
       setIsUploadingLogo(false);
     }
@@ -401,10 +852,10 @@ function AgencyProfilePage() {
     try {
       const url = await uploadFile(file);
       updateMutation.mutate({ coverImage: url });
-      toast.success("🖼️ Photo de couverture téléchargée avec succès");
+      toast.success(tt("🖼️ Photo de couverture téléchargée avec succès"));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Téléversement de la couverture impossible.",
+        error instanceof Error ? error.message : tt("Téléversement de la couverture impossible."),
       );
     } finally {
       setIsUploadingCover(false);
@@ -418,9 +869,9 @@ function AgencyProfilePage() {
       setPortfolioItems((current) =>
         current.map((row, i) => (i === index ? { ...row, image: url } : row)),
       );
-      toast.success("🖼️ Image du projet téléchargée avec succès");
+      toast.success(tt("🖼️ Image du projet téléchargée avec succès"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Téléversement de l'image impossible.");
+      toast.error(error instanceof Error ? error.message : tt("Téléversement de l'image impossible."));
     } finally {
       setUploadingPortfolioIndex(null);
     }
@@ -431,9 +882,9 @@ function AgencyProfilePage() {
     try {
       const url = await uploadFile(file);
       setTeam((current) => current.map((row, i) => (i === index ? { ...row, photo: url } : row)));
-      toast.success("🖼️ Photo du membre téléchargée avec succès");
+      toast.success(tt("🖼️ Photo du membre téléchargée avec succès"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Téléversement de la photo impossible.");
+      toast.error(error instanceof Error ? error.message : tt("Téléversement de la photo impossible."));
     } finally {
       setUploadingTeamIndex(null);
     }
@@ -454,10 +905,10 @@ function AgencyProfilePage() {
     mutationFn: () => updateAgencyProfile({ services: servicesToPayload(services) }),
     onSuccess: (updated) => {
       queryClient.setQueryData(["agency", "profile"], updated);
-      toast.success("✅ Services mis à jour avec succès");
+      toast.success(tt("✅ Services mis à jour avec succès"));
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Mise à jour impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Mise à jour impossible."));
     },
   });
 
@@ -465,10 +916,10 @@ function AgencyProfilePage() {
     mutationFn: () => updateAgencyProfile({ portfolio: portfolioToPayload(portfolioItems) }),
     onSuccess: (updated) => {
       queryClient.setQueryData(["agency", "profile"], updated);
-      toast.success("✅ Portfolio mis à jour avec succès");
+      toast.success(tt("✅ Portfolio mis à jour avec succès"));
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Mise à jour impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Mise à jour impossible."));
     },
   });
 
@@ -476,10 +927,10 @@ function AgencyProfilePage() {
     mutationFn: () => updateAgencyProfile({ team: teamToPayload(team) }),
     onSuccess: (updated) => {
       queryClient.setQueryData(["agency", "profile"], updated);
-      toast.success("✅ Équipe mise à jour avec succès");
+      toast.success(tt("✅ Équipe mise à jour avec succès"));
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Mise à jour impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Mise à jour impossible."));
     },
   });
 
@@ -488,10 +939,10 @@ function AgencyProfilePage() {
       updateAgencyProfile({ certifications: certificationsToPayload(certifications) }),
     onSuccess: (updated) => {
       queryClient.setQueryData(["agency", "profile"], updated);
-      toast.success("✅ Certificats mis à jour avec succès");
+      toast.success(tt("✅ Certificats mis à jour avec succès"));
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Mise à jour impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Mise à jour impossible."));
     },
   });
 
@@ -510,10 +961,10 @@ function AgencyProfilePage() {
               </div>
               <div>
                 <h1 className="text-[26px] font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                  Profil agence
+                  {tt("Profil agence")}
                 </h1>
                 <p className="mt-0.5 text-[14px] text-muted-foreground flex items-center gap-1.5">
-                  Gérez la présentation publique de votre agence
+                  {tt("Gérez la présentation publique de votre agence")}
                 </p>
               </div>
             </div>
@@ -522,7 +973,7 @@ function AgencyProfilePage() {
                 <div className="flex items-center gap-1.5 rounded-full bg-green-100 px-3.5 py-1.5 shadow-sm shadow-green-200/50">
                   <Shield className="h-4 w-4 text-green-600" />
                   <span className="text-[13px] font-medium text-green-700">
-                    Identifiant légal vérifié
+                    {tt("Identifiant légal vérifié")}
                   </span>
                 </div>
               )}
@@ -534,8 +985,8 @@ function AgencyProfilePage() {
         </div>
 
         <SectionCard
-          title="Présentation"
-          description="Nom, description, année de création et taille de l'équipe."
+          title={tt("Présentation")}
+          description={tt("Nom, description, année de création et taille de l'équipe.")}
         >
           {isLoading ? (
             <FormSkeleton fields={6} />
@@ -552,12 +1003,12 @@ function AgencyProfilePage() {
                   ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground/30">
                       <Image className="h-16 w-16" strokeWidth={0.8} />
-                      <span className="mt-2 text-sm">Aucune photo de couverture</span>
+                      <span className="mt-2 text-sm">{tt("Aucune photo de couverture")}</span>
                     </div>
                   )}
                   <label className="absolute bottom-3 right-3 flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background/90 px-3.5 py-2 text-[12.5px] font-semibold shadow-sm transition-all hover:bg-accent hover:shadow-md hover:scale-105">
                     <Upload className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    {isUploadingCover ? "Envoi..." : "Photo de couverture"}
+                    {isUploadingCover ? tt("Envoi...") : tt("Photo de couverture")}
                     <input
                       type="file"
                       accept="image/*"
@@ -581,7 +1032,7 @@ function AgencyProfilePage() {
                   </div>
                   <label className="mb-1 flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background/90 px-3.5 py-2 text-[12.5px] font-semibold shadow-sm transition-all hover:bg-accent hover:shadow-md hover:scale-105">
                     <Upload className="h-3.5 w-3.5" strokeWidth={1.8} />
-                    {isUploadingLogo ? "Envoi..." : "Logo"}
+                    {isUploadingLogo ? tt("Envoi...") : tt("Logo")}
                     <input
                       type="file"
                       accept="image/*"
@@ -599,39 +1050,39 @@ function AgencyProfilePage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextField
-                  label="Nom de l'agence"
+                  label={tt("Nom de l'agence")}
                   error={form.formState.errors.name?.message}
                   {...form.register("name")}
                 />
                 <TextField
-                  label="Année de création"
+                  label={tt("Année de création")}
                   error={form.formState.errors.foundedYear?.message}
                   {...form.register("foundedYear")}
                 />
                 <TextField
-                  label="Taille de l'équipe"
+                  label={tt("Taille de l'équipe")}
                   error={form.formState.errors.teamSize?.message}
                   {...form.register("teamSize")}
                 />
                 <TextField
-                  label="Site web"
+                  label={tt("Site web")}
                   error={form.formState.errors.website?.message}
                   {...form.register("website")}
                 />
                 <TextField
-                  label="Localisation"
+                  label={tt("Localisation")}
                   error={form.formState.errors.location?.message}
                   {...form.register("location")}
                 />
                 <TextField
-                  label="Identifiant légal"
+                  label={tt("Identifiant légal")}
                   error={form.formState.errors.legalIdValue?.message}
                   {...form.register("legalIdValue")}
                 />
               </div>
 
               <TextAreaField
-                label="Description de l'agence"
+                label={tt("Description de l'agence")}
                 rows={5}
                 error={form.formState.errors.description?.message}
                 {...form.register("description")}
@@ -640,26 +1091,26 @@ function AgencyProfilePage() {
               <div className="border-t border-border pt-4">
                 <h3 className="mb-4 flex items-center gap-2 text-[13.5px] font-bold tracking-wide">
                   <Layers className="h-4 w-4 text-primary" />
-                  COORDONNÉES
+                  {tt("COORDONNÉES")}
                 </h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <TextField
-                    label="Indicatif pays"
+                    label={tt("Indicatif pays")}
                     error={form.formState.errors.phoneCountryCode?.message}
                     {...form.register("phoneCountryCode")}
                   />
                   <TextField
-                    label="Téléphone"
+                    label={tt("Téléphone")}
                     error={form.formState.errors.phone?.message}
                     {...form.register("phone")}
                   />
                   <TextField
-                    label="E-mail"
+                    label={tt("E-mail")}
                     error={form.formState.errors.email?.message}
                     {...form.register("email")}
                   />
                   <TextField
-                    label="Adresse"
+                    label={tt("Adresse")}
                     error={form.formState.errors.address?.message}
                     {...form.register("address")}
                   />
@@ -675,10 +1126,10 @@ function AgencyProfilePage() {
                   {updateMutation.isPending ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Enregistrement...
+                      {tt("Enregistrement...")}
                     </>
                   ) : (
-                    <>Enregistrer les modifications</>
+                    <>{tt("Enregistrer les modifications")}</>
                   )}
                 </button>
               </div>
@@ -688,8 +1139,8 @@ function AgencyProfilePage() {
 
         {/* CDC §2.2.2 — Prestation (Services). */}
         <SectionCard
-          title="Prestation (Services)"
-          description="Services proposés, utilisés pour le matching avec les projets clients."
+          title={tt("Prestation (Services)")}
+          description={tt("Services proposés, utilisés pour le matching avec les projets clients.")}
           action={
             <button
               type="button"
@@ -700,7 +1151,7 @@ function AgencyProfilePage() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-[13px] font-semibold transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm hover:scale-105"
             >
               <Plus className="h-4 w-4" strokeWidth={1.8} />
-              Ajouter un service
+              {tt("Ajouter un service")}
             </button>
           }
         >
@@ -708,7 +1159,7 @@ function AgencyProfilePage() {
             <StackSkeleton count={2} />
           ) : (
             <div className="space-y-5">
-              {services.length === 0 ? <EmptyState message="Aucun service renseigné." /> : null}
+              {services.length === 0 ? <EmptyState message={tt("Aucun service renseigné.")} /> : null}
               {services.map((service, index) =>
                 !servicesEditing[index] ? (
                   <CollapsedItemCard
@@ -720,7 +1171,7 @@ function AgencyProfilePage() {
                     }
                     badge={
                       service.projectsInProgress > 0
-                        ? `${service.projectsInProgress} projets`
+                        ? `${service.projectsInProgress} ${tt("projets")}`
                         : undefined
                     }
                     onEdit={() =>
@@ -740,7 +1191,7 @@ function AgencyProfilePage() {
                   >
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <TextField
-                        label="Nom du service"
+                        label={tt("Nom du service")}
                         value={service.serviceName}
                         onChange={(event) =>
                           setServices((current) =>
@@ -751,7 +1202,7 @@ function AgencyProfilePage() {
                         }
                       />
                       <TextField
-                        label="Fourchette de prix"
+                        label={tt("Fourchette de prix")}
                         value={service.priceRange}
                         onChange={(event) =>
                           setServices((current) =>
@@ -762,7 +1213,7 @@ function AgencyProfilePage() {
                         }
                       />
                       <TextField
-                        label="Stack technique"
+                        label={tt("Stack technique")}
                         value={service.techStack}
                         onChange={(event) =>
                           setServices((current) =>
@@ -773,7 +1224,7 @@ function AgencyProfilePage() {
                         }
                       />
                       <TextField
-                        label="Compétences"
+                        label={tt("Compétences")}
                         value={service.skills}
                         onChange={(event) =>
                           setServices((current) =>
@@ -785,7 +1236,7 @@ function AgencyProfilePage() {
                       />
                     </div>
                     <TextAreaField
-                      label="Description"
+                      label={tt("Description")}
                       rows={3}
                       value={service.description}
                       onChange={(event) =>
@@ -807,7 +1258,7 @@ function AgencyProfilePage() {
                         className="rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md hover:scale-105"
                       >
                         <CheckCircle className="inline h-4 w-4 mr-1.5" />
-                        Terminé
+                        {tt("Terminé")}
                       </button>
                       <button
                         type="button"
@@ -818,7 +1269,7 @@ function AgencyProfilePage() {
                         className="flex items-center gap-1.5 rounded-xl border border-border px-5 py-2.5 text-[13px] font-semibold text-destructive transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm"
                       >
                         <Trash2 className="h-4 w-4" strokeWidth={1.8} />
-                        Retirer
+                        {tt("Retirer")}
                       </button>
                     </div>
                   </div>
@@ -834,10 +1285,10 @@ function AgencyProfilePage() {
                   {servicesMutation.isPending ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Enregistrement...
+                      {tt("Enregistrement...")}
                     </>
                   ) : (
-                    "Enregistrer les services"
+                    tt("Enregistrer les services")
                   )}
                 </button>
               </div>
@@ -847,8 +1298,8 @@ function AgencyProfilePage() {
 
         {/* CDC §2.2.3 — Réalisation (Portfolio). */}
         <SectionCard
-          title="Portfolio"
-          description="Réalisations présentées aux clients."
+          title={tt("Portfolio")}
+          description={tt("Réalisations présentées aux clients.")}
           action={
             <button
               type="button"
@@ -859,7 +1310,7 @@ function AgencyProfilePage() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-[13px] font-semibold transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm hover:scale-105"
             >
               <Plus className="h-4 w-4" strokeWidth={1.8} />
-              Ajouter un projet
+              {tt("Ajouter un projet")}
             </button>
           }
         >
@@ -868,7 +1319,7 @@ function AgencyProfilePage() {
           ) : (
             <div className="space-y-5">
               {portfolioItems.length === 0 ? (
-                <EmptyState message="Aucune réalisation renseignée. Ajoutez un projet réalisé pour un client — y compris un projet externe à la plateforme." />
+                <EmptyState message={tt("Aucune réalisation renseignée. Ajoutez un projet réalisé pour un client — y compris un projet externe à la plateforme.")} />
               ) : null}
               {portfolioItems.map((item, index) =>
                 !portfolioEditing[index] ? (
@@ -907,7 +1358,7 @@ function AgencyProfilePage() {
                       )}
                       <label className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-[13px] font-semibold transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm">
                         <Upload className="h-4 w-4" strokeWidth={1.8} />
-                        {uploadingPortfolioIndex === index ? "Envoi..." : "Image du projet"}
+                        {uploadingPortfolioIndex === index ? tt("Envoi...") : tt("Image du projet")}
                         <input
                           type="file"
                           accept="image/*"
@@ -923,7 +1374,7 @@ function AgencyProfilePage() {
                     </div>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <TextField
-                        label="Titre"
+                        label={tt("Titre")}
                         value={item.title}
                         onChange={(event) =>
                           setPortfolioItems((current) =>
@@ -934,7 +1385,7 @@ function AgencyProfilePage() {
                         }
                       />
                       <TextField
-                        label="Période de collaboration"
+                        label={tt("Période de collaboration")}
                         value={item.collaborationPeriod}
                         onChange={(event) =>
                           setPortfolioItems((current) =>
@@ -947,7 +1398,7 @@ function AgencyProfilePage() {
                         }
                       />
                       <TextField
-                        label="Budget (€)"
+                        label={tt("Budget (€)")}
                         type="number"
                         value={item.budget ?? ""}
                         onChange={(event) =>
@@ -964,8 +1415,8 @@ function AgencyProfilePage() {
                         }
                       />
                       <TextField
-                        label="Lien vers le résultat"
-                        placeholder="https://..."
+                        label={tt("Lien vers le résultat")}
+                        placeholder={tt("https://...")}
                         value={item.resultUrl}
                         onChange={(event) =>
                           setPortfolioItems((current) =>
@@ -987,7 +1438,7 @@ function AgencyProfilePage() {
                         className="rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md hover:scale-105"
                       >
                         <CheckCircle className="inline h-4 w-4 mr-1.5" />
-                        Terminé
+                        {tt("Terminé")}
                       </button>
                       <button
                         type="button"
@@ -998,7 +1449,7 @@ function AgencyProfilePage() {
                         className="flex items-center gap-1.5 rounded-xl border border-border px-5 py-2.5 text-[13px] font-semibold text-destructive transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm"
                       >
                         <Trash2 className="h-4 w-4" strokeWidth={1.8} />
-                        Retirer
+                        {tt("Retirer")}
                       </button>
                     </div>
                   </div>
@@ -1014,10 +1465,10 @@ function AgencyProfilePage() {
                   {portfolioMutation.isPending ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Enregistrement...
+                      {tt("Enregistrement...")}
                     </>
                   ) : (
-                    "Enregistrer le portfolio"
+                    tt("Enregistrer le portfolio")
                   )}
                 </button>
               </div>
@@ -1027,8 +1478,8 @@ function AgencyProfilePage() {
 
         {/* CDC §2.2.4 — Staff (Équipe). */}
         <SectionCard
-          title="Staff (Équipe)"
-          description="Membres de l'agence affichés sur le profil public."
+          title={tt("Staff (Équipe)")}
+          description={tt("Membres de l'agence affichés sur le profil public.")}
           action={
             <button
               type="button"
@@ -1039,17 +1490,17 @@ function AgencyProfilePage() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-[13px] font-semibold transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm hover:scale-105"
             >
               <Plus className="h-4 w-4" strokeWidth={1.8} />
-              Ajouter un membre
+              {tt("Ajouter un membre")}
             </button>
           }
         >
           <div className="space-y-5">
-            {team.length === 0 ? <EmptyState message="Aucun membre renseigné." /> : null}
+            {team.length === 0 ? <EmptyState message={tt("Aucun membre renseigné.")} /> : null}
             {team.map((member, index) =>
               !teamEditing[index] ? (
                 <CollapsedItemCard
                   key={index}
-                  title={member.memberName || "Membre"}
+                  title={member.memberName || tt("Membre")}
                   subtitle={member.role || undefined}
                   avatarUrl={member.photo || undefined}
                   avatarFallback={<User className="h-4 w-4" strokeWidth={1.7} />}
@@ -1080,7 +1531,7 @@ function AgencyProfilePage() {
                     )}
                     <label className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-[13px] font-semibold transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm">
                       <Upload className="h-4 w-4" strokeWidth={1.8} />
-                      {uploadingTeamIndex === index ? "Envoi..." : "Photo"}
+                      {uploadingTeamIndex === index ? tt("Envoi...") : tt("Photo")}
                       <input
                         type="file"
                         accept="image/*"
@@ -1096,7 +1547,7 @@ function AgencyProfilePage() {
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="text-[13px] font-semibold">Collaborateur</label>
+                      <label className="text-[13px] font-semibold">{tt("Collaborateur")}</label>
                       <select
                         value={member.member}
                         onChange={(event) =>
@@ -1108,7 +1559,7 @@ function AgencyProfilePage() {
                         }
                         className="mt-1.5 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-[13.5px] outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                       >
-                        <option value="">Sélectionner un membre</option>
+                        <option value="">{tt("Sélectionner un membre")}</option>
                         {(membersQuery.data ?? []).map((option) => (
                           <option key={option.id} value={option.id}>
                             {option.user} ({option.role})
@@ -1117,7 +1568,7 @@ function AgencyProfilePage() {
                       </select>
                     </div>
                     <TextField
-                      label="Nom affiché"
+                      label={tt("Nom affiché")}
                       value={member.memberName}
                       onChange={(event) =>
                         setTeam((current) =>
@@ -1128,7 +1579,7 @@ function AgencyProfilePage() {
                       }
                     />
                     <TextField
-                      label="Rôle affiché"
+                      label={tt("Rôle affiché")}
                       value={member.role}
                       onChange={(event) =>
                         setTeam((current) =>
@@ -1140,7 +1591,7 @@ function AgencyProfilePage() {
                     />
                   </div>
                   <TextAreaField
-                    label="Description"
+                    label={tt("Description")}
                     rows={2}
                     value={member.description}
                     onChange={(event) =>
@@ -1162,7 +1613,7 @@ function AgencyProfilePage() {
                       className="rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md hover:scale-105"
                     >
                       <CheckCircle className="inline h-4 w-4 mr-1.5" />
-                      Terminé
+                      {tt("Terminé")}
                     </button>
                     <button
                       type="button"
@@ -1173,7 +1624,7 @@ function AgencyProfilePage() {
                       className="flex items-center gap-1.5 rounded-xl border border-border px-5 py-2.5 text-[13px] font-semibold text-destructive transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm"
                     >
                       <Trash2 className="h-4 w-4" strokeWidth={1.8} />
-                      Retirer
+                      {tt("Retirer")}
                     </button>
                   </div>
                 </div>
@@ -1189,10 +1640,10 @@ function AgencyProfilePage() {
                 {teamMutation.isPending ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Enregistrement...
+                    {tt("Enregistrement...")}
                   </>
                 ) : (
-                  "Enregistrer l'équipe"
+                  tt("Enregistrer l'équipe")
                 )}
               </button>
             </div>
@@ -1201,8 +1652,8 @@ function AgencyProfilePage() {
 
         {/* CDC §2.2.5 — Certificats. */}
         <SectionCard
-          title="Certificats"
-          description="Certifications mises en avant sur le profil public."
+          title={tt("Certificats")}
+          description={tt("Certifications mises en avant sur le profil public.")}
           action={
             <button
               type="button"
@@ -1213,13 +1664,13 @@ function AgencyProfilePage() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-[13px] font-semibold transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm hover:scale-105"
             >
               <Plus className="h-4 w-4" strokeWidth={1.8} />
-              Ajouter un certificat
+              {tt("Ajouter un certificat")}
             </button>
           }
         >
           <div className="space-y-5">
             {certifications.length === 0 ? (
-              <EmptyState message="Aucun certificat renseigné." />
+              <EmptyState message={tt("Aucun certificat renseigné.")} />
             ) : null}
             {certifications.map((cert, index) =>
               !certificationsEditing[index] ? (
@@ -1246,7 +1697,7 @@ function AgencyProfilePage() {
                 >
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <TextField
-                      label="Titre"
+                      label={tt("Titre")}
                       value={cert.title}
                       onChange={(event) =>
                         setCertifications((current) =>
@@ -1257,7 +1708,7 @@ function AgencyProfilePage() {
                       }
                     />
                     <TextField
-                      label="Organisme émetteur"
+                      label={tt("Organisme émetteur")}
                       value={cert.issuingOrganization}
                       onChange={(event) =>
                         setCertifications((current) =>
@@ -1269,7 +1720,7 @@ function AgencyProfilePage() {
                     />
                   </div>
                   <TextAreaField
-                    label="Description"
+                    label={tt("Description")}
                     rows={2}
                     value={cert.description}
                     onChange={(event) =>
@@ -1291,7 +1742,7 @@ function AgencyProfilePage() {
                       className="rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md hover:scale-105"
                     >
                       <CheckCircle className="inline h-4 w-4 mr-1.5" />
-                      Terminé
+                      {tt("Terminé")}
                     </button>
                     <button
                       type="button"
@@ -1304,7 +1755,7 @@ function AgencyProfilePage() {
                       className="flex items-center gap-1.5 rounded-xl border border-border px-5 py-2.5 text-[13px] font-semibold text-destructive transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm"
                     >
                       <Trash2 className="h-4 w-4" strokeWidth={1.8} />
-                      Retirer
+                      {tt("Retirer")}
                     </button>
                   </div>
                 </div>
@@ -1320,10 +1771,10 @@ function AgencyProfilePage() {
                 {certificationsMutation.isPending ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Enregistrement...
+                    {tt("Enregistrement...")}
                   </>
                 ) : (
-                  "Enregistrer les certificats"
+                  tt("Enregistrer les certificats")
                 )}
               </button>
             </div>
@@ -1333,13 +1784,13 @@ function AgencyProfilePage() {
         {/* CDC §2.2.6 — Avis (lecture seule : déposés uniquement par un client
             ayant terminé un projet avec l'agence, cf. review.py). */}
         <SectionCard
-          title="Avis"
-          description="Avis déposés par vos clients sur des projets terminés."
+          title={tt("Avis")}
+          description={tt("Avis déposés par vos clients sur des projets terminés.")}
         >
           {reviewsQuery.isPending ? (
             <StackSkeleton count={2} />
           ) : (reviewsQuery.data ?? []).length === 0 ? (
-            <EmptyState message="Aucun avis pour le moment." />
+            <EmptyState message={tt("Aucun avis pour le moment.")} />
           ) : (
             <ul className="space-y-4">
               {(reviewsQuery.data ?? []).map((review, idx) => (
@@ -1375,7 +1826,7 @@ function AgencyProfilePage() {
                   {review.projectTitle ? (
                     <p className="mt-2 text-[12px] font-medium text-muted-foreground flex items-center gap-1.5">
                       <Briefcase className="h-3.5 w-3.5 text-primary" />
-                      Projet : {review.projectTitle}
+                      {tt("Projet : ")}{review.projectTitle}
                     </p>
                   ) : null}
                   <p className="mt-2.5 text-[13px] text-muted-foreground leading-relaxed">
@@ -1388,11 +1839,11 @@ function AgencyProfilePage() {
         </SectionCard>
 
         <SectionCard
-          title="Aperçu public"
-          description="Ce que voient les clients sur votre fiche agence."
+          title={tt("Aperçu public")}
+          description={tt("Ce que voient les clients sur votre fiche agence.")}
         >
           {profile === null ? (
-            <EmptyState message="Aucune donnée disponible" />
+            <EmptyState message={tt("Aucune donnée disponible")} />
           ) : (
             <div className="group relative overflow-hidden rounded-xl border border-border bg-background/50 p-5 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -1418,7 +1869,7 @@ function AgencyProfilePage() {
                         className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-[11px] font-medium transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm hover:scale-105"
                       >
                         <Globe className="h-3 w-3" />
-                        Site web
+                        {tt("Site web")}
                       </a>
                     )}
                     {profile.email && (
@@ -1436,13 +1887,13 @@ function AgencyProfilePage() {
                     {profile.foundedYear && (
                       <span className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
                         <Calendar className="h-3 w-3" />
-                        Créée en {profile.foundedYear}
+                        {tt("Créée en ")}{profile.foundedYear}
                       </span>
                     )}
                     {profile.teamSize && (
                       <span className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
                         <Users className="h-3 w-3" />
-                        {profile.teamSize} membres
+                        {profile.teamSize}{tt(" membres")}
                       </span>
                     )}
                   </div>

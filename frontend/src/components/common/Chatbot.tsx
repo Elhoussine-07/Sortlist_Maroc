@@ -2,6 +2,52 @@ import { useRef, useState } from "react";
 import { Bot, Loader2, MessageCircle, Send, X } from "lucide-react";
 import { sendChatbotMessage } from "@/services/chatbot.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const CHATBOT_TEXT = {
+  "Le chatbot est momentanément indisponible, réessayez plus tard.": {
+    en: "The chatbot is temporarily unavailable, please try again later.",
+    ar: "المساعد غير متاح مؤقتًا، يرجى المحاولة لاحقًا.",
+    es: "El chatbot no está disponible temporalmente, inténtalo de nuevo más tarde.",
+  },
+  "Ouvrir l'assistant": {
+    en: "Open the assistant",
+    ar: "فتح المساعد",
+    es: "Abrir el asistente",
+  },
+  "Assistant Sortlist": {
+    en: "Sortlist Assistant",
+    ar: "مساعد Sortlist",
+    es: "Asistente Sortlist",
+  },
+  "Fermer l'assistant": {
+    en: "Close the assistant",
+    ar: "إغلاق المساعد",
+    es: "Cerrar el asistente",
+  },
+  "Posez une question — sur votre projet, votre facturation ou le fonctionnement de la plateforme.":
+    {
+      en: "Ask a question — about your project, your billing, or how the platform works.",
+      ar: "اطرح سؤالاً — حول مشروعك أو فوترتك أو طريقة عمل المنصة.",
+      es: "Haz una pregunta — sobre tu proyecto, tu facturación o el funcionamiento de la plataforma.",
+    },
+  "Transmis à un conseiller humain": {
+    en: "Forwarded to a human advisor",
+    ar: "تم التحويل إلى مستشار بشري",
+    es: "Transferido a un asesor humano",
+  },
+  "L'assistant écrit...": {
+    en: "Assistant is typing...",
+    ar: "المساعد يكتب...",
+    es: "El asistente está escribiendo...",
+  },
+  "Votre question...": {
+    en: "Your question...",
+    ar: "اكتب سؤالك...",
+    es: "Tu pregunta...",
+  },
+  Envoyer: { en: "Send", ar: "إرسال", es: "Enviar" },
+} satisfies PageTextDict;
 
 interface ChatEntry {
   id: string;
@@ -11,6 +57,7 @@ interface ChatEntry {
 }
 
 export function Chatbot() {
+  const { tt } = usePageText(CHATBOT_TEXT);
   const [isOpen, setIsOpen] = useState(false);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [draft, setDraft] = useState("");
@@ -42,7 +89,7 @@ export function Chatbot() {
           content:
             error instanceof ApiError
               ? error.message
-              : "Le chatbot est momentanément indisponible, réessayez plus tard.",
+              : tt("Le chatbot est momentanément indisponible, réessayez plus tard."),
         },
       ]);
     } finally {
@@ -56,7 +103,7 @@ export function Chatbot() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        aria-label="Ouvrir l'assistant"
+        aria-label={tt("Ouvrir l'assistant")}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
       >
         <MessageCircle className="h-6 w-6" strokeWidth={1.8} />
@@ -69,12 +116,12 @@ export function Chatbot() {
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <p className="flex items-center gap-2 text-[13.5px] font-semibold">
           <Bot className="h-4 w-4" strokeWidth={1.8} />
-          Assistant Sortlist
+          {tt("Assistant Sortlist")}
         </p>
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          aria-label="Fermer l'assistant"
+          aria-label={tt("Fermer l'assistant")}
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
           <X className="h-4 w-4" strokeWidth={1.8} />
@@ -84,8 +131,9 @@ export function Chatbot() {
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {entries.length === 0 ? (
           <p className="text-[13px] text-muted-foreground">
-            Posez une question — sur votre projet, votre facturation ou le fonctionnement de la
-            plateforme.
+            {tt(
+              "Posez une question — sur votre projet, votre facturation ou le fonctionnement de la plateforme.",
+            )}
           </p>
         ) : (
           entries.map((entry) => (
@@ -100,7 +148,7 @@ export function Chatbot() {
               <p className="whitespace-pre-line text-[13px] leading-[1.5]">{entry.content}</p>
               {entry.escalate ? (
                 <p className="mt-1.5 text-[11.5px] font-semibold text-muted-foreground">
-                  Transmis à un conseiller humain
+                  {tt("Transmis à un conseiller humain")}
                 </p>
               ) : null}
             </div>
@@ -109,7 +157,7 @@ export function Chatbot() {
         {isSending ? (
           <div className="mr-6 flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} />
-            <p className="text-[12.5px]">L'assistant écrit...</p>
+            <p className="text-[12.5px]">{tt("L'assistant écrit...")}</p>
           </div>
         ) : null}
       </div>
@@ -120,13 +168,13 @@ export function Chatbot() {
           type="text"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Votre question..."
+          placeholder={tt("Votre question...")}
           className="min-w-0 flex-1 rounded-md border border-border bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground"
         />
         <button
           type="submit"
           disabled={isSending || !draft.trim()}
-          aria-label="Envoyer"
+          aria-label={tt("Envoyer")}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Send className="h-3.5 w-3.5" strokeWidth={1.8} />

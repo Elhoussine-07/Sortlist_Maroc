@@ -2,6 +2,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { dialCodeFor, flagEmoji } from "@/lib/countries";
 import { getCountries, type CountryOption } from "@/services/countries.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const COUNTRY_SELECT_TEXT = {
+  "Rechercher un pays...": {
+    en: "Search for a country...",
+    ar: "ابحث عن بلد...",
+    es: "Buscar un país...",
+  },
+  "Chargement...": { en: "Loading...", ar: "جارٍ التحميل...", es: "Cargando..." },
+  "Sélectionner un pays": {
+    en: "Select a country",
+    ar: "اختر بلدًا",
+    es: "Seleccionar un país",
+  },
+  "Aucun pays trouvé.": {
+    en: "No country found.",
+    ar: "لم يتم العثور على أي بلد.",
+    es: "No se encontró ningún país.",
+  },
+} satisfies PageTextDict;
 
 export interface SelectedCountry {
   name: string;
@@ -22,6 +42,7 @@ export function CountrySelect({
   error?: string | undefined;
   placeholder?: string;
 }) {
+  const { tt } = usePageText(COUNTRY_SELECT_TEXT);
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [countries, setCountries] = useState<CountryOption[]>([]);
@@ -79,7 +100,7 @@ export function CountrySelect({
             </>
           ) : (
             <span className="truncate text-muted-foreground">
-              {isLoading ? "Chargement..." : "Sélectionner un pays"}
+              {isLoading ? tt("Chargement...") : tt("Sélectionner un pays")}
             </span>
           )}
         </span>
@@ -96,14 +117,14 @@ export function CountrySelect({
               autoFocus
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={placeholder}
+              placeholder={tt(placeholder)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13.5px] outline-none focus:border-primary"
             />
           </div>
           <ul className="max-h-64 overflow-y-auto py-1">
             {filtered.length === 0 ? (
               <li className="px-3 py-2 text-[13px] text-muted-foreground">
-                {isLoading ? "Chargement..." : "Aucun pays trouvé."}
+                {isLoading ? tt("Chargement...") : tt("Aucun pays trouvé.")}
               </li>
             ) : (
               filtered.map((country) => (

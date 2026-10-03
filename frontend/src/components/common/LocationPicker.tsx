@@ -15,6 +15,62 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const LOCATION_PICKER_TEXT = {
+  "Ex. Paris": { en: "E.g. Paris", ar: "مثال: باريس", es: "Ej. París" },
+  "La géolocalisation n'est pas disponible sur ce navigateur.": {
+    en: "Geolocation is not available in this browser.",
+    ar: "خدمة تحديد الموقع الجغرافي غير متوفرة في هذا المتصفح.",
+    es: "La geolocalización no está disponible en este navegador.",
+  },
+  "Impossible de déterminer votre adresse à partir de votre position.": {
+    en: "Unable to determine your address from your location.",
+    ar: "تعذّر تحديد عنوانك بناءً على موقعك.",
+    es: "No se pudo determinar tu dirección a partir de tu ubicación.",
+  },
+  "Localisation refusée ou indisponible.": {
+    en: "Location access denied or unavailable.",
+    ar: "تم رفض الوصول إلى الموقع أو أنه غير متاح.",
+    es: "Acceso a la ubicación denegado o no disponible.",
+  },
+  "Adresse introuvable à cet emplacement, essayez un point voisin.": {
+    en: "No address found at this location, try a nearby point.",
+    ar: "تعذّر العثور على عنوان في هذا الموقع، جرّب نقطة قريبة.",
+    es: "No se encontró ninguna dirección en esta ubicación, prueba con un punto cercano.",
+  },
+  "Choisir sur la carte": {
+    en: "Choose on the map",
+    ar: "الاختيار من الخريطة",
+    es: "Elegir en el mapa",
+  },
+  "Cliquez sur la carte pour placer un repère à l'emplacement de votre agence.": {
+    en: "Click on the map to place a pin at your agency's location.",
+    ar: "انقر على الخريطة لوضع علامة في موقع وكالتك.",
+    es: "Haz clic en el mapa para colocar un marcador en la ubicación de tu agencia.",
+  },
+  "Utiliser ma position actuelle": {
+    en: "Use my current location",
+    ar: "استخدام موقعي الحالي",
+    es: "Usar mi ubicación actual",
+  },
+  "Recherche de l'adresse...": {
+    en: "Looking up address...",
+    ar: "جارٍ البحث عن العنوان...",
+    es: "Buscando la dirección...",
+  },
+  "Cliquez sur la carte pour sélectionner un point.": {
+    en: "Click on the map to select a point.",
+    ar: "انقر على الخريطة لتحديد نقطة.",
+    es: "Haz clic en el mapa para seleccionar un punto.",
+  },
+  Annuler: { en: "Cancel", ar: "إلغاء", es: "Cancelar" },
+  "Confirmer cet emplacement": {
+    en: "Confirm this location",
+    ar: "تأكيد هذا الموقع",
+    es: "Confirmar esta ubicación",
+  },
+} satisfies PageTextDict;
 
 const DefaultIcon = L.icon({
   iconUrl: markerIcon,
@@ -83,6 +139,7 @@ export function LocationPicker({
   error?: string | undefined;
   placeholder?: string;
 }) {
+  const { tt } = usePageText(LOCATION_PICKER_TEXT);
   const [query, setQuery] = useState(value);
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -149,7 +206,7 @@ export function LocationPicker({
 
   function locateMeOnMap() {
     if (!navigator.geolocation) {
-      toast.error("La géolocalisation n'est pas disponible sur ce navigateur.");
+      toast.error(tt("La géolocalisation n'est pas disponible sur ce navigateur."));
       return;
     }
     setIsLocating(true);
@@ -164,12 +221,12 @@ export function LocationPicker({
           .then((address) => setMapAddress(address))
           .catch(() => {
             setMapAddress("");
-            toast.error("Impossible de déterminer votre adresse à partir de votre position.");
+            toast.error(tt("Impossible de déterminer votre adresse à partir de votre position."));
           })
           .finally(() => setIsReverseGeocoding(false));
       },
       () => {
-        toast.error("Localisation refusée ou indisponible.");
+        toast.error(tt("Localisation refusée ou indisponible."));
         setIsLocating(false);
       },
       { timeout: 10_000 },
@@ -189,7 +246,7 @@ export function LocationPicker({
       .then((address) => setMapAddress(address))
       .catch(() => {
         setMapAddress("");
-        toast.error("Adresse introuvable à cet emplacement, essayez un point voisin.");
+        toast.error(tt("Adresse introuvable à cet emplacement, essayez un point voisin."));
       })
       .finally(() => setIsReverseGeocoding(false));
   }
@@ -214,7 +271,7 @@ export function LocationPicker({
               onChange(event.target.value);
             }}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-            placeholder={placeholder}
+            placeholder={tt(placeholder)}
             className={
               "w-full rounded-md border bg-background px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-primary " +
               (error ? "border-destructive" : "border-border")
