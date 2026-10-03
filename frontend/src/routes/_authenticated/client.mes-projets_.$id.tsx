@@ -61,6 +61,7 @@ function useNow(intervalMs = 60_000): number {
 function describeQuoteDeadline(
   proposal: PendingProposal,
   now: number,
+  tt: (source: string) => string,
 ): { label: string; expired: boolean } {
   const responseDeadline = proposal.responseDeadline
     ? new Date(proposal.responseDeadline).getTime()
@@ -73,18 +74,18 @@ function describeQuoteDeadline(
     responseDeadline !== null && now < responseDeadline
       ? { time: responseDeadline, prefix: "" }
       : extendedDeadline !== null && now < extendedDeadline
-        ? { time: extendedDeadline, prefix: "Délai de rappel — " }
+        ? { time: extendedDeadline, prefix: tt("Délai de rappel — ") }
         : null;
 
   if (!activeDeadline) {
-    return { label: "Délai de réponse dépassé — en cours de vérification", expired: true };
+    return { label: tt("Délai de réponse dépassé — en cours de vérification"), expired: true };
   }
 
   const diffMinutes = Math.max(0, Math.round((activeDeadline.time - now) / 60_000));
   const hours = Math.floor(diffMinutes / 60);
   const minutes = diffMinutes % 60;
   return {
-    label: `${activeDeadline.prefix}${hours}h${minutes.toString().padStart(2, "0")} restantes pour répondre`,
+    label: `${activeDeadline.prefix}${hours}h${minutes.toString().padStart(2, "0")} ${tt("restantes pour répondre")}`,
     expired: false,
   };
 }
@@ -131,13 +132,307 @@ function initialsOf(name: string): string {
     .join("");
 }
 
-function formatBudget(min: number | null, max: number | null): string {
-  if (min === null && max === null) return "Non renseigné";
+function formatBudget(
+  min: number | null,
+  max: number | null,
+  tt: (source: string) => string,
+): string {
+  if (min === null && max === null) return tt("Non renseigné");
   if (min !== null && max !== null) return `${min} € - ${max} €`;
   return `${min ?? max} €`;
 }
 
+const PAGE_TEXT = {
+  "Délai de rappel — ": { en: "Reminder deadline — ", ar: "مهلة التذكير — ", es: "Plazo de recordatorio — " },
+  "Délai de réponse dépassé — en cours de vérification": {
+    en: "Response deadline passed — under review",
+    ar: "انتهت مهلة الرد — قيد المراجعة",
+    es: "Plazo de respuesta superado — en verificación",
+  },
+  "restantes pour répondre": {
+    en: "left to respond",
+    ar: "متبقية للرد",
+    es: "restantes para responder",
+  },
+  "Non renseigné": { en: "Not provided", ar: "غير محدد", es: "No indicado" },
+  "Retour à mes projets": {
+    en: "Back to my projects",
+    ar: "العودة إلى مشاريعي",
+    es: "Volver a mis proyectos",
+  },
+  "Projet introuvable.": { en: "Project not found.", ar: "المشروع غير موجود.", es: "Proyecto no encontrado." },
+  "Non renseignée": { en: "Not provided", ar: "غير محددة", es: "No indicada" },
+  "Délai non renseigné": { en: "No deadline provided", ar: "لا توجد مهلة محددة", es: "Plazo no indicado" },
+  "Agence": { en: "Agency", ar: "الوكالة", es: "Agencia" },
+  "L'agence qui travaille actuellement sur ce projet.": {
+    en: "The agency currently working on this project.",
+    ar: "الوكالة التي تعمل حاليًا على هذا المشروع.",
+    es: "La agencia que trabaja actualmente en este proyecto.",
+  },
+  "Agence partenaire": { en: "Partner agency", ar: "الوكالة الشريكة", es: "Agencia asociada" },
+  "Voir le profil": { en: "View profile", ar: "عرض الملف الشخصي", es: "Ver perfil" },
+  "Paiement à l'agence": { en: "Payment to the agency", ar: "الدفع للوكالة", es: "Pago a la agencia" },
+  "Montant dû à l'agence pour la réalisation du projet — distinct de la commission versée par l'agence à la plateforme.":
+    {
+      en: "Amount owed to the agency for completing the project — separate from the commission the agency pays the platform.",
+      ar: "المبلغ المستحق للوكالة مقابل إنجاز المشروع — يختلف عن العمولة التي تدفعها الوكالة للمنصة.",
+      es: "Importe debido a la agencia por la realización del proyecto, distinto de la comisión que la agencia paga a la plataforma.",
+    },
+  "Montant dû": { en: "Amount due", ar: "المبلغ المستحق", es: "Importe debido" },
+  "Payer l'agence": { en: "Pay the agency", ar: "دفع الوكالة", es: "Pagar a la agencia" },
+  "Cahier des charges": { en: "Project brief", ar: "كراسة الشروط", es: "Pliego de condiciones" },
+  "Document généré à partir de votre brief.": {
+    en: "Document generated from your brief.",
+    ar: "مستند تم إنشاؤه بناءً على ملخصك.",
+    es: "Documento generado a partir de tu brief.",
+  },
+  "Cahier des charges — généré à partir de votre brief": {
+    en: "Project brief — generated from your brief",
+    ar: "كراسة الشروط — تم إنشاؤها بناءً على ملخصك",
+    es: "Pliego de condiciones — generado a partir de tu brief",
+  },
+  "Télécharger le PDF": { en: "Download the PDF", ar: "تنزيل ملف PDF", es: "Descargar el PDF" },
+  "Aucun CDC disponible pour ce projet.": {
+    en: "No brief available for this project.",
+    ar: "لا توجد كراسة شروط متاحة لهذا المشروع.",
+    es: "No hay pliego de condiciones disponible para este proyecto.",
+  },
+  "Verrouillé": { en: "Locked", ar: "مقفل", es: "Bloqueado" },
+  "Candidatures d'agences": { en: "Agency applications", ar: "طلبات الوكالات", es: "Candidaturas de agencias" },
+  "Ces agences ont postulé spontanément à votre projet — acceptez pour qu'elles puissent vous envoyer un devis.":
+    {
+      en: "These agencies applied to your project on their own — accept so they can send you a quote.",
+      ar: "تقدمت هذه الوكالات تلقائيًا لمشروعك — اقبل حتى تتمكن من إرسال عرض سعر لك.",
+      es: "Estas agencias se postularon espontáneamente a tu proyecto; acepta para que puedan enviarte un presupuesto.",
+    },
+  "Accepter": { en: "Accept", ar: "قبول", es: "Aceptar" },
+  "Refuser": { en: "Decline", ar: "رفض", es: "Rechazar" },
+  "Devis reçus": { en: "Quotes received", ar: "عروض الأسعار المستلمة", es: "Presupuestos recibidos" },
+  "Chaque devis dispose de son propre délai de réponse (48h, puis +24h de rappel).": {
+    en: "Each quote has its own response deadline (48h, then +24h reminder).",
+    ar: "لكل عرض سعر مهلة رد خاصة به (48 ساعة، ثم 24 ساعة إضافية للتذكير).",
+    es: "Cada presupuesto tiene su propio plazo de respuesta (48h, luego +24h de recordatorio).",
+  },
+  "Devis détaillé — informations de l'agence, prestations, tarifs": {
+    en: "Detailed quote — agency information, services, rates",
+    ar: "عرض سعر مفصل — معلومات الوكالة، الخدمات، الأسعار",
+    es: "Presupuesto detallado — información de la agencia, servicios, tarifas",
+  },
+  "Shortlist d'agences recommandées": {
+    en: "Shortlist of recommended agencies",
+    ar: "القائمة المختصرة للوكالات الموصى بها",
+    es: "Lista corta de agencias recomendadas",
+  },
+  "Sélection générée par le matching IA pour ce projet.": {
+    en: "Selection generated by AI matching for this project.",
+    ar: "اختيار تم إنشاؤه بواسطة المطابقة بالذكاء الاصطناعي لهذا المشروع.",
+    es: "Selección generada por el emparejamiento de IA para este proyecto.",
+  },
+  "Aucune agence recommandée pour le moment.": {
+    en: "No agency recommended at the moment.",
+    ar: "لا توجد وكالة موصى بها في الوقت الحالي.",
+    es: "No hay ninguna agencia recomendada por el momento.",
+  },
+  "Envoi...": { en: "Sending...", ar: "جارٍ الإرسال...", es: "Enviando..." },
+  "Envoyé": { en: "Sent", ar: "تم الإرسال", es: "Enviado" },
+  "Envoyer": { en: "Send", ar: "إرسال", es: "Enviar" },
+  "Voir profil": { en: "View profile", ar: "عرض الملف الشخصي", es: "Ver perfil" },
+  "Suspension et litiges": { en: "Suspension and disputes", ar: "الإيقاف والنزاعات", es: "Suspensión y disputas" },
+  "Suivi des suspensions ou litiges éventuels sur ce projet.": {
+    en: "Tracking of any suspensions or disputes on this project.",
+    ar: "متابعة أي إيقاف أو نزاع محتمل على هذا المشروع.",
+    es: "Seguimiento de las suspensiones o disputas eventuales en este proyecto.",
+  },
+  "Reprise...": { en: "Resuming...", ar: "جارٍ الاستئناف...", es: "Reanudando..." },
+  "Reprendre": { en: "Resume", ar: "استئناف", es: "Reanudar" },
+  "Aucun historique disponible.": {
+    en: "No history available.",
+    ar: "لا يوجد سجل متاح.",
+    es: "No hay historial disponible.",
+  },
+  "L'agence signale ne pas parvenir à vous joindre sur ce projet": {
+    en: "The agency reports being unable to reach you about this project",
+    ar: "تُفيد الوكالة بتعذّر التواصل معك بشأن هذا المشروع",
+    es: "La agencia informa que no logra contactarte sobre este proyecto",
+  },
+  "Répondez pour expliquer la situation — un modérateur examinera votre réponse avant de trancher.": {
+    en: "Reply to explain the situation — a moderator will review your response before deciding.",
+    ar: "رد لشرح الوضع — سيراجع المشرف ردك قبل اتخاذ القرار.",
+    es: "Responde para explicar la situación — un moderador revisará tu respuesta antes de decidir.",
+  },
+  "Votre réponse": { en: "Your response", ar: "ردك", es: "Tu respuesta" },
+  "Expliquez votre situation...": {
+    en: "Explain your situation...",
+    ar: "اشرح وضعك...",
+    es: "Explica tu situación...",
+  },
+  "Écrivez une réponse avant d'envoyer.": {
+    en: "Write a response before sending.",
+    ar: "اكتب ردًا قبل الإرسال.",
+    es: "Escribe una respuesta antes de enviar.",
+  },
+  "Envoyer ma réponse": { en: "Send my response", ar: "إرسال ردي", es: "Enviar mi respuesta" },
+  "Votre réponse envoyée au modérateur": {
+    en: "Your response sent to the moderator",
+    ar: "تم إرسال ردك إلى المشرف",
+    es: "Tu respuesta enviada al moderador",
+  },
+  "Demander une suspension": {
+    en: "Request a suspension",
+    ar: "طلب إيقاف",
+    es: "Solicitar una suspensión",
+  },
+  "Relance...": { en: "Relaunching...", ar: "جارٍ إعادة الإطلاق...", es: "Relanzando..." },
+  "Relancer la recherche": {
+    en: "Relaunch the search",
+    ar: "إعادة إطلاق البحث",
+    es: "Relanzar la búsqueda",
+  },
+  "Aucun litige ni suspension en cours sur ce projet.": {
+    en: "No dispute or suspension in progress on this project.",
+    ar: "لا يوجد نزاع أو إيقاف قيد التنفيذ على هذا المشروع.",
+    es: "No hay ninguna disputa ni suspensión en curso en este proyecto.",
+  },
+  "Décrivez le motif de votre demande. Une suspension amiable est privilégiée avant l'ouverture d'un litige.": {
+    en: "Describe the reason for your request. An amicable suspension is preferred before opening a dispute.",
+    ar: "صف سبب طلبك. يُفضَّل الإيقاف الودّي قبل فتح نزاع.",
+    es: "Describe el motivo de tu solicitud. Se prefiere una suspensión amistosa antes de abrir una disputa.",
+  },
+  "Envoyer la demande": { en: "Send the request", ar: "إرسال الطلب", es: "Enviar la solicitud" },
+  "Renseignez un motif avant d'envoyer.": {
+    en: "Enter a reason before sending.",
+    ar: "أدخل سببًا قبل الإرسال.",
+    es: "Indica un motivo antes de enviar.",
+  },
+  "Type de demande": { en: "Request type", ar: "نوع الطلب", es: "Tipo de solicitud" },
+  "Suspension amiable": { en: "Amicable suspension", ar: "إيقاف ودّي", es: "Suspensión amistosa" },
+  "Litige": { en: "Dispute", ar: "نزاع", es: "Disputa" },
+  "Motif": { en: "Reason", ar: "السبب", es: "Motivo" },
+  "Expliquez la raison de cette demande...": {
+    en: "Explain the reason for this request...",
+    ar: "اشرح سبب هذا الطلب...",
+    es: "Explica el motivo de esta solicitud...",
+  },
+  "Réglez les frais du projet directement à l'agence en charge.": {
+    en: "Pay the project fees directly to the agency in charge.",
+    ar: "ادفع رسوم المشروع مباشرة إلى الوكالة المسؤولة.",
+    es: "Paga los gastos del proyecto directamente a la agencia responsable.",
+  },
+  "Paiement...": { en: "Paying...", ar: "جارٍ الدفع...", es: "Pagando..." },
+  "Confirmer le paiement": { en: "Confirm payment", ar: "تأكيد الدفع", es: "Confirmar el pago" },
+  "Renseignez vos coordonnées de paiement avant de continuer.": {
+    en: "Enter your payment details before continuing.",
+    ar: "أدخل بيانات الدفع الخاصة بك قبل المتابعة.",
+    es: "Introduce tus datos de pago antes de continuar.",
+  },
+  "Moyen de paiement": { en: "Payment method", ar: "وسيلة الدفع", es: "Método de pago" },
+  "Carte bancaire": { en: "Credit card", ar: "بطاقة بنكية", es: "Tarjeta bancaria" },
+  "Virement bancaire": { en: "Bank transfer", ar: "تحويل بنكي", es: "Transferencia bancaria" },
+  "Numéro / IBAN / identifiant": {
+    en: "Number / IBAN / ID",
+    ar: "الرقم / IBAN / المعرّف",
+    es: "Número / IBAN / identificador",
+  },
+  "Refuser ce devis": { en: "Decline this quote", ar: "رفض عرض السعر هذا", es: "Rechazar este presupuesto" },
+  "L'agence sera notifiée et pourra vous envoyer une nouvelle offre ajustée — indiquez ce qui ne convient pas (budget, délai...) pour l'aider à mieux répondre.":
+    {
+      en: "The agency will be notified and can send you a new adjusted offer — indicate what doesn't suit you (budget, timeline...) to help it respond better.",
+      ar: "سيتم إخطار الوكالة وستتمكن من إرسال عرض جديد معدّل لك — وضّح ما لا يناسبك (الميزانية، المهلة...) لمساعدتها على الرد بشكل أفضل.",
+      es: "Se notificará a la agencia y podrá enviarte una nueva oferta ajustada — indica lo que no te conviene (presupuesto, plazo...) para ayudarla a responder mejor.",
+    },
+  "Refuser le devis": { en: "Decline the quote", ar: "رفض عرض السعر", es: "Rechazar el presupuesto" },
+  "Motif ou contre-proposition (optionnel)": {
+    en: "Reason or counter-proposal (optional)",
+    ar: "السبب أو العرض المضاد (اختياري)",
+    es: "Motivo o contrapropuesta (opcional)",
+  },
+  "Ex. Budget trop élevé, nous visions plutôt 3000€...": {
+    en: "E.g. Budget too high, we were aiming for around 3000€...",
+    ar: "مثال: الميزانية مرتفعة جدًا، كنا نستهدف حوالي 3000 يورو...",
+    es: "Ej. Presupuesto demasiado alto, buscábamos unos 3000€...",
+  },
+  "Impossible d'ouvrir le CDC.": {
+    en: "Unable to open the brief.",
+    ar: "تعذّر فتح كراسة الشروط.",
+    es: "No se pudo abrir el pliego de condiciones.",
+  },
+  "Impossible d'ouvrir le devis.": {
+    en: "Unable to open the quote.",
+    ar: "تعذّر فتح عرض السعر.",
+    es: "No se pudo abrir el presupuesto.",
+  },
+  "Devis accepté — le projet passe En cours.": {
+    en: "Quote accepted — the project moves to In progress.",
+    ar: "تم قبول عرض السعر — أصبح المشروع قيد التنفيذ.",
+    es: "Presupuesto aceptado — el proyecto pasa a En curso.",
+  },
+  "Devis refusé — l'agence peut vous envoyer une offre ajustée.": {
+    en: "Quote declined — the agency can send you an adjusted offer.",
+    ar: "تم رفض عرض السعر — يمكن للوكالة إرسال عرض معدّل لك.",
+    es: "Presupuesto rechazado — la agencia puede enviarte una oferta ajustada.",
+  },
+  "Impossible d'enregistrer votre décision.": {
+    en: "Unable to save your decision.",
+    ar: "تعذّر حفظ قرارك.",
+    es: "No se pudo guardar tu decisión.",
+  },
+  "Candidature acceptée — l'agence peut désormais envoyer un devis.": {
+    en: "Application accepted — the agency can now send a quote.",
+    ar: "تم قبول الطلب — يمكن للوكالة الآن إرسال عرض سعر.",
+    es: "Candidatura aceptada — la agencia ya puede enviar un presupuesto.",
+  },
+  "Candidature refusée.": { en: "Application declined.", ar: "تم رفض الطلب.", es: "Candidatura rechazada." },
+  "Demande envoyée à l'agence.": {
+    en: "Request sent to the agency.",
+    ar: "تم إرسال الطلب إلى الوكالة.",
+    es: "Solicitud enviada a la agencia.",
+  },
+  "Envoi impossible.": { en: "Unable to send.", ar: "تعذّر الإرسال.", es: "No se pudo enviar." },
+  "Votre réponse a été envoyée au modérateur.": {
+    en: "Your response has been sent to the moderator.",
+    ar: "تم إرسال ردك إلى المشرف.",
+    es: "Tu respuesta se ha enviado al moderador.",
+  },
+  "Impossible d'envoyer votre réponse.": {
+    en: "Unable to send your response.",
+    ar: "تعذّر إرسال ردك.",
+    es: "No se pudo enviar tu respuesta.",
+  },
+  "Demande de suspension envoyée.": {
+    en: "Suspension request sent.",
+    ar: "تم إرسال طلب الإيقاف.",
+    es: "Solicitud de suspensión enviada.",
+  },
+  "Recherche d'agence relancée.": {
+    en: "Agency search relaunched.",
+    ar: "تمت إعادة إطلاق البحث عن وكالة.",
+    es: "Búsqueda de agencia relanzada.",
+  },
+  "Impossible de relancer la recherche.": {
+    en: "Unable to relaunch the search.",
+    ar: "تعذّر إعادة إطلاق البحث.",
+    es: "No se pudo relanzar la búsqueda.",
+  },
+  "Projet repris — la nouvelle date de fin prévue a été recalculée.": {
+    en: "Project resumed — the new expected end date has been recalculated.",
+    ar: "تم استئناف المشروع — تم إعادة حساب تاريخ الانتهاء المتوقع الجديد.",
+    es: "Proyecto reanudado — se ha recalculado la nueva fecha de finalización prevista.",
+  },
+  "Impossible de reprendre le projet.": {
+    en: "Unable to resume the project.",
+    ar: "تعذّر استئناف المشروع.",
+    es: "No se pudo reanudar el proyecto.",
+  },
+  "Paiement envoyé à l'agence.": {
+    en: "Payment sent to the agency.",
+    ar: "تم إرسال الدفع إلى الوكالة.",
+    es: "Pago enviado a la agencia.",
+  },
+  "Paiement impossible.": { en: "Payment failed.", ar: "تعذّر الدفع.", es: "No se pudo realizar el pago." },
+} satisfies PageTextDict;
+
 function ClientProjectDetailPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
 
@@ -164,7 +459,7 @@ function ClientProjectDetailPage() {
       const objectUrl = URL.createObjectURL(blob);
       window.open(objectUrl, "_blank");
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible d'ouvrir le CDC.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'ouvrir le CDC."));
     } finally {
       setIsOpeningCdc(false);
     }
@@ -194,7 +489,7 @@ function ClientProjectDetailPage() {
       const objectUrl = URL.createObjectURL(blob);
       window.open(objectUrl, "_blank");
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible d'ouvrir le devis.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'ouvrir le devis."));
     } finally {
       setDownloadingProposalId(null);
     }
@@ -217,8 +512,8 @@ function ClientProjectDetailPage() {
     onSuccess: (_data, variables) => {
       toast(
         variables.decision === "accept"
-          ? "Devis accepté — le projet passe En cours."
-          : "Devis refusé — l'agence peut vous envoyer une offre ajustée.",
+          ? tt("Devis accepté — le projet passe En cours.")
+          : tt("Devis refusé — l'agence peut vous envoyer une offre ajustée."),
       );
       if (variables.decision === "refuse") {
         setRefusingProposal(null);
@@ -227,7 +522,7 @@ function ClientProjectDetailPage() {
       invalidateProjectQueries();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer votre décision.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'enregistrer votre décision."));
     },
     onSettled: () => setRespondingProposalId(null),
   });
@@ -252,13 +547,13 @@ function ClientProjectDetailPage() {
     onSuccess: (_data, variables) => {
       toast(
         variables.decision === "accept"
-          ? "Candidature acceptée — l'agence peut désormais envoyer un devis."
-          : "Candidature refusée.",
+          ? tt("Candidature acceptée — l'agence peut désormais envoyer un devis.")
+          : tt("Candidature refusée."),
       );
       invalidateProjectQueries();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer votre décision.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'enregistrer votre décision."));
     },
     onSettled: () => setRespondingApplicationId(null),
   });
@@ -271,9 +566,9 @@ function ClientProjectDetailPage() {
     try {
       await contactAgencies(id, [agencyId], undefined);
       setContactedAgencyIds((current) => [...current, agencyId]);
-      toast("Demande envoyée à l'agence.");
+      toast(tt("Demande envoyée à l'agence."));
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Envoi impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Envoi impossible."));
     } finally {
       setContactingAgencyId(null);
     }
@@ -296,12 +591,12 @@ function ClientProjectDetailPage() {
   const disputeResponseMutation = useMutation({
     mutationFn: () => respondToDispute(id, disputeReplyMessage.trim()),
     onSuccess: () => {
-      toast("Votre réponse a été envoyée au modérateur.");
+      toast(tt("Votre réponse a été envoyée au modérateur."));
       setDisputeReplyMessage("");
       void disputeQuery.refetch();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'envoyer votre réponse.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'envoyer votre réponse."));
     },
   });
 
@@ -313,35 +608,35 @@ function ClientProjectDetailPage() {
     mutationFn: () =>
       requestSuspension({ projectId: id, reason: suspensionReason, category: suspensionCategory }),
     onSuccess: () => {
-      toast("Demande de suspension envoyée.");
+      toast(tt("Demande de suspension envoyée."));
       setIsSuspensionModalOpen(false);
       setSuspensionReason("");
       invalidateProjectQueries();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Envoi impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Envoi impossible."));
     },
   });
 
   const relaunchMutation = useMutation({
     mutationFn: () => relaunchAgencySearch(id),
     onSuccess: () => {
-      toast("Recherche d'agence relancée.");
+      toast(tt("Recherche d'agence relancée."));
       invalidateProjectQueries();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de relancer la recherche.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de relancer la recherche."));
     },
   });
 
   const resumeMutation = useMutation({
     mutationFn: () => resumeProject(id),
     onSuccess: () => {
-      toast("Projet repris — la nouvelle date de fin prévue a été recalculée.");
+      toast(tt("Projet repris — la nouvelle date de fin prévue a été recalculée."));
       invalidateProjectQueries();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de reprendre le projet.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de reprendre le projet."));
     },
   });
 
@@ -352,13 +647,13 @@ function ClientProjectDetailPage() {
   const payAgencyMutation = useMutation({
     mutationFn: () => payAgencyForProject({ projectId: id, paymentMethod, providerToken }),
     onSuccess: () => {
-      toast("Paiement envoyé à l'agence.");
+      toast(tt("Paiement envoyé à l'agence."));
       setIsPaymentModalOpen(false);
       setProviderToken("");
       invalidateProjectQueries();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Paiement impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Paiement impossible."));
     },
   });
 
@@ -370,7 +665,7 @@ function ClientProjectDetailPage() {
           className="inline-flex items-center gap-2 text-[14px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
-          Retour à mes projets
+          {tt("Retour à mes projets")}
         </Link>
 
         {/* En-tête */}
@@ -381,7 +676,7 @@ function ClientProjectDetailPage() {
           {isLoading ? (
             <StackSkeleton count={2} />
           ) : project === null ? (
-            <EmptyState message="Projet introuvable." />
+            <EmptyState message={tt("Projet introuvable.")} />
           ) : (
             <div className="relative flex flex-wrap items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 text-white shadow-lg shadow-primary/20">
@@ -399,15 +694,15 @@ function ClientProjectDetailPage() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-[13px] font-medium shadow-sm">
                     <Wallet className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.8} />
-                    {formatBudget(project.budgetMin, project.budgetMax)}
+                    {formatBudget(project.budgetMin, project.budgetMax, tt)}
                   </span>
                   <span className="flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-[13px] font-medium shadow-sm">
                     <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.8} />
-                    {project.location || "Non renseignée"}
+                    {project.location || tt("Non renseignée")}
                   </span>
                   <span className="flex items-center gap-1.5 rounded-full bg-background/80 px-3 py-1.5 text-[13px] font-medium shadow-sm">
                     <CalendarDays className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={1.8} />
-                    {project.deadline || "Délai non renseigné"}
+                    {project.deadline || tt("Délai non renseigné")}
                   </span>
                 </div>
               </div>
@@ -423,8 +718,8 @@ function ClientProjectDetailPage() {
                 cliquer vers son profil depuis le détail. */}
             {project.agencyId ? (
               <SectionCard
-                title="Agence"
-                description="L'agence qui travaille actuellement sur ce projet."
+                title={tt("Agence")}
+                description={tt("L'agence qui travaille actuellement sur ce projet.")}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
@@ -432,10 +727,10 @@ function ClientProjectDetailPage() {
                       style={{ backgroundImage: seedGradient(project.agencyId) }}
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[13px] font-bold text-white"
                     >
-                      {initialsOf(project.partnerAgencyName ?? "Agence")}
+                      {initialsOf(project.partnerAgencyName ?? tt("Agence"))}
                     </span>
                     <p className="min-w-0 truncate text-[15px] font-bold">
-                      {project.partnerAgencyName ?? "Agence partenaire"}
+                      {project.partnerAgencyName ?? tt("Agence partenaire")}
                     </p>
                   </div>
                   <Link
@@ -443,7 +738,7 @@ function ClientProjectDetailPage() {
                     params={{ id: project.agencyId }}
                     className="flex shrink-0 items-center gap-1.5 rounded-md border border-border px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-accent"
                   >
-                    Voir le profil
+                    {tt("Voir le profil")}
                     <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.8} />
                   </Link>
                 </div>
@@ -456,12 +751,14 @@ function ClientProjectDetailPage() {
                 l'agence via son propre circuit de facturation. */}
             {project.paymentStatus && project.paymentStatus !== "Non facturé" ? (
               <SectionCard
-                title="Paiement à l'agence"
-                description="Montant dû à l'agence pour la réalisation du projet — distinct de la commission versée par l'agence à la plateforme."
+                title={tt("Paiement à l'agence")}
+                description={tt(
+                  "Montant dû à l'agence pour la réalisation du projet — distinct de la commission versée par l'agence à la plateforme.",
+                )}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[13px] text-muted-foreground">Montant dû</p>
+                    <p className="text-[13px] text-muted-foreground">{tt("Montant dû")}</p>
                     <p className="mt-1 text-[20px] font-bold">
                       {project.agencyProjectAmount !== null &&
                       project.agencyProjectAmount !== undefined
@@ -478,7 +775,7 @@ function ClientProjectDetailPage() {
                         className="flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                       >
                         <CreditCard className="h-4 w-4" strokeWidth={1.8} />
-                        Payer l'agence
+                        {tt("Payer l'agence")}
                       </button>
                     ) : null}
                   </div>
@@ -488,8 +785,8 @@ function ClientProjectDetailPage() {
 
             {/* Cahier des charges */}
             <SectionCard
-              title="Cahier des charges"
-              description="Document généré à partir de votre brief."
+              title={tt("Cahier des charges")}
+              description={tt("Document généré à partir de votre brief.")}
             >
               <div className="flex flex-wrap items-center gap-3">
                 {project.cdcFile ? (
@@ -499,7 +796,7 @@ function ClientProjectDetailPage() {
                       strokeWidth={1.8}
                     />
                     <p className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
-                      Cahier des charges — généré à partir de votre brief
+                      {tt("Cahier des charges — généré à partir de votre brief")}
                     </p>
                     <button
                       type="button"
@@ -508,18 +805,18 @@ function ClientProjectDetailPage() {
                       className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Download className="h-3.5 w-3.5" strokeWidth={1.8} />
-                      {isOpeningCdc ? "..." : "Télécharger le PDF"}
+                      {isOpeningCdc ? "..." : tt("Télécharger le PDF")}
                     </button>
                   </div>
                 ) : (
                   <span className="text-[13px] text-muted-foreground">
-                    Aucun CDC disponible pour ce projet.
+                    {tt("Aucun CDC disponible pour ce projet.")}
                   </span>
                 )}
                 {project.locked ? (
                   <span className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold text-muted-foreground">
                     <Lock className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-                    Verrouillé
+                    {tt("Verrouillé")}
                   </span>
                 ) : null}
               </div>
@@ -528,8 +825,10 @@ function ClientProjectDetailPage() {
             {/* Candidatures spontanées d'agences (onglet "Disponibles" côté agence) */}
             {agencyApplications.length > 0 ? (
               <SectionCard
-                title="Candidatures d'agences"
-                description="Ces agences ont postulé spontanément à votre projet — acceptez pour qu'elles puissent vous envoyer un devis."
+                title={tt("Candidatures d'agences")}
+                description={tt(
+                  "Ces agences ont postulé spontanément à votre projet — acceptez pour qu'elles puissent vous envoyer un devis.",
+                )}
               >
                 <div className="space-y-4">
                   {agencyApplications.map((application) => {
@@ -555,7 +854,7 @@ function ClientProjectDetailPage() {
                             className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            {isResponding ? "..." : "Accepter"}
+                            {isResponding ? "..." : tt("Accepter")}
                           </button>
                           <button
                             type="button"
@@ -569,7 +868,7 @@ function ClientProjectDetailPage() {
                             className="flex items-center gap-1.5 rounded-md border border-border px-3.5 py-2 text-[13px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <XCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            Refuser
+                            {tt("Refuser")}
                           </button>
                         </div>
                       </article>
@@ -582,12 +881,14 @@ function ClientProjectDetailPage() {
             {/* Devis en attente de décision */}
             {pendingProposals.length > 0 ? (
               <SectionCard
-                title="Devis reçus"
-                description="Chaque devis dispose de son propre délai de réponse (48h, puis +24h de rappel)."
+                title={tt("Devis reçus")}
+                description={tt(
+                  "Chaque devis dispose de son propre délai de réponse (48h, puis +24h de rappel).",
+                )}
               >
                 <div className="space-y-4">
                   {pendingProposals.map((proposal) => {
-                    const deadline = describeQuoteDeadline(proposal, now);
+                    const deadline = describeQuoteDeadline(proposal, now, tt);
                     const isResponding =
                       respondingProposalId === proposal.id && respondMutation.isPending;
                     return (
@@ -621,7 +922,7 @@ function ClientProjectDetailPage() {
                             strokeWidth={1.8}
                           />
                           <p className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
-                            Devis détaillé — informations de l'agence, prestations, tarifs
+                            {tt("Devis détaillé — informations de l'agence, prestations, tarifs")}
                           </p>
                           <button
                             type="button"
@@ -630,7 +931,7 @@ function ClientProjectDetailPage() {
                             className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Download className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            {downloadingProposalId === proposal.id ? "..." : "Télécharger le PDF"}
+                            {downloadingProposalId === proposal.id ? "..." : tt("Télécharger le PDF")}
                           </button>
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2">
@@ -646,7 +947,7 @@ function ClientProjectDetailPage() {
                             className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            {isResponding ? "..." : "Accepter"}
+                            {isResponding ? "..." : tt("Accepter")}
                           </button>
                           <button
                             type="button"
@@ -655,7 +956,7 @@ function ClientProjectDetailPage() {
                             className="flex items-center gap-1.5 rounded-md border border-border px-3.5 py-2 text-[13px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <XCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            Refuser
+                            {tt("Refuser")}
                           </button>
                         </div>
                       </article>
@@ -668,13 +969,13 @@ function ClientProjectDetailPage() {
             {/* Shortlist IA */}
             {project.status === "published" || project.status === "awaiting" ? (
               <SectionCard
-                title="Shortlist d'agences recommandées"
-                description="Sélection générée par le matching IA pour ce projet."
+                title={tt("Shortlist d'agences recommandées")}
+                description={tt("Sélection générée par le matching IA pour ce projet.")}
               >
                 {shortlistQuery.isPending ? (
                   <StackSkeleton count={3} />
                 ) : shortlist.length === 0 ? (
-                  <EmptyState message="Aucune agence recommandée pour le moment." />
+                  <EmptyState message={tt("Aucune agence recommandée pour le moment.")} />
                 ) : (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {shortlist.map((agency) => {
@@ -730,17 +1031,17 @@ function ClientProjectDetailPage() {
                               className="rounded-md bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {contactingAgencyId === agency.id
-                                ? "Envoi..."
+                                ? tt("Envoi...")
                                 : isContacted
-                                  ? "Envoyé"
-                                  : "Envoyer"}
+                                  ? tt("Envoyé")
+                                  : tt("Envoyer")}
                             </button>
                             <Link
                               to="/agences/$id"
                               params={{ id: agency.id }}
                               className="rounded-md border border-border px-3.5 py-2 text-[13px] font-semibold transition-colors hover:bg-accent"
                             >
-                              Voir profil
+                              {tt("Voir profil")}
                             </Link>
                           </div>
                         </article>
@@ -753,8 +1054,8 @@ function ClientProjectDetailPage() {
 
             {/* Suspension / Litige */}
             <SectionCard
-              title="Suspension et litiges"
-              description="Suivi des suspensions ou litiges éventuels sur ce projet."
+              title={tt("Suspension et litiges")}
+              description={tt("Suivi des suspensions ou litiges éventuels sur ce projet.")}
             >
               {disputeQuery.isPending ? (
                 <StackSkeleton count={2} />
@@ -770,13 +1071,13 @@ function ClientProjectDetailPage() {
                         className="flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <RefreshCcw className="h-4 w-4" strokeWidth={1.8} />
-                        {resumeMutation.isPending ? "Reprise..." : "Reprendre"}
+                        {resumeMutation.isPending ? tt("Reprise...") : tt("Reprendre")}
                       </button>
                     ) : null}
                   </div>
                   {dispute.history.length === 0 ? (
                     <p className="mt-4 text-[13.5px] text-muted-foreground">
-                      Aucun historique disponible.
+                      {tt("Aucun historique disponible.")}
                     </p>
                   ) : (
                     <ul className="mt-4 space-y-4">
@@ -792,38 +1093,39 @@ function ClientProjectDetailPage() {
                   {dispute.awaitingClientResponse ? (
                     <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
                       <p className="text-[13.5px] font-semibold text-amber-900">
-                        L'agence signale ne pas parvenir à vous joindre sur ce projet
+                        {tt("L'agence signale ne pas parvenir à vous joindre sur ce projet")}
                       </p>
                       <p className="mt-1 text-[13px] text-amber-800">
-                        Répondez pour expliquer la situation — un modérateur examinera votre
-                        réponse avant de trancher.
+                        {tt(
+                          "Répondez pour expliquer la situation — un modérateur examinera votre réponse avant de trancher.",
+                        )}
                       </p>
                       <TextAreaField
-                        label="Votre réponse"
+                        label={tt("Votre réponse")}
                         rows={4}
                         value={disputeReplyMessage}
                         onChange={(event) => setDisputeReplyMessage(event.target.value)}
-                        placeholder="Expliquez votre situation..."
+                        placeholder={tt("Expliquez votre situation...")}
                       />
                       <button
                         type="button"
                         disabled={disputeResponseMutation.isPending}
                         onClick={() => {
                           if (!disputeReplyMessage.trim()) {
-                            toast("Écrivez une réponse avant d'envoyer.");
+                            toast(tt("Écrivez une réponse avant d'envoyer."));
                             return;
                           }
                           disputeResponseMutation.mutate();
                         }}
                         className="mt-3 flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {disputeResponseMutation.isPending ? "Envoi..." : "Envoyer ma réponse"}
+                        {disputeResponseMutation.isPending ? tt("Envoi...") : tt("Envoyer ma réponse")}
                       </button>
                     </div>
                   ) : dispute.clientResponse ? (
                     <div className="mt-4 rounded-lg border border-border bg-accent/30 p-3">
                       <p className="text-[12px] font-semibold text-muted-foreground">
-                        Votre réponse envoyée au modérateur
+                        {tt("Votre réponse envoyée au modérateur")}
                       </p>
                       <p className="mt-1 text-[13px]">{dispute.clientResponse}</p>
                     </div>
@@ -838,7 +1140,7 @@ function ClientProjectDetailPage() {
                       className="flex items-center gap-2 rounded-md border border-border px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-accent"
                     >
                       <ShieldAlert className="h-4 w-4" strokeWidth={1.8} />
-                      Demander une suspension
+                      {tt("Demander une suspension")}
                     </button>
                   ) : null}
                   {project.status === "rejected" &&
@@ -850,7 +1152,7 @@ function ClientProjectDetailPage() {
                       className="flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <RefreshCcw className="h-4 w-4" strokeWidth={1.8} />
-                      {relaunchMutation.isPending ? "Relance..." : "Relancer la recherche"}
+                      {relaunchMutation.isPending ? tt("Relance...") : tt("Relancer la recherche")}
                     </button>
                   ) : null}
                   {project.status !== "in_progress" &&
@@ -859,7 +1161,7 @@ function ClientProjectDetailPage() {
                     project.rejectionSubstatus === "Agence défaillante"
                   ) ? (
                     <p className="text-[13.5px] text-muted-foreground">
-                      Aucun litige ni suspension en cours sur ce projet.
+                      {tt("Aucun litige ni suspension en cours sur ce projet.")}
                     </p>
                   ) : null}
                 </div>
@@ -872,12 +1174,14 @@ function ClientProjectDetailPage() {
       <ActionModal
         open={isSuspensionModalOpen}
         onOpenChange={setIsSuspensionModalOpen}
-        title="Demander une suspension"
-        description="Décrivez le motif de votre demande. Une suspension amiable est privilégiée avant l'ouverture d'un litige."
-        confirmLabel={suspensionMutation.isPending ? "Envoi..." : "Envoyer la demande"}
+        title={tt("Demander une suspension")}
+        description={tt(
+          "Décrivez le motif de votre demande. Une suspension amiable est privilégiée avant l'ouverture d'un litige.",
+        )}
+        confirmLabel={suspensionMutation.isPending ? tt("Envoi...") : tt("Envoyer la demande")}
         onConfirm={() => {
           if (!suspensionReason.trim()) {
-            toast("Renseignez un motif avant d'envoyer.");
+            toast(tt("Renseignez un motif avant d'envoyer."));
             return;
           }
           suspensionMutation.mutate();
@@ -886,7 +1190,7 @@ function ClientProjectDetailPage() {
         <div className="space-y-4">
           <div>
             <label className="text-[13px] font-semibold" htmlFor="suspension-category">
-              Type de demande
+              {tt("Type de demande")}
             </label>
             <select
               id="suspension-category"
@@ -894,16 +1198,16 @@ function ClientProjectDetailPage() {
               onChange={(event) => setSuspensionCategory(event.target.value as SuspensionCategory)}
               className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-[13.5px] outline-none"
             >
-              <option value="amicable">Suspension amiable</option>
-              <option value="dispute">Litige</option>
+              <option value="amicable">{tt("Suspension amiable")}</option>
+              <option value="dispute">{tt("Litige")}</option>
             </select>
           </div>
           <TextAreaField
-            label="Motif"
+            label={tt("Motif")}
             rows={4}
             value={suspensionReason}
             onChange={(event) => setSuspensionReason(event.target.value)}
-            placeholder="Expliquez la raison de cette demande..."
+            placeholder={tt("Expliquez la raison de cette demande...")}
           />
         </div>
       </ActionModal>
@@ -911,12 +1215,12 @@ function ClientProjectDetailPage() {
       <ActionModal
         open={isPaymentModalOpen}
         onOpenChange={setIsPaymentModalOpen}
-        title="Payer l'agence"
-        description="Réglez les frais du projet directement à l'agence en charge."
-        confirmLabel={payAgencyMutation.isPending ? "Paiement..." : "Confirmer le paiement"}
+        title={tt("Payer l'agence")}
+        description={tt("Réglez les frais du projet directement à l'agence en charge.")}
+        confirmLabel={payAgencyMutation.isPending ? tt("Paiement...") : tt("Confirmer le paiement")}
         onConfirm={() => {
           if (!providerToken.trim()) {
-            toast("Renseignez vos coordonnées de paiement avant de continuer.");
+            toast(tt("Renseignez vos coordonnées de paiement avant de continuer."));
             return;
           }
           payAgencyMutation.mutate();
@@ -925,7 +1229,7 @@ function ClientProjectDetailPage() {
         <div className="space-y-4">
           <div>
             <label className="text-[13px] font-semibold" htmlFor="payment-method">
-              Moyen de paiement
+              {tt("Moyen de paiement")}
             </label>
             <select
               id="payment-method"
@@ -935,13 +1239,13 @@ function ClientProjectDetailPage() {
               }
               className="mt-1.5 w-full rounded-md border border-border bg-transparent px-3 py-2 text-[13.5px] outline-none"
             >
-              <option value="Card">Carte bancaire</option>
-              <option value="Bank Transfer">Virement bancaire</option>
+              <option value="Card">{tt("Carte bancaire")}</option>
+              <option value="Bank Transfer">{tt("Virement bancaire")}</option>
               <option value="PayPal">PayPal</option>
             </select>
           </div>
           <TextField
-            label="Numéro / IBAN / identifiant"
+            label={tt("Numéro / IBAN / identifiant")}
             placeholder="4242 4242 4242 4242"
             value={providerToken}
             onChange={(event) => setProviderToken(event.target.value)}
@@ -960,12 +1264,14 @@ function ClientProjectDetailPage() {
             setRefusalMessage("");
           }
         }}
-        title="Refuser ce devis"
-        description="L'agence sera notifiée et pourra vous envoyer une nouvelle offre ajustée — indiquez ce qui ne convient pas (budget, délai...) pour l'aider à mieux répondre."
+        title={tt("Refuser ce devis")}
+        description={tt(
+          "L'agence sera notifiée et pourra vous envoyer une nouvelle offre ajustée — indiquez ce qui ne convient pas (budget, délai...) pour l'aider à mieux répondre.",
+        )}
         confirmLabel={
           respondMutation.isPending && respondMutation.variables?.decision === "refuse"
-            ? "Envoi..."
-            : "Refuser le devis"
+            ? tt("Envoi...")
+            : tt("Refuser le devis")
         }
         onConfirm={() => {
           if (!refusingProposal) return;
@@ -978,11 +1284,11 @@ function ClientProjectDetailPage() {
         }}
       >
         <TextAreaField
-          label="Motif ou contre-proposition (optionnel)"
+          label={tt("Motif ou contre-proposition (optionnel)")}
           rows={4}
           value={refusalMessage}
           onChange={(event) => setRefusalMessage(event.target.value)}
-          placeholder="Ex. Budget trop élevé, nous visions plutôt 3000€..."
+          placeholder={tt("Ex. Budget trop élevé, nous visions plutôt 3000€...")}
         />
       </ActionModal>
     </DashboardShell>

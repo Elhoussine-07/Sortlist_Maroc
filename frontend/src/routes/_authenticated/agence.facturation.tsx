@@ -47,6 +47,302 @@ import {
 } from "@/services/invoices.service";
 import { ApiError } from "@/services/http";
 import { useInvoicesStore } from "@/store/invoices.store";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const PAGE_TEXT = {
+  "Émises": {
+    en: "Issued",
+    ar: "الصادرة",
+    es: "Emitidas",
+  },
+  "Reçues": {
+    en: "Received",
+    ar: "المستلمة",
+    es: "Recibidas",
+  },
+  "Payées": {
+    en: "Paid",
+    ar: "المدفوعة",
+    es: "Pagadas",
+  },
+  "En retard": {
+    en: "Overdue",
+    ar: "متأخرة",
+    es: "Atrasadas",
+  },
+  "Facture": {
+    en: "Invoice",
+    ar: "الفاتورة",
+    es: "Factura",
+  },
+  "Montant dû": {
+    en: "Amount due",
+    ar: "المبلغ المستحق",
+    es: "Importe adeudado",
+  },
+  "Émise le": {
+    en: "Issued on",
+    ar: "تاريخ الإصدار",
+    es: "Emitida el",
+  },
+  "Échéance": {
+    en: "Due date",
+    ar: "تاريخ الاستحقاق",
+    es: "Vencimiento",
+  },
+  "Statut": {
+    en: "Status",
+    ar: "الحالة",
+    es: "Estado",
+  },
+  "Délai commission": {
+    en: "Commission deadline",
+    ar: "مهلة العمولة",
+    es: "Plazo de comisión",
+  },
+  "Action": {
+    en: "Action",
+    ar: "الإجراء",
+    es: "Acción",
+  },
+  "Délai dépassé - suspension imminente": {
+    en: "Deadline passed - suspension imminent",
+    ar: "انتهت المهلة - التعليق وشيك",
+    es: "Plazo superado: suspensión inminente",
+  },
+  "{time} avant suspension auto": {
+    en: "{time} before auto-suspension",
+    ar: "{time} قبل التعليق التلقائي",
+    es: "{time} antes de la suspensión automática",
+  },
+  "Paiement...": {
+    en: "Paying...",
+    ar: "جارٍ الدفع...",
+    es: "Pagando...",
+  },
+  "Payer": {
+    en: "Pay",
+    ar: "ادفع",
+    es: "Pagar",
+  },
+  "Téléchargement...": {
+    en: "Downloading...",
+    ar: "جارٍ التنزيل...",
+    es: "Descargando...",
+  },
+  "Télécharger": {
+    en: "Download",
+    ar: "تنزيل",
+    es: "Descargar",
+  },
+  "Moyen de paiement": {
+    en: "Payment method",
+    ar: "وسيلة الدفع",
+    es: "Método de pago",
+  },
+  "Utilisé pour prélever automatiquement la commission de la plateforme dès qu'un client accepte un devis - aucune facture à régler manuellement tant qu'un moyen par défaut est configuré.":
+    {
+      en: "Used to automatically charge the platform commission as soon as a client accepts a quote - no invoice to settle manually as long as a default method is configured.",
+      ar: "يُستخدم لخصم عمولة المنصة تلقائيًا بمجرد موافقة العميل على عرض السعر - لا حاجة لتسوية أي فاتورة يدويًا طالما تم تكوين وسيلة افتراضية.",
+      es: "Se utiliza para cobrar automáticamente la comisión de la plataforma en cuanto un cliente acepta un presupuesto - no hay que pagar ninguna factura manualmente mientras haya un método predeterminado configurado.",
+    },
+  "Moyen de paiement enregistré comme méthode par défaut.": {
+    en: "Payment method saved as default.",
+    ar: "تم حفظ وسيلة الدفع كوسيلة افتراضية.",
+    es: "Método de pago guardado como predeterminado.",
+  },
+  "Impossible d'enregistrer ce moyen de paiement.": {
+    en: "Unable to save this payment method.",
+    ar: "تعذّر حفظ وسيلة الدفع هذه.",
+    es: "No se pudo guardar este método de pago.",
+  },
+  "💳 Carte bancaire": {
+    en: "💳 Credit card",
+    ar: "💳 بطاقة مصرفية",
+    es: "💳 Tarjeta bancaria",
+  },
+  "🏦 Virement bancaire": {
+    en: "🏦 Bank transfer",
+    ar: "🏦 تحويل مصرفي",
+    es: "🏦 Transferencia bancaria",
+  },
+  "Défaut": {
+    en: "Default",
+    ar: "افتراضي",
+    es: "Predeterminado",
+  },
+  "Aucun moyen de paiement enregistré — la commission restera en attente de règlement manuel tant qu'aucun n'est configuré ci-dessous.":
+    {
+      en: "No payment method registered — the commission will remain pending manual settlement until one is configured below.",
+      ar: "لا توجد وسيلة دفع مسجَّلة — ستبقى العمولة بانتظار التسوية اليدوية إلى أن يتم تكوين وسيلة أدناه.",
+      es: "No hay ningún método de pago registrado: la comisión quedará pendiente de liquidación manual hasta que configures uno a continuación.",
+    },
+  "Ajouter un nouveau moyen de paiement": {
+    en: "Add a new payment method",
+    ar: "إضافة وسيلة دفع جديدة",
+    es: "Añadir un nuevo método de pago",
+  },
+  "Type": {
+    en: "Type",
+    ar: "النوع",
+    es: "Tipo",
+  },
+  "🏦 Virement bancaire (IBAN)": {
+    en: "🏦 Bank transfer (IBAN)",
+    ar: "🏦 تحويل مصرفي (IBAN)",
+    es: "🏦 Transferencia bancaria (IBAN)",
+  },
+  "Libellé": {
+    en: "Label",
+    ar: "التسمية",
+    es: "Etiqueta",
+  },
+  "Visa ...1234 / IBAN FR76...": {
+    en: "Visa ...1234 / IBAN FR76...",
+    ar: "Visa ...1234 / IBAN FR76...",
+    es: "Visa ...1234 / IBAN FR76...",
+  },
+  "Numéro / IBAN": {
+    en: "Number / IBAN",
+    ar: "الرقم / IBAN",
+    es: "Número / IBAN",
+  },
+  "Enregistrement...": {
+    en: "Saving...",
+    ar: "جارٍ الحفظ...",
+    es: "Guardando...",
+  },
+  "Enregistrer comme méthode par défaut": {
+    en: "Save as default method",
+    ar: "حفظ كوسيلة افتراضية",
+    es: "Guardar como método predeterminado",
+  },
+  "Facturation": {
+    en: "Invoicing",
+    ar: "الفوترة",
+    es: "Facturación",
+  },
+  "Suivez vos paiements et téléchargez vos factures": {
+    en: "Track your payments and download your invoices",
+    ar: "تابع مدفوعاتك وقم بتنزيل فواتيرك",
+    es: "Haz seguimiento de tus pagos y descarga tus facturas",
+  },
+  "{amount} payés": {
+    en: "{amount} paid",
+    ar: "{amount} مدفوع",
+    es: "{amount} pagados",
+  },
+  "Total émis": {
+    en: "Total issued",
+    ar: "إجمالي الصادر",
+    es: "Total emitido",
+  },
+  "Total reçu": {
+    en: "Total received",
+    ar: "إجمالي المستلم",
+    es: "Total recibido",
+  },
+  "Total payé": {
+    en: "Total paid",
+    ar: "إجمالي المدفوع",
+    es: "Total pagado",
+  },
+  "Rechercher une facture par projet ou client...": {
+    en: "Search for an invoice by project or client...",
+    ar: "ابحث عن فاتورة حسب المشروع أو العميل...",
+    es: "Buscar una factura por proyecto o cliente...",
+  },
+  "Période": {
+    en: "Period",
+    ar: "الفترة",
+    es: "Período",
+  },
+  "Client": {
+    en: "Client",
+    ar: "العميل",
+    es: "Cliente",
+  },
+  "Tous les statuts": {
+    en: "All statuses",
+    ar: "جميع الحالات",
+    es: "Todos los estados",
+  },
+  "Payé": {
+    en: "Paid",
+    ar: "مدفوعة",
+    es: "Pagada",
+  },
+  "En attente": {
+    en: "Pending",
+    ar: "قيد الانتظار",
+    es: "Pendiente",
+  },
+  "Toutes les périodes": {
+    en: "All periods",
+    ar: "جميع الفترات",
+    es: "Todos los períodos",
+  },
+  "Ce mois": {
+    en: "This month",
+    ar: "هذا الشهر",
+    es: "Este mes",
+  },
+  "Ce trimestre": {
+    en: "This quarter",
+    ar: "هذا الربع",
+    es: "Este trimestre",
+  },
+  "Cette année": {
+    en: "This year",
+    ar: "هذا العام",
+    es: "Este año",
+  },
+  "Tous les clients": {
+    en: "All clients",
+    ar: "جميع العملاء",
+    es: "Todos los clientes",
+  },
+  "{count} facture": {
+    en: "{count} invoice",
+    ar: "{count} فاتورة",
+    es: "{count} factura",
+  },
+  "{count} factures": {
+    en: "{count} invoices",
+    ar: "{count} فاتورة",
+    es: "{count} facturas",
+  },
+  "Trier par : ": {
+    en: "Sort by: ",
+    ar: "الترتيب حسب: ",
+    es: "Ordenar por: ",
+  },
+  "Plus récentes": {
+    en: "Most recent",
+    ar: "الأحدث",
+    es: "Más recientes",
+  },
+  "Plus anciennes": {
+    en: "Oldest",
+    ar: "الأقدم",
+    es: "Más antiguas",
+  },
+  "Facture réglée.": {
+    en: "Invoice paid.",
+    ar: "تم سداد الفاتورة.",
+    es: "Factura pagada.",
+  },
+  "Paiement impossible.": {
+    en: "Payment failed.",
+    ar: "تعذّر الدفع.",
+    es: "No se pudo realizar el pago.",
+  },
+  "Téléchargement impossible.": {
+    en: "Download failed.",
+    ar: "تعذّر التنزيل.",
+    es: "No se pudo realizar la descarga.",
+  },
+} satisfies PageTextDict;
 
 export const Route = createFileRoute("/_authenticated/agence/facturation")({
   head: () => ({
@@ -109,6 +405,7 @@ function useNow(intervalMs = 60_000): number {
 function describePaymentDeadline(
   invoice: Invoice,
   now: number,
+  tt: (source: string) => string,
 ): { label: string; expired: boolean } | null {
   if (invoice.status !== "to_pay" || !invoice.paymentDeadline) return null;
   const deadline = new Date(invoice.paymentDeadline).getTime();
@@ -116,12 +413,13 @@ function describePaymentDeadline(
 
   const diffMinutes = Math.round((deadline - now) / 60_000);
   if (diffMinutes <= 0) {
-    return { label: "Délai dépassé - suspension imminente", expired: true };
+    return { label: tt("Délai dépassé - suspension imminente"), expired: true };
   }
   const hours = Math.floor(diffMinutes / 60);
   const minutes = diffMinutes % 60;
+  const time = `${hours}h${minutes.toString().padStart(2, "0")}`;
   return {
-    label: `${hours}h${minutes.toString().padStart(2, "0")} avant suspension auto`,
+    label: tt("{time} avant suspension auto").replace("{time}", time),
     expired: false,
   };
 }
@@ -155,11 +453,12 @@ function buildColumns(
   onPay: (invoice: Invoice) => void,
   payingId: string | null,
   now: number,
+  tt: (source: string) => string,
 ): Column<Invoice>[] {
   return [
     {
       key: "invoice",
-      header: "Facture",
+      header: tt("Facture"),
       width: "minmax(0,2.2fr)",
       render: (invoice) => (
         <div className="flex min-w-0 items-start gap-3">
@@ -195,7 +494,7 @@ function buildColumns(
     },
     {
       key: "amount",
-      header: "Montant dû",
+      header: tt("Montant dû"),
       render: (invoice) => (
         <div className="flex items-center gap-1.5">
           <Euro className="h-3.5 w-3.5 text-muted-foreground" />
@@ -207,7 +506,7 @@ function buildColumns(
     },
     {
       key: "issuedAt",
-      header: "Émise le",
+      header: tt("Émise le"),
       render: (invoice) => (
         <div className="flex items-center gap-1.5">
           <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
@@ -217,7 +516,7 @@ function buildColumns(
     },
     {
       key: "paymentDeadline",
-      header: "Échéance",
+      header: tt("Échéance"),
       render: (invoice) => (
         <div className="flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5 text-muted-foreground" />
@@ -237,7 +536,7 @@ function buildColumns(
     },
     {
       key: "status",
-      header: "Statut",
+      header: tt("Statut"),
       render: (invoice) => {
         const StatusIcon = getStatusIcon(invoice.status);
         return (
@@ -252,9 +551,9 @@ function buildColumns(
     },
     {
       key: "paymentDeadlineCountdown",
-      header: "Délai commission",
+      header: tt("Délai commission"),
       render: (invoice) => {
-        const deadline = describePaymentDeadline(invoice, now);
+        const deadline = describePaymentDeadline(invoice, now, tt);
         if (!deadline) return <p className="text-[13px] text-muted-foreground">—</p>;
         return (
           <span
@@ -272,7 +571,7 @@ function buildColumns(
     },
     {
       key: "action",
-      header: "Action",
+      header: tt("Action"),
       render: (invoice) => (
         <div className="flex flex-wrap items-center gap-2">
           {invoice.status !== "paid" ? (
@@ -283,7 +582,7 @@ function buildColumns(
               className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-[13px] font-semibold text-white shadow-sm shadow-primary/20 transition-all hover:shadow-md hover:shadow-primary/30 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             >
               <Wallet className="h-3.5 w-3.5" strokeWidth={1.8} />
-              {payingId === invoice.id ? "Paiement..." : "Payer"}
+              {payingId === invoice.id ? tt("Paiement...") : tt("Payer")}
             </button>
           ) : null}
           <button
@@ -293,7 +592,7 @@ function buildColumns(
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-[13px] font-semibold transition-all hover:bg-accent hover:border-primary/30 disabled:opacity-60"
           >
             <Download className="h-3.5 w-3.5" strokeWidth={1.8} />
-            {downloadingId === invoice.id ? "Téléchargement..." : "Télécharger"}
+            {downloadingId === invoice.id ? tt("Téléchargement...") : tt("Télécharger")}
           </button>
         </div>
       ),
@@ -316,6 +615,7 @@ const paymentMethodSchema = z.object({
 type PaymentMethodForm = z.infer<typeof paymentMethodSchema>;
 
 function PaymentMethodSection() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const methodsQuery = useQuery({
     queryKey: ["agency", "payment-methods"],
@@ -332,7 +632,7 @@ function PaymentMethodSection() {
   const registerMutation = useMutation({
     mutationFn: registerPaymentMethod,
     onSuccess: () => {
-      toast.success("Moyen de paiement enregistré comme méthode par défaut.");
+      toast.success(tt("Moyen de paiement enregistré comme méthode par défaut."));
       form.reset({ methodType: "Card", label: "", providerToken: "" });
       void queryClient.invalidateQueries({ queryKey: ["agency", "payment-methods"] });
     },
@@ -340,7 +640,7 @@ function PaymentMethodSection() {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : "Impossible d'enregistrer ce moyen de paiement.",
+          : tt("Impossible d'enregistrer ce moyen de paiement."),
       );
     },
   });
@@ -351,8 +651,10 @@ function PaymentMethodSection() {
 
   return (
     <SectionCard
-      title="Moyen de paiement"
-      description="Utilisé pour prélever automatiquement la commission de la plateforme dès qu'un client accepte un devis - aucune facture à régler manuellement tant qu'un moyen par défaut est configuré."
+      title={tt("Moyen de paiement")}
+      description={tt(
+        "Utilisé pour prélever automatiquement la commission de la plateforme dès qu'un client accepte un devis - aucune facture à régler manuellement tant qu'un moyen par défaut est configuré.",
+      )}
     >
       {methodsQuery.isPending ? (
         <FormSkeleton fields={2} />
@@ -367,11 +669,11 @@ function PaymentMethodSection() {
                 <p className="truncate text-[14px] font-semibold">{defaultMethod.label}</p>
                 <p className="text-[12.5px] text-muted-foreground flex items-center gap-2">
                   {defaultMethod.methodType === "Card"
-                    ? "💳 Carte bancaire"
-                    : "🏦 Virement bancaire"}
+                    ? tt("💳 Carte bancaire")
+                    : tt("🏦 Virement bancaire")}
                   <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
                     <CheckCircle className="h-2.5 w-2.5" />
-                    Défaut
+                    {tt("Défaut")}
                   </span>
                 </p>
               </div>
@@ -383,8 +685,9 @@ function PaymentMethodSection() {
             <div className="flex items-center gap-3 rounded-xl border border-yellow-200 bg-yellow-50/50 p-4">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
               <p className="text-[13.5px] text-muted-foreground">
-                Aucun moyen de paiement enregistré — la commission restera en attente de règlement
-                manuel tant qu'aucun n'est configuré ci-dessous.
+                {tt(
+                  "Aucun moyen de paiement enregistré — la commission restera en attente de règlement manuel tant qu'aucun n'est configuré ci-dessous.",
+                )}
               </p>
             </div>
           )}
@@ -392,27 +695,27 @@ function PaymentMethodSection() {
           <div className="rounded-xl border border-border bg-background/50 p-5">
             <h4 className="mb-4 text-[14px] font-semibold flex items-center gap-2">
               <Receipt className="h-4 w-4" />
-              Ajouter un nouveau moyen de paiement
+              {tt("Ajouter un nouveau moyen de paiement")}
             </h4>
             <form onSubmit={onSubmit} className="grid grid-cols-1 gap-5 sm:grid-cols-3" noValidate>
               <label className="block">
-                <span className="text-[13px] font-medium text-muted-foreground">Type</span>
+                <span className="text-[13px] font-medium text-muted-foreground">{tt("Type")}</span>
                 <select
                   {...form.register("methodType")}
                   className="mt-1.5 w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-[14px] outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="Card">💳 Carte bancaire</option>
-                  <option value="Bank Transfer">🏦 Virement bancaire (IBAN)</option>
+                  <option value="Card">{tt("💳 Carte bancaire")}</option>
+                  <option value="Bank Transfer">{tt("🏦 Virement bancaire (IBAN)")}</option>
                 </select>
               </label>
               <TextField
-                label="Libellé"
-                placeholder="Visa ...1234 / IBAN FR76..."
+                label={tt("Libellé")}
+                placeholder={tt("Visa ...1234 / IBAN FR76...")}
                 error={form.formState.errors.label?.message}
                 {...form.register("label")}
               />
               <TextField
-                label="Numéro / IBAN"
+                label={tt("Numéro / IBAN")}
                 placeholder="4242 4242 4242 4242"
                 error={form.formState.errors.providerToken?.message}
                 {...form.register("providerToken")}
@@ -426,12 +729,12 @@ function PaymentMethodSection() {
                   {registerMutation.isPending ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Enregistrement...
+                      {tt("Enregistrement...")}
                     </>
                   ) : (
                     <>
                       <CreditCard className="h-4 w-4" />
-                      Enregistrer comme méthode par défaut
+                      {tt("Enregistrer comme méthode par défaut")}
                     </>
                   )}
                 </button>
@@ -445,6 +748,7 @@ function PaymentMethodSection() {
 }
 
 function AgencyInvoicingPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const [page] = useState(1);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("issued");
@@ -516,13 +820,13 @@ function AgencyInvoicingPage() {
     setPayingId(invoice.id);
     try {
       await payInvoice(invoice.id);
-      toast.success("Facture réglée.");
+      toast.success(tt("Facture réglée."));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["agency", "invoices", "all"] }),
         queryClient.invalidateQueries({ queryKey: ["agency", "invoices", "summary"] }),
       ]);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Paiement impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Paiement impossible."));
     } finally {
       setPayingId(null);
     }
@@ -539,7 +843,7 @@ function AgencyInvoicingPage() {
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : "Téléchargement impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Téléchargement impossible."));
     } finally {
       setDownloadingId(null);
     }
@@ -559,9 +863,9 @@ function AgencyInvoicingPage() {
                 <Receipt className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-[24px] font-bold tracking-tight">Facturation</h1>
+                <h1 className="text-[24px] font-bold tracking-tight">{tt("Facturation")}</h1>
                 <p className="mt-0.5 text-[14px] text-muted-foreground">
-                  Suivez vos paiements et téléchargez vos factures
+                  {tt("Suivez vos paiements et téléchargez vos factures")}
                 </p>
               </div>
             </div>
@@ -570,7 +874,7 @@ function AgencyInvoicingPage() {
                 <div className="flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="text-[13px] font-medium text-green-700">
-                    {formatCurrency(summary.totalPaid)} payés
+                    {tt("{amount} payés").replace("{amount}", formatCurrency(summary.totalPaid))}
                   </span>
                 </div>
               </div>
@@ -590,7 +894,7 @@ function AgencyInvoicingPage() {
               <div className="rounded-xl border border-border bg-background p-4 transition-all hover:border-blue-200 hover:shadow-sm">
                 <div className="flex items-center justify-between">
                   <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
-                    Total émis
+                    {tt("Total émis")}
                   </p>
                   <div className="rounded-lg bg-blue-50 p-1.5">
                     <TrendingUp className="h-3.5 w-3.5 text-blue-500" />
@@ -601,7 +905,7 @@ function AgencyInvoicingPage() {
               <div className="rounded-xl border border-border bg-background p-4 transition-all hover:border-green-200 hover:shadow-sm">
                 <div className="flex items-center justify-between">
                   <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
-                    Total reçu
+                    {tt("Total reçu")}
                   </p>
                   <div className="rounded-lg bg-green-50 p-1.5">
                     <TrendingDown className="h-3.5 w-3.5 text-green-500" />
@@ -614,7 +918,7 @@ function AgencyInvoicingPage() {
               <div className="rounded-xl border border-border bg-background p-4 transition-all hover:border-green-200 hover:shadow-sm">
                 <div className="flex items-center justify-between">
                   <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
-                    Total payé
+                    {tt("Total payé")}
                   </p>
                   <div className="rounded-lg bg-green-50 p-1.5">
                     <CheckCircle className="h-3.5 w-3.5 text-green-500" />
@@ -625,7 +929,7 @@ function AgencyInvoicingPage() {
               <div className="rounded-xl border border-border bg-background p-4 transition-all hover:border-red-200 hover:shadow-sm">
                 <div className="flex items-center justify-between">
                   <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
-                    En retard
+                    {tt("En retard")}
                   </p>
                   <div className="rounded-lg bg-red-50 p-1.5">
                     <AlertCircle className="h-3.5 w-3.5 text-red-500" />
@@ -643,43 +947,48 @@ function AgencyInvoicingPage() {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Rechercher une facture par projet ou client..."
+            placeholder={tt("Rechercher une facture par projet ou client...")}
           />
         </div>
 
         <div className="mt-6">
-          <StatusTabs tabs={TABS} value={activeTab} onChange={setActiveTab} counts={counts} />
+          <StatusTabs
+            tabs={TABS.map((tab) => ({ ...tab, label: tt(tab.label) }))}
+            value={activeTab}
+            onChange={setActiveTab}
+            counts={counts}
+          />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-background/50 p-3">
             <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
-              Statut
+              {tt("Statut")}
             </label>
             <select className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-[14px] outline-none focus:border-primary">
-              <option>Tous les statuts</option>
-              <option>Payé</option>
-              <option>En attente</option>
-              <option>En retard</option>
+              <option>{tt("Tous les statuts")}</option>
+              <option>{tt("Payé")}</option>
+              <option>{tt("En attente")}</option>
+              <option>{tt("En retard")}</option>
             </select>
           </div>
           <div className="rounded-xl border border-border bg-background/50 p-3">
             <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
-              Période
+              {tt("Période")}
             </label>
             <select className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-[14px] outline-none focus:border-primary">
-              <option>Toutes les périodes</option>
-              <option>Ce mois</option>
-              <option>Ce trimestre</option>
-              <option>Cette année</option>
+              <option>{tt("Toutes les périodes")}</option>
+              <option>{tt("Ce mois")}</option>
+              <option>{tt("Ce trimestre")}</option>
+              <option>{tt("Cette année")}</option>
             </select>
           </div>
           <div className="rounded-xl border border-border bg-background/50 p-3">
             <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
-              Client
+              {tt("Client")}
             </label>
             <select className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-[14px] outline-none focus:border-primary">
-              <option>Tous les clients</option>
+              <option>{tt("Tous les clients")}</option>
             </select>
           </div>
         </div>
@@ -687,21 +996,28 @@ function AgencyInvoicingPage() {
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
-            {counts[activeTab] ?? 0} facture{counts[activeTab] !== 1 ? "s" : ""}
+            {(() => {
+              const invoiceCount = counts[activeTab] ?? 0;
+              return (invoiceCount === 1 ? tt("{count} facture") : tt("{count} factures")).replace(
+                "{count}",
+                String(invoiceCount),
+              );
+            })()}
           </p>
           <button
             onClick={() => setSortDirection((current) => (current === "recent" ? "old" : "recent"))}
             type="button"
             className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[13px] text-muted-foreground transition-all hover:bg-accent hover:border-primary/30"
           >
-            Trier par : {sortDirection === "recent" ? "Plus récentes" : "Plus anciennes"}
+            {tt("Trier par : ")}
+            {sortDirection === "recent" ? tt("Plus récentes") : tt("Plus anciennes")}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
           </button>
         </div>
 
         <div className="mt-4">
           <DataTable
-            columns={buildColumns(handleDownload, downloadingId, handlePay, payingId, now)}
+            columns={buildColumns(handleDownload, downloadingId, handlePay, payingId, now, tt)}
             rows={invoices}
             isLoading={isLoading}
           />
