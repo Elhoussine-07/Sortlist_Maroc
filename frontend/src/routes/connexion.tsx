@@ -17,6 +17,7 @@ import {
 import { ApiError } from "@/services/http";
 import { useAuthStore } from "@/store/auth.store";
 import { useBriefingStore } from "@/store/briefing.store";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/connexion")({
   head: () => ({

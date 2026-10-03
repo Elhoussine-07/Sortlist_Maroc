@@ -21,6 +21,153 @@ import { changePassword } from "@/services/auth.service";
 import { ApiError } from "@/services/http";
 import { useThemeStore } from "@/store/theme.store";
 import { useLocaleStore, type Locale } from "@/store/locale.store";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const PAGE_TEXT = {
+  "Par défaut": { en: "Default", ar: "افتراضي", es: "Predeterminado" },
+  Système: { en: "System", ar: "النظام", es: "Sistema" },
+  Clair: { en: "Light", ar: "فاتح", es: "Claro" },
+  Sombre: { en: "Dark", ar: "داكن", es: "Oscuro" },
+  "Suivre le système": { en: "Follow system", ar: "اتباع النظام", es: "Seguir el sistema" },
+  Paramètres: { en: "Settings", ar: "الإعدادات", es: "Configuración" },
+  "Gérez votre profil, vos préférences d'affichage, vos notifications et votre sécurité.": {
+    en: "Manage your profile, display preferences, notifications and security.",
+    ar: "أدر ملفك الشخصي وتفضيلات العرض والإشعارات والأمان.",
+    es: "Gestiona tu perfil, tus preferencias de visualización, tus notificaciones y tu seguridad.",
+  },
+  Profil: { en: "Profile", ar: "الملف الشخصي", es: "Perfil" },
+  Apparence: { en: "Appearance", ar: "المظهر", es: "Apariencia" },
+  Notifications: { en: "Notifications", ar: "الإشعارات", es: "Notificaciones" },
+  Sécurité: { en: "Security", ar: "الأمان", es: "Seguridad" },
+  "Vos informations de compte.": {
+    en: "Your account information.",
+    ar: "معلومات حسابك.",
+    es: "La información de tu cuenta.",
+  },
+  "Logo de l'entreprise": {
+    en: "Company logo",
+    ar: "شعار الشركة",
+    es: "Logo de la empresa",
+  },
+  "Identité vérifiée": { en: "Identity verified", ar: "تم التحقق من الهوية", es: "Identidad verificada" },
+  "Entreprise non renseignée": {
+    en: "Company not provided",
+    ar: "لم يتم تحديد الشركة",
+    es: "Empresa no indicada",
+  },
+  "Modifier mon profil": { en: "Edit my profile", ar: "تعديل ملفي الشخصي", es: "Editar mi perfil" },
+  Thème: { en: "Theme", ar: "السمة", es: "Tema" },
+  "Choisissez le thème d'affichage.": {
+    en: "Choose the display theme.",
+    ar: "اختر سمة العرض.",
+    es: "Elige el tema de visualización.",
+  },
+  "Préférences d'affichage": {
+    en: "Display preferences",
+    ar: "تفضيلات العرض",
+    es: "Preferencias de visualización",
+  },
+  "Langue, police et taille du texte.": {
+    en: "Language, font and text size.",
+    ar: "اللغة والخط وحجم النص.",
+    es: "Idioma, fuente y tamaño del texto.",
+  },
+  Langue: { en: "Language", ar: "اللغة", es: "Idioma" },
+  "Langue de l'interface": {
+    en: "Interface language",
+    ar: "لغة الواجهة",
+    es: "Idioma de la interfaz",
+  },
+  Police: { en: "Font", ar: "الخط", es: "Fuente" },
+  "Police d'affichage": { en: "Display font", ar: "خط العرض", es: "Fuente de visualización" },
+  "Taille du texte": { en: "Text size", ar: "حجم النص", es: "Tamaño del texto" },
+  "Ajustez la lisibilité de l'interface": {
+    en: "Adjust the readability of the interface",
+    ar: "اضبط وضوح قراءة الواجهة",
+    es: "Ajusta la legibilidad de la interfaz",
+  },
+  "Choisissez comment vous souhaitez être informé.": {
+    en: "Choose how you want to be notified.",
+    ar: "اختر كيفية تلقي الإشعارات.",
+    es: "Elige cómo deseas recibir notificaciones.",
+  },
+  "Notifications par e-mail": {
+    en: "Email notifications",
+    ar: "إشعارات البريد الإلكتروني",
+    es: "Notificaciones por correo electrónico",
+  },
+  "Nouvelles propositions, litiges, factures": {
+    en: "New proposals, disputes, invoices",
+    ar: "عروض جديدة، نزاعات، فواتير",
+    es: "Nuevas propuestas, disputas, facturas",
+  },
+  "Notifications push": { en: "Push notifications", ar: "الإشعارات الفورية", es: "Notificaciones push" },
+  "Alertes en temps réel dans le navigateur": {
+    en: "Real-time alerts in the browser",
+    ar: "تنبيهات فورية في المتصفح",
+    es: "Alertas en tiempo real en el navegador",
+  },
+  "Mot de passe": { en: "Password", ar: "كلمة المرور", es: "Contraseña" },
+  "Modifiez régulièrement votre mot de passe.": {
+    en: "Change your password regularly.",
+    ar: "قم بتغيير كلمة مرورك بانتظام.",
+    es: "Cambia tu contraseña regularmente.",
+  },
+  "Mot de passe actuel": { en: "Current password", ar: "كلمة المرور الحالية", es: "Contraseña actual" },
+  "Nouveau mot de passe": { en: "New password", ar: "كلمة المرور الجديدة", es: "Nueva contraseña" },
+  "Confirmer le mot de passe": {
+    en: "Confirm password",
+    ar: "تأكيد كلمة المرور",
+    es: "Confirmar contraseña",
+  },
+  "Robustesse :": { en: "Strength:", ar: "القوة:", es: "Seguridad:" },
+  Fort: { en: "Strong", ar: "قوية", es: "Fuerte" },
+  Moyen: { en: "Medium", ar: "متوسطة", es: "Media" },
+  Faible: { en: "Weak", ar: "ضعيفة", es: "Débil" },
+  "Mise à jour...": { en: "Updating...", ar: "جارٍ التحديث...", es: "Actualizando..." },
+  "Mettre à jour le mot de passe": {
+    en: "Update password",
+    ar: "تحديث كلمة المرور",
+    es: "Actualizar contraseña",
+  },
+  "Double authentification": {
+    en: "Two-factor authentication",
+    ar: "المصادقة الثنائية",
+    es: "Autenticación de dos factores",
+  },
+  "Sécurisez votre compte avec un code de vérification envoyé par e-mail à chaque connexion.": {
+    en: "Secure your account with a verification code sent by email on every sign-in.",
+    ar: "أمّن حسابك برمز تحقق يُرسل عبر البريد الإلكتروني في كل تسجيل دخول.",
+    es: "Protege tu cuenta con un código de verificación enviado por correo electrónico en cada inicio de sesión.",
+  },
+  "Authentification à deux facteurs (2FA)": {
+    en: "Two-factor authentication (2FA)",
+    ar: "المصادقة الثنائية (2FA)",
+    es: "Autenticación de dos factores (2FA)",
+  },
+  "2FA activée": { en: "2FA enabled", ar: "تم تفعيل المصادقة الثنائية", es: "2FA activada" },
+  "2FA désactivée": { en: "2FA disabled", ar: "المصادقة الثنائية معطّلة", es: "2FA desactivada" },
+  "Mot de passe mis à jour": {
+    en: "Password updated",
+    ar: "تم تحديث كلمة المرور",
+    es: "Contraseña actualizada",
+  },
+  "Impossible de mettre à jour le mot de passe.": {
+    en: "Unable to update the password.",
+    ar: "تعذّر تحديث كلمة المرور.",
+    es: "No se pudo actualizar la contraseña.",
+  },
+  "Préférences mises à jour": {
+    en: "Preferences updated",
+    ar: "تم تحديث التفضيلات",
+    es: "Preferencias actualizadas",
+  },
+  "Impossible d'enregistrer les préférences.": {
+    en: "Unable to save the preferences.",
+    ar: "تعذّر حفظ التفضيلات.",
+    es: "No se pudieron guardar las preferencias.",
+  },
+} satisfies PageTextDict;
 
 const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: "default", label: "Par défaut" },
@@ -113,6 +260,7 @@ function passwordStrength(value: string): {
 }
 
 function ClientSettingsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const currentTheme = useThemeStore((state) => state.theme);
   const currentFont = useThemeStore((state) => state.font);
@@ -156,12 +304,14 @@ function ClientSettingsPage() {
     mutationFn: (values: PasswordForm) =>
       changePassword({ oldPassword: values.currentPassword, newPassword: values.newPassword }),
     onSuccess: () => {
-      toast.success("Mot de passe mis à jour");
+      toast.success(tt("Mot de passe mis à jour"));
       form.reset();
     },
     onError: (error) => {
       toast.error(
-        error instanceof ApiError ? error.message : "Impossible de mettre à jour le mot de passe.",
+        error instanceof ApiError
+          ? error.message
+          : tt("Impossible de mettre à jour le mot de passe."),
       );
     },
   });
@@ -174,11 +324,11 @@ function ClientSettingsPage() {
     mutationFn: (payload: Partial<Settings>) => updateSettings(payload),
     onSuccess: (updated) => {
       queryClient.setQueryData(["client", "settings"], updated);
-      toast.success("Préférences mises à jour");
+      toast.success(tt("Préférences mises à jour"));
     },
     onError: (error) => {
       toast.error(
-        error instanceof ApiError ? error.message : "Impossible d'enregistrer les préférences.",
+        error instanceof ApiError ? error.message : tt("Impossible d'enregistrer les préférences."),
       );
     },
   });
@@ -225,9 +375,9 @@ function ClientSettingsPage() {
 
       <div className="mx-auto max-w-[1080px] space-y-6">
         <div>
-          <h1 className="font-display text-[26px] font-bold tracking-tight">Paramètres</h1>
+          <h1 className="font-display text-[26px] font-bold tracking-tight">{tt("Paramètres")}</h1>
           <p className="mt-1 text-[14px] text-muted-foreground">
-            Gérez votre profil, vos préférences d'affichage, vos notifications et votre sécurité.
+            {tt("Gérez votre profil, vos préférences d'affichage, vos notifications et votre sécurité.")}
           </p>
         </div>
 
@@ -235,25 +385,25 @@ function ClientSettingsPage() {
           <TabsList className="h-auto flex-wrap gap-1 rounded-lg border border-border bg-transparent p-1">
             <TabsTrigger value="profil" className="gap-1.5">
               <User className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Profil
+              {tt("Profil")}
             </TabsTrigger>
             <TabsTrigger value="apparence" className="gap-1.5">
               <Palette className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Apparence
+              {tt("Apparence")}
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1.5">
               <Bell className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Notifications
+              {tt("Notifications")}
             </TabsTrigger>
             <TabsTrigger value="securite" className="gap-1.5">
               <Lock className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Sécurité
+              {tt("Sécurité")}
             </TabsTrigger>
           </TabsList>
 
           {}
           <TabsContent value="profil" className="mt-6">
-            <SectionCard title="Profil" description="Vos informations de compte.">
+            <SectionCard title={tt("Profil")} description={tt("Vos informations de compte.")}>
               {profileQuery.isPending ? (
                 <FormSkeleton fields={2} />
               ) : profileQuery.data ? (
@@ -274,7 +424,7 @@ function ClientSettingsPage() {
                       {profileQuery.data.logo ? (
                         <img
                           src={profileQuery.data.logo}
-                          alt="Logo de l'entreprise"
+                          alt={tt("Logo de l'entreprise")}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -289,12 +439,12 @@ function ClientSettingsPage() {
                         {profileQuery.data.identityVerified ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
                             <ShieldCheck className="h-3 w-3" strokeWidth={2} />
-                            Identité vérifiée
+                            {tt("Identité vérifiée")}
                           </span>
                         ) : null}
                       </p>
                       <p className="text-[13px] text-muted-foreground">
-                        {profileQuery.data.companyName || "Entreprise non renseignée"}
+                        {profileQuery.data.companyName || tt("Entreprise non renseignée")}
                       </p>
                     </div>
                   </div>
@@ -302,7 +452,7 @@ function ClientSettingsPage() {
                     to="/client/mon-profil"
                     className="rounded-md border border-border px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-accent"
                   >
-                    Modifier mon profil
+                    {tt("Modifier mon profil")}
                   </Link>
                 </div>
               ) : null}
@@ -310,7 +460,7 @@ function ClientSettingsPage() {
           </TabsContent>
 
           <TabsContent value="apparence" className="mt-6 space-y-6">
-            <SectionCard title="Thème" description="Choisissez le thème d'affichage.">
+            <SectionCard title={tt("Thème")} description={tt("Choisissez le thème d'affichage.")}>
               {isLoading ? (
                 <FormSkeleton fields={3} />
               ) : (
@@ -336,7 +486,7 @@ function ClientSettingsPage() {
                           </span>
                         ) : null}
                         <Icon className="h-5 w-5" strokeWidth={1.8} />
-                        {option.label}
+                        {tt(option.label)}
                       </button>
                     );
                   })}
@@ -345,14 +495,14 @@ function ClientSettingsPage() {
             </SectionCard>
 
             <SectionCard
-              title="Préférences d'affichage"
-              description="Langue, police et taille du texte."
+              title={tt("Préférences d'affichage")}
+              description={tt("Langue, police et taille du texte.")}
             >
               {isLoading ? (
                 <FormSkeleton fields={3} />
               ) : (
                 <div>
-                  <PreferenceRow label="Langue" description="Langue de l'interface">
+                  <PreferenceRow label={tt("Langue")} description={tt("Langue de l'interface")}>
                     <select
                       value={currentLocale}
                       onChange={(event) =>
@@ -367,7 +517,7 @@ function ClientSettingsPage() {
                       ))}
                     </select>
                   </PreferenceRow>
-                  <PreferenceRow label="Police" description="Police d'affichage">
+                  <PreferenceRow label={tt("Police")} description={tt("Police d'affichage")}>
                     <select
                       value={currentFont}
                       onChange={(event) => updateSetting("font", event.target.value)}
@@ -375,14 +525,14 @@ function ClientSettingsPage() {
                     >
                       {FONT_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
-                          {option.label}
+                          {tt(option.label)}
                         </option>
                       ))}
                     </select>
                   </PreferenceRow>
                   <PreferenceRow
-                    label="Taille du texte"
-                    description="Ajustez la lisibilité de l'interface"
+                    label={tt("Taille du texte")}
+                    description={tt("Ajustez la lisibilité de l'interface")}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-[12px] text-muted-foreground">A</span>

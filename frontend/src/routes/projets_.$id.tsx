@@ -27,6 +27,7 @@ import { expressInterest } from "@/services/opportunities.service";
 import { ApiError } from "@/services/http";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useAuthStore } from "@/store/auth.store";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/projets_/$id")({
   head: ({ params }) => ({
@@ -41,7 +42,181 @@ export const Route = createFileRoute("/projets_/$id")({
   component: ProjectDetailPage,
 });
 
+const PAGE_TEXT = {
+  "Candidature envoyée": {
+    en: "Application sent",
+    ar: "تم إرسال الطلب",
+    es: "Candidatura enviada",
+  },
+  "Ce projet apparaît désormais dans vos offres — envoyez votre devis.": {
+    en: "This project now appears in your opportunities — send your quote.",
+    ar: "يظهر هذا المشروع الآن في فرصك — أرسل عرض سعرك.",
+    es: "Este proyecto ahora aparece en tus oportunidades — envía tu presupuesto.",
+  },
+  "Impossible de postuler à ce projet.": {
+    en: "Unable to apply to this project.",
+    ar: "تعذر التقدم لهذا المشروع.",
+    es: "No se pudo postular a este proyecto.",
+  },
+  "Connectez-vous avec un compte agence pour postuler à ce projet.": {
+    en: "Sign in with an agency account to apply to this project.",
+    ar: "سجّل الدخول بحساب وكالة للتقدم لهذا المشروع.",
+    es: "Inicia sesión con una cuenta de agencia para postular a este proyecto.",
+  },
+  "Connectez-vous avec un compte agence pour télécharger le cahier des charges.": {
+    en: "Sign in with an agency account to download the project brief.",
+    ar: "سجّل الدخول بحساب وكالة لتحميل كراسة الشروط.",
+    es: "Inicia sesión con una cuenta de agencia para descargar el pliego de condiciones.",
+  },
+  "Impossible de télécharger le CDC.": {
+    en: "Unable to download the project brief.",
+    ar: "تعذر تحميل كراسة الشروط.",
+    es: "No se pudo descargar el pliego de condiciones.",
+  },
+  "Impossible de charger le projet.": {
+    en: "Unable to load the project.",
+    ar: "تعذر تحميل المشروع.",
+    es: "No se pudo cargar el proyecto.",
+  },
+  "Connectez-vous avec un compte agence pour enregistrer ce projet.": {
+    en: "Sign in with an agency account to save this project.",
+    ar: "سجّل الدخول بحساب وكالة لحفظ هذا المشروع.",
+    es: "Inicia sesión con una cuenta de agencia para guardar este proyecto.",
+  },
+  "Projet enregistré": {
+    en: "Project saved",
+    ar: "تم حفظ المشروع",
+    es: "Proyecto guardado",
+  },
+  "Projet retiré des favoris": {
+    en: "Project removed from favorites",
+    ar: "تمت إزالة المشروع من المفضلة",
+    es: "Proyecto eliminado de favoritos",
+  },
+  "Impossible d'enregistrer ce projet.": {
+    en: "Unable to save this project.",
+    ar: "تعذر حفظ هذا المشروع.",
+    es: "No se pudo guardar este proyecto.",
+  },
+  "Retour aux projets": {
+    en: "Back to projects",
+    ar: "العودة إلى المشاريع",
+    es: "Volver a los proyectos",
+  },
+  "Projet introuvable": {
+    en: "Project not found",
+    ar: "المشروع غير موجود",
+    es: "Proyecto no encontrado",
+  },
+  "Budget à définir": {
+    en: "Budget to be defined",
+    ar: "الميزانية سيتم تحديدها",
+    es: "Presupuesto por definir",
+  },
+  "Retirer des favoris": {
+    en: "Remove from favorites",
+    ar: "إزالة من المفضلة",
+    es: "Quitar de favoritos",
+  },
+  Enregistrer: {
+    en: "Save",
+    ar: "حفظ",
+    es: "Guardar",
+  },
+  Publié: {
+    en: "Published",
+    ar: "منشور",
+    es: "Publicado",
+  },
+  le: {
+    en: "on",
+    ar: "في",
+    es: "el",
+  },
+  "Budget estimé": {
+    en: "Estimated budget",
+    ar: "الميزانية التقديرية",
+    es: "Presupuesto estimado",
+  },
+  "Livraison en {days} jours": {
+    en: "Delivery in {days} days",
+    ar: "التسليم خلال {days} يومًا",
+    es: "Entrega en {days} días",
+  },
+  "Description du projet": {
+    en: "Project description",
+    ar: "وصف المشروع",
+    es: "Descripción del proyecto",
+  },
+  "Aucune description disponible.": {
+    en: "No description available.",
+    ar: "لا يوجد وصف متاح.",
+    es: "No hay descripción disponible.",
+  },
+  "Détails du projet": {
+    en: "Project details",
+    ar: "تفاصيل المشروع",
+    es: "Detalles del proyecto",
+  },
+  "Type de projet": {
+    en: "Project type",
+    ar: "نوع المشروع",
+    es: "Tipo de proyecto",
+  },
+  Canal: {
+    en: "Channel",
+    ar: "القناة",
+    es: "Canal",
+  },
+  "Date de fin prévue": {
+    en: "Expected end date",
+    ar: "تاريخ الانتهاء المتوقع",
+    es: "Fecha de finalización prevista",
+  },
+  Entreprise: {
+    en: "Company",
+    ar: "الشركة",
+    es: "Empresa",
+  },
+  "Score de confiance : {score}/5": {
+    en: "Trust score: {score}/5",
+    ar: "درجة الثقة: {score}/5",
+    es: "Puntuación de confianza: {score}/5",
+  },
+  Actions: {
+    en: "Actions",
+    ar: "الإجراءات",
+    es: "Acciones",
+  },
+  "Envoi en cours...": {
+    en: "Sending...",
+    ar: "جارٍ الإرسال...",
+    es: "Enviando...",
+  },
+  "Postuler au projet": {
+    en: "Apply to project",
+    ar: "التقدم للمشروع",
+    es: "Postular al proyecto",
+  },
+  "Ajouter aux favoris": {
+    en: "Add to favorites",
+    ar: "إضافة إلى المفضلة",
+    es: "Añadir a favoritos",
+  },
+  "Téléchargement...": {
+    en: "Downloading...",
+    ar: "جارٍ التحميل...",
+    es: "Descargando...",
+  },
+  "Télécharger le CDC": {
+    en: "Download the project brief",
+    ar: "تحميل كراسة الشروط",
+    es: "Descargar el pliego de condiciones",
+  },
+} satisfies PageTextDict;
+
 function ProjectDetailPage() {
+  const { tt, locale } = usePageText(PAGE_TEXT);
   const { id } = useParams({ from: "/projets_/$id" });
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
@@ -57,18 +232,18 @@ function ProjectDetailPage() {
     mutationFn: expressInterest,
     onSuccess: () => {
       setHasApplied(true);
-      toast("Candidature envoyée", {
-        description: "Ce projet apparaît désormais dans vos offres — envoyez votre devis.",
+      toast(tt("Candidature envoyée"), {
+        description: tt("Ce projet apparaît désormais dans vos offres — envoyez votre devis."),
       });
     },
     onError: (error: unknown) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de postuler à ce projet.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de postuler à ce projet."));
     },
   });
 
   function handleApply() {
     if (!token || role !== "agency") {
-      toast("Connectez-vous avec un compte agence pour postuler à ce projet.");
+      toast(tt("Connectez-vous avec un compte agence pour postuler à ce projet."));
       navigate({ to: "/connexion" });
       return;
     }
@@ -77,7 +252,7 @@ function ProjectDetailPage() {
 
   async function handleDownloadCdc() {
     if (!token || role !== "agency") {
-      toast("Connectez-vous avec un compte agence pour télécharger le cahier des charges.");
+      toast(tt("Connectez-vous avec un compte agence pour télécharger le cahier des charges."));
       navigate({ to: "/connexion" });
       return;
     }
@@ -93,7 +268,7 @@ function ProjectDetailPage() {
       link.remove();
       URL.revokeObjectURL(objectUrl);
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible de télécharger le CDC.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de télécharger le CDC."));
     } finally {
       setIsDownloadingCdc(false);
     }
@@ -107,15 +282,16 @@ function ProjectDetailPage() {
         setIsFavorite(favorites.some((fav) => fav.id === id));
       })
       .catch((error) => {
-        toast.error(error instanceof ApiError ? error.message : "Impossible de charger le projet.");
+        toast.error(error instanceof ApiError ? error.message : tt("Impossible de charger le projet."));
         setProject(null);
       })
       .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleToggleFavorite = () => {
     if (!token || role !== "agency") {
-      toast("Connectez-vous avec un compte agence pour enregistrer ce projet.");
+      toast(tt("Connectez-vous avec un compte agence pour enregistrer ce projet."));
       navigate({ to: "/connexion" });
       return;
     }
@@ -123,10 +299,10 @@ function ProjectDetailPage() {
     toggleProjectFavorite(id)
       .then(({ favorited }) => {
         setIsFavorite(favorited);
-        toast(favorited ? "Projet enregistré" : "Projet retiré des favoris");
+        toast(favorited ? tt("Projet enregistré") : tt("Projet retiré des favoris"));
       })
       .catch((error: unknown) => {
-        toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer ce projet.");
+        toast(error instanceof ApiError ? error.message : tt("Impossible d'enregistrer ce projet."));
       })
       .finally(() => setIsPendingFavorite(false));
   };
@@ -166,11 +342,11 @@ function ProjectDetailPage() {
               className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
-              Retour aux projets
+              {tt("Retour aux projets")}
             </Link>
           </div>
           <div className="mt-12">
-            <EmptyState message="Projet introuvable" />
+            <EmptyState message={tt("Projet introuvable")} />
           </div>
         </main>
       </div>
@@ -178,10 +354,12 @@ function ProjectDetailPage() {
   }
 
   const publishedDate = new Date(project.publishedAt);
+  const localeTag =
+    locale === "en" ? "en-US" : locale === "ar" ? "ar" : locale === "es" ? "es-ES" : "fr-FR";
   const budgetDisplay =
     project.budgetMin || project.budgetMax
       ? `${project.budgetMin} € - ${project.budgetMax} €`
-      : "Budget à définir";
+      : tt("Budget à définir");
 
   return (
     <div className="min-h-screen bg-background">
@@ -194,7 +372,7 @@ function ProjectDetailPage() {
             className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground group"
           >
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-            Retour aux projets
+            {tt("Retour aux projets")}
           </Link>
           <button
             onClick={handleToggleFavorite}
@@ -206,7 +384,7 @@ function ProjectDetailPage() {
               strokeWidth={1.8}
               fill={isFavorite ? "currentColor" : "none"}
             />
-            {isFavorite ? "Retirer des favoris" : "Enregistrer"}
+            {isFavorite ? tt("Retirer des favoris") : tt("Enregistrer")}
           </button>
         </div>
 
@@ -216,11 +394,11 @@ function ProjectDetailPage() {
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Publié
+                  {tt("Publié")}
                 </span>
                 <span className="text-[12px] text-muted-foreground">
-                  le{" "}
-                  {publishedDate.toLocaleDateString("fr-FR", {
+                  {tt("le")}{" "}
+                  {publishedDate.toLocaleDateString(localeTag, {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -250,12 +428,15 @@ function ProjectDetailPage() {
               </div>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-[11px] text-muted-foreground">Budget estimé</p>
+              <p className="text-[11px] text-muted-foreground">{tt("Budget estimé")}</p>
               <p className="text-[20px] font-bold">{budgetDisplay}</p>
               {project.deliveryDelayDays && (
                 <p className="text-[12px] text-muted-foreground">
                   <Clock className="inline h-3.5 w-3.5 mr-1" />
-                  Livraison en {project.deliveryDelayDays} jours
+                  {tt("Livraison en {days} jours").replace(
+                    "{days}",
+                    String(project.deliveryDelayDays),
+                  )}
                 </p>
               )}
             </div>
@@ -266,23 +447,23 @@ function ProjectDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             <div className="rounded-2xl border border-border p-6">
               <h2 className="text-[16px] font-bold flex items-center gap-2">
-                Description du projet
+                {tt("Description du projet")}
               </h2>
               <p className="mt-3 text-[14px] leading-relaxed text-muted-foreground whitespace-pre-wrap">
-                {project.description || "Aucune description disponible."}
+                {project.description || tt("Aucune description disponible.")}
               </p>
             </div>
 
             <div className="rounded-2xl border border-border p-6">
               <h2 className="text-[16px] font-bold flex items-center gap-2">
                 <Briefcase className="h-4 w-4 text-primary" />
-                Détails du projet
+                {tt("Détails du projet")}
               </h2>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {project.needType && (
                   <div className="rounded-xl bg-muted/30 p-3">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                      Type de projet
+                      {tt("Type de projet")}
                     </p>
                     <p className="mt-1 text-[14px] font-semibold">{project.needType}</p>
                   </div>
@@ -290,7 +471,7 @@ function ProjectDetailPage() {
                 {project.channel && (
                   <div className="rounded-xl bg-muted/30 p-3">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                      Canal
+                      {tt("Canal")}
                     </p>
                     <p className="mt-1 text-[14px] font-semibold">{project.channel}</p>
                   </div>
@@ -298,10 +479,10 @@ function ProjectDetailPage() {
                 {project.expectedEndDate && (
                   <div className="rounded-xl bg-muted/30 p-3">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                      Date de fin prévue
+                      {tt("Date de fin prévue")}
                     </p>
                     <p className="mt-1 text-[14px] font-semibold">
-                      {new Date(project.expectedEndDate).toLocaleDateString("fr-FR", {
+                      {new Date(project.expectedEndDate).toLocaleDateString(localeTag, {
                         day: "numeric",
                         month: "long",
                         year: "numeric",
@@ -317,7 +498,7 @@ function ProjectDetailPage() {
             <div className="rounded-2xl border border-border p-6">
               <h2 className="text-[16px] font-bold flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-primary" />
-                Entreprise
+                {tt("Entreprise")}
               </h2>
               <div className="mt-4">
                 <div className="flex items-start gap-3">
@@ -346,7 +527,10 @@ function ProjectDetailPage() {
                   <div className="mt-3 flex items-center gap-2 rounded-xl bg-primary/5 px-3 py-2">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-[13px] font-semibold">
-                      Score de confiance : {project.clientTrustScore}/5
+                      {tt("Score de confiance : {score}/5").replace(
+                        "{score}",
+                        String(project.clientTrustScore),
+                      )}
                     </span>
                   </div>
                 )}
@@ -356,7 +540,7 @@ function ProjectDetailPage() {
             <div className="rounded-2xl border border-border p-6">
               <h2 className="text-[16px] font-bold flex items-center gap-2">
                 <Send className="h-4 w-4 text-primary" />
-                Actions
+                {tt("Actions")}
               </h2>
               <div className="mt-4 space-y-3">
                 <button
@@ -368,12 +552,12 @@ function ProjectDetailPage() {
                   {hasApplied ? (
                     <>
                       <CircleCheck className="h-4 w-4" strokeWidth={1.8} />
-                      Candidature envoyée
+                      {tt("Candidature envoyée")}
                     </>
                   ) : applyMutation.isPending ? (
-                    "Envoi en cours..."
+                    tt("Envoi en cours...")
                   ) : (
-                    "Postuler au projet"
+                    tt("Postuler au projet")
                   )}
                 </button>
                 <button
@@ -387,7 +571,7 @@ function ProjectDetailPage() {
                     strokeWidth={1.8}
                     fill={isFavorite ? "currentColor" : "none"}
                   />
-                  {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                  {isFavorite ? tt("Retirer des favoris") : tt("Ajouter aux favoris")}
                 </button>
                 <button
                   type="button"
@@ -396,7 +580,7 @@ function ProjectDetailPage() {
                   className="w-full rounded-xl border border-border px-4 py-3 text-[14px] font-semibold transition-all hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Download className="inline h-4 w-4 mr-2" strokeWidth={1.8} />
-                  {isDownloadingCdc ? "Téléchargement..." : "Télécharger le CDC"}
+                  {isDownloadingCdc ? tt("Téléchargement...") : tt("Télécharger le CDC")}
                 </button>
               </div>
             </div>

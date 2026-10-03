@@ -305,7 +305,7 @@ export function LocationPicker({
         <button
           type="button"
           onClick={openMap}
-          title="Choisir sur la carte"
+          title={tt("Choisir sur la carte")}
           className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground/70 transition-colors hover:bg-accent"
         >
           <MapPin className="h-4 w-4" strokeWidth={1.8} />
@@ -317,9 +317,11 @@ export function LocationPicker({
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent className="max-w-[640px]">
           <DialogHeader>
-            <DialogTitle className="text-[16px] font-bold">Choisir sur la carte</DialogTitle>
+            <DialogTitle className="text-[16px] font-bold">
+              {tt("Choisir sur la carte")}
+            </DialogTitle>
             <DialogDescription className="text-[13.5px]">
-              Cliquez sur la carte pour placer un repère à l'emplacement de votre agence.
+              {tt("Cliquez sur la carte pour placer un repère à l'emplacement de votre agence.")}
             </DialogDescription>
           </DialogHeader>
 
@@ -334,7 +336,7 @@ export function LocationPicker({
             ) : (
               <Crosshair className="h-3.5 w-3.5" strokeWidth={1.8} />
             )}
-            Utiliser ma position actuelle
+            {tt("Utiliser ma position actuelle")}
           </button>
 
           <div className="overflow-hidden rounded-md border border-border">
@@ -360,13 +362,13 @@ export function LocationPicker({
             {isReverseGeocoding ? (
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Recherche de l'adresse...
+                {tt("Recherche de l'adresse...")}
               </span>
             ) : mapAddress ? (
               <span>{mapAddress}</span>
             ) : (
               <span className="text-muted-foreground">
-                Cliquez sur la carte pour sélectionner un point.
+                {tt("Cliquez sur la carte pour sélectionner un point.")}
               </span>
             )}
           </div>
@@ -377,7 +379,7 @@ export function LocationPicker({
               onClick={() => setIsMapOpen(false)}
               className="rounded-md border border-border px-4 py-2 text-[13.5px] font-semibold transition-colors hover:bg-accent"
             >
-              Annuler
+              {tt("Annuler")}
             </button>
             <button
               type="button"
@@ -385,7 +387,7 @@ export function LocationPicker({
               disabled={!mapAddress || isReverseGeocoding}
               className="rounded-md bg-primary px-4 py-2 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Confirmer cet emplacement
+              {tt("Confirmer cet emplacement")}
             </button>
           </DialogFooter>
         </DialogContent>

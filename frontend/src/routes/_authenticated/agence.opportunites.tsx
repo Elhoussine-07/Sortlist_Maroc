@@ -45,6 +45,7 @@ import { getProject } from "@/services/projects.service";
 import { getCategories } from "@/services/agencies.service";
 import { signalReady } from "@/services/disputes.service";
 import { ApiError, fetchBlob, GATEWAY_URL } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/agence/opportunites")({
   head: () => ({
@@ -187,7 +188,149 @@ function truncateTitle(title: string, maxLength: number = 25): string {
   return title.substring(0, maxLength) + "...";
 }
 
+const PAGE_TEXT = {
+  "Offres": { en: "Offers", ar: "العروض", es: "Ofertas" },
+  "Disponibles": { en: "Available", ar: "متاحة", es: "Disponibles" },
+  "Postulé": { en: "Applied", ar: "تم التقديم", es: "Postulado" },
+  "Gagnées": { en: "Won", ar: "تم الفوز بها", es: "Ganadas" },
+  "En pause": { en: "On hold", ar: "متوقفة مؤقتًا", es: "En pausa" },
+  "Terminées": { en: "Completed", ar: "منتهية", es: "Finalizadas" },
+  "Archivées": { en: "Archived", ar: "مؤرشفة", es: "Archivadas" },
+  "Moins de 1 000 €": { en: "Under €1,000", ar: "أقل من 1,000 €", es: "Menos de 1.000 €" },
+  "1 000 € - 5 000 €": { en: "€1,000 - €5,000", ar: "1,000 - 5,000 €", es: "1.000 € - 5.000 €" },
+  "5 000 € - 20 000 €": { en: "€5,000 - €20,000", ar: "5,000 - 20,000 €", es: "5.000 € - 20.000 €" },
+  "20 000 € - 100 000 €": {
+    en: "€20,000 - €100,000",
+    ar: "20,000 - 100,000 €",
+    es: "20.000 € - 100.000 €",
+  },
+  "Plus de 100 000 €": { en: "Over €100,000", ar: "أكثر من 100,000 €", es: "Más de 100.000 €" },
+  "Reçue": { en: "Received", ar: "مستلمة", es: "Recibida" },
+  "Acceptée": { en: "Accepted", ar: "مقبولة", es: "Aceptada" },
+  "Devis envoyé": { en: "Quote sent", ar: "تم إرسال العرض", es: "Presupuesto enviado" },
+  "Gagnée": { en: "Won", ar: "تم الفوز بها", es: "Ganada" },
+  "Terminée": { en: "Completed", ar: "منتهية", es: "Finalizada" },
+  "Archivée": { en: "Archived", ar: "مؤرشفة", es: "Archivada" },
+  "Refusée": { en: "Declined", ar: "مرفوضة", es: "Rechazada" },
+  "Chargement...": { en: "Loading...", ar: "جارٍ التحميل...", es: "Cargando..." },
+  "Client": { en: "Client", ar: "عميل", es: "Cliente" },
+  "Non catégorisé": { en: "Uncategorized", ar: "غير مصنّف", es: "Sin categorizar" },
+  "Non défini": { en: "Not defined", ar: "غير محدد", es: "No definido" },
+  "Non spécifiée": { en: "Not specified", ar: "غير محددة", es: "No especificada" },
+  "Projet": { en: "Project", ar: "مشروع", es: "Proyecto" },
+  "Opportunité": { en: "Opportunity", ar: "فرصة", es: "Oportunidad" },
+  "Catégorie": { en: "Category", ar: "الفئة", es: "Categoría" },
+  "Budget": { en: "Budget", ar: "الميزانية", es: "Presupuesto" },
+  "Localisation": { en: "Location", ar: "الموقع", es: "Ubicación" },
+  "Statut": { en: "Status", ar: "الحالة", es: "Estado" },
+  "Action": { en: "Action", ar: "الإجراء", es: "Acción" },
+  "Postuler": { en: "Apply", ar: "تقديم طلب", es: "Postular" },
+  "Accepter": { en: "Accept", ar: "قبول", es: "Aceptar" },
+  "Refuser": { en: "Decline", ar: "رفض", es: "Rechazar" },
+  "Envoyer un devis": { en: "Send a quote", ar: "إرسال عرض سعر", es: "Enviar presupuesto" },
+  "Prêt à reprendre": { en: "Ready to resume", ar: "جاهز لاستئناف العمل", es: "Listo para reanudar" },
+  "Opportunités": { en: "Opportunities", ar: "الفرص", es: "Oportunidades" },
+  "Répondez aux projets qui correspondent à vos compétences.": {
+    en: "Respond to projects that match your skills.",
+    ar: "استجب للمشاريع التي تتوافق مع مهاراتك.",
+    es: "Responde a los proyectos que coinciden con tus habilidades.",
+  },
+  "opportunités": { en: "opportunities", ar: "فرصة", es: "oportunidades" },
+  "opportunité": { en: "opportunity", ar: "فرصة", es: "oportunidad" },
+  "Rechercher une opportunité...": {
+    en: "Search for an opportunity...",
+    ar: "ابحث عن فرصة...",
+    es: "Buscar una oportunidad...",
+  },
+  "Toutes les catégories": { en: "All categories", ar: "جميع الفئات", es: "Todas las categorías" },
+  "Tous les budgets": { en: "All budgets", ar: "جميع الميزانيات", es: "Todos los presupuestos" },
+  "Toutes les villes": { en: "All cities", ar: "جميع المدن", es: "Todas las ciudades" },
+  "Trier par :": { en: "Sort by:", ar: "الترتيب حسب:", es: "Ordenar por:" },
+  "Plus récentes": { en: "Most recent", ar: "الأحدث", es: "Más recientes" },
+  "Plus anciennes": { en: "Oldest", ar: "الأقدم", es: "Más antiguas" },
+  "Envoi...": { en: "Sending...", ar: "جارٍ الإرسال...", es: "Enviando..." },
+  "Proposez un montant pour": {
+    en: "Propose an amount for",
+    ar: "اقترح مبلغًا مقابل",
+    es: "Propón un importe para",
+  },
+  "Renseignez un montant valide.": {
+    en: "Enter a valid amount.",
+    ar: "أدخل مبلغًا صالحًا.",
+    es: "Introduce un importe válido.",
+  },
+  "Montant proposé": { en: "Proposed amount", ar: "المبلغ المقترح", es: "Importe propuesto" },
+  "Projet :": { en: "Project:", ar: "المشروع:", es: "Proyecto:" },
+  "Client :": { en: "Client:", ar: "العميل:", es: "Cliente:" },
+  "Détails du projet": { en: "Project details", ar: "تفاصيل المشروع", es: "Detalles del proyecto" },
+  "Fermer": { en: "Close", ar: "إغلاق", es: "Cerrar" },
+  "Sous-catégorie": { en: "Subcategory", ar: "الفئة الفرعية", es: "Subcategoría" },
+  "Délai souhaité": { en: "Desired timeline", ar: "المهلة المطلوبة", es: "Plazo deseado" },
+  "jours": { en: "days", ar: "أيام", es: "días" },
+  "Description": { en: "Description", ar: "الوصف", es: "Descripción" },
+  "Opportunité acceptée": { en: "Opportunity accepted", ar: "تم قبول الفرصة", es: "Oportunidad aceptada" },
+  "Envoyez votre devis pour passer à l'étape suivante.": {
+    en: "Send your quote to move to the next step.",
+    ar: "أرسل عرض سعرك للانتقال إلى الخطوة التالية.",
+    es: "Envía tu presupuesto para pasar a la siguiente etapa.",
+  },
+  "Impossible d'accepter l'opportunité.": {
+    en: "Unable to accept the opportunity.",
+    ar: "تعذّر قبول الفرصة.",
+    es: "No se pudo aceptar la oportunidad.",
+  },
+  "Intérêt manifesté": { en: "Interest expressed", ar: "تم إبداء الاهتمام", es: "Interés manifestado" },
+  "Ce projet apparaît désormais dans vos offres ? envoyez votre devis.": {
+    en: "This project now appears in your offers — send your quote.",
+    ar: "يظهر هذا المشروع الآن في عروضك — أرسل عرض سعرك.",
+    es: "Este proyecto ya aparece en tus ofertas: envía tu presupuesto.",
+  },
+  "Impossible de manifester votre intérêt.": {
+    en: "Unable to express your interest.",
+    ar: "تعذّر إبداء اهتمامك.",
+    es: "No se pudo manifestar tu interés.",
+  },
+  "Opportunité refusée": { en: "Opportunity declined", ar: "تم رفض الفرصة", es: "Oportunidad rechazada" },
+  "Impossible de refuser l'opportunité.": {
+    en: "Unable to decline the opportunity.",
+    ar: "تعذّر رفض الفرصة.",
+    es: "No se pudo rechazar la oportunidad.",
+  },
+  "Le client a été notifié de votre proposition.": {
+    en: "The client has been notified of your proposal.",
+    ar: "تم إخطار العميل بعرضك.",
+    es: "Se ha notificado al cliente de tu propuesta.",
+  },
+  "Envoi du devis impossible.": {
+    en: "Unable to send the quote.",
+    ar: "تعذّر إرسال العرض.",
+    es: "No se pudo enviar el presupuesto.",
+  },
+  "Signalement envoyé": { en: "Report sent", ar: "تم إرسال الإشعار", es: "Notificación enviada" },
+  "Le client a été notifié.": {
+    en: "The client has been notified.",
+    ar: "تم إخطار العميل.",
+    es: "Se ha notificado al cliente.",
+  },
+  "Endpoint indisponible pour le moment.": {
+    en: "This feature is temporarily unavailable.",
+    ar: "هذه الميزة غير متاحة حاليًا.",
+    es: "Esta función no está disponible por el momento.",
+  },
+  "Impossible de charger les détails du projet.": {
+    en: "Unable to load the project details.",
+    ar: "تعذّر تحميل تفاصيل المشروع.",
+    es: "No se pudieron cargar los detalles del proyecto.",
+  },
+  "Impossible d'ouvrir le CDC.": {
+    en: "Unable to open the brief.",
+    ar: "تعذّر فتح كراسة الشروط.",
+    es: "No se pudo abrir el pliego de condiciones.",
+  },
+} satisfies PageTextDict;
+
 function AgencyOpportunitiesPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -220,7 +363,9 @@ function AgencyOpportunitiesPage() {
       setDetailsProject(project);
     } catch (error) {
       toast(
-        error instanceof ApiError ? error.message : "Impossible de charger les détails du projet.",
+        error instanceof ApiError
+          ? error.message
+          : tt("Impossible de charger les détails du projet."),
       );
     } finally {
       setLoadingDetailsId(null);
@@ -234,7 +379,7 @@ function AgencyOpportunitiesPage() {
       const objectUrl = URL.createObjectURL(blob);
       window.open(objectUrl, "_blank");
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Impossible d'ouvrir le CDC.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'ouvrir le CDC."));
     } finally {
       setOpeningCdcId(null);
     }
@@ -289,68 +434,76 @@ function AgencyOpportunitiesPage() {
   const acceptMutation = useMutation({
     mutationFn: acceptOpportunity,
     onSuccess: () => {
-      toast("Opportunité acceptée", {
-        description: "Envoyez votre devis pour passer à l'étape suivante.",
+      toast(tt("Opportunité acceptée"), {
+        description: tt("Envoyez votre devis pour passer à l'étape suivante."),
       });
       invalidateOpportunities();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'accepter l'opportunité.");
+      toast(
+        error instanceof ApiError ? error.message : tt("Impossible d'accepter l'opportunité."),
+      );
     },
   });
 
   const expressInterestMutation = useMutation({
     mutationFn: expressInterest,
     onSuccess: () => {
-      toast("Intérêt manifesté", {
-        description: "Ce projet apparaît désormais dans vos offres ? envoyez votre devis.",
+      toast(tt("Intérêt manifesté"), {
+        description: tt("Ce projet apparaît désormais dans vos offres ? envoyez votre devis."),
       });
       invalidateOpportunities();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de manifester votre intérêt.");
+      toast(
+        error instanceof ApiError ? error.message : tt("Impossible de manifester votre intérêt."),
+      );
     },
   });
 
   const refuseMutation = useMutation({
     mutationFn: refuseOpportunity,
     onSuccess: () => {
-      toast("Opportunité refusée");
+      toast(tt("Opportunité refusée"));
       invalidateOpportunities();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible de refuser l'opportunité.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible de refuser l'opportunité."));
     },
   });
 
   const sendQuoteMutation = useMutation({
     mutationFn: ({ id, amount }: { id: string; amount: number }) => sendQuote(id, amount),
     onSuccess: () => {
-      toast("Devis envoyé", { description: "Le client a été notifié de votre proposition." });
+      toast(tt("Devis envoyé"), {
+        description: tt("Le client a été notifié de votre proposition."),
+      });
       invalidateOpportunities();
       setQuoteTarget(null);
       setQuoteAmount("");
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Envoi du devis impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Envoi du devis impossible."));
     },
   });
 
   const signalReadyMutation = useMutation({
     mutationFn: signalReady,
     onSuccess: () => {
-      toast("Signalement envoyé", { description: "Le client a été notifié." });
+      toast(tt("Signalement envoyé"), { description: tt("Le client a été notifié.") });
       invalidateOpportunities();
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Endpoint indisponible pour le moment.");
+      toast(
+        error instanceof ApiError ? error.message : tt("Endpoint indisponible pour le moment."),
+      );
     },
   });
 
   const columns: Column<Opportunity>[] = [
     {
       key: "opportunity",
-      header: "Opportunité",
+      header: tt("Opportunité"),
       width: "minmax(0,2.2fr)",
       render: (opportunity) => {
         const statusVisual = getOpportunityStatusVisual(opportunity, activeTab);
@@ -361,7 +514,7 @@ function AgencyOpportunitiesPage() {
           <div className="flex min-w-0 items-start gap-3">
             <span
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm ${statusVisual.className}`}
-              title={opportunity.stepLabel || opportunity.rawStatus || "Projet"}
+              title={opportunity.stepLabel || opportunity.rawStatus || tt("Projet")}
             >
               <StatusIcon className="h-[18px] w-[18px]" strokeWidth={1.8} />
             </span>
@@ -378,7 +531,7 @@ function AgencyOpportunitiesPage() {
                   title={opportunity.projectTitle}
                 >
                   {loadingDetailsId === (opportunity.project ?? opportunity.id)
-                    ? "Chargement..."
+                    ? tt("Chargement...")
                     : truncatedTitle}
                 </button>
               ) : (
@@ -391,7 +544,7 @@ function AgencyOpportunitiesPage() {
               )}
               <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-muted-foreground/70">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-                {opportunity.companyName || "Client"}
+                {opportunity.companyName || tt("Client")}
               </p>
             </div>
           </div>
@@ -400,37 +553,37 @@ function AgencyOpportunitiesPage() {
     },
     {
       key: "category",
-      header: "Catégorie",
+      header: tt("Catégorie"),
       render: (opportunity) => (
         <p className="truncate text-[13px] font-medium text-foreground">
-          {opportunity.category || "Non catégorisé"}
+          {opportunity.category || tt("Non catégorisé")}
         </p>
       ),
     },
     {
       key: "budget",
-      header: "Budget",
+      header: tt("Budget"),
       render: (opportunity) => (
         <p className="truncate text-[13px] font-medium">
           {opportunity.budgetMin === null || opportunity.budgetMax === null
-            ? "Non défini"
+            ? tt("Non défini")
             : `${opportunity.budgetMin.toLocaleString()} € - ${opportunity.budgetMax.toLocaleString()} €`}
         </p>
       ),
     },
     {
       key: "location",
-      header: "Localisation",
+      header: tt("Localisation"),
       render: (opportunity) => (
         <p className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
-          <span className="truncate">{opportunity.location || "Non spécifiée"}</span>
+          <span className="truncate">{opportunity.location || tt("Non spécifiée")}</span>
         </p>
       ),
     },
     {
       key: "step",
-      header: "Statut",
+      header: tt("Statut"),
       render: (opportunity) => {
         const config = getStatusConfig(opportunity.rawStatus || "");
         const Icon = config.icon;
@@ -443,14 +596,14 @@ function AgencyOpportunitiesPage() {
             `}
           >
             <Icon className="h-3 w-3" strokeWidth={2} />
-            {config.label}
+            {tt(config.label)}
           </span>
         );
       },
     },
     {
       key: "action",
-      header: "Action",
+      header: tt("Action"),
       render: (opportunity) => (
         <div className="flex flex-wrap gap-2">
           {activeTab === "available" && (
@@ -461,7 +614,7 @@ function AgencyOpportunitiesPage() {
               className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md disabled:opacity-60"
             >
               <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Postuler
+              {tt("Postuler")}
             </button>
           )}
 
@@ -474,7 +627,7 @@ function AgencyOpportunitiesPage() {
                 className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md disabled:opacity-60"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Accepter
+                {tt("Accepter")}
               </button>
               <button
                 type="button"
@@ -483,7 +636,7 @@ function AgencyOpportunitiesPage() {
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-[13px] font-semibold text-foreground transition-all hover:bg-accent hover:shadow-sm disabled:opacity-60"
               >
                 <XCircle className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Refuser
+                {tt("Refuser")}
               </button>
             </>
           )}
@@ -499,7 +652,7 @@ function AgencyOpportunitiesPage() {
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md"
               >
                 <Send className="h-3.5 w-3.5" strokeWidth={1.8} />
-                Envoyer un devis
+                {tt("Envoyer un devis")}
               </button>
             )}
 
@@ -511,7 +664,7 @@ function AgencyOpportunitiesPage() {
               className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md disabled:opacity-60"
             >
               <CheckCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Prêt à reprendre
+              {tt("Prêt à reprendre")}
             </button>
           )}
 
@@ -543,16 +696,18 @@ function AgencyOpportunitiesPage() {
               <Briefcase className="h-[22px] w-[22px]" strokeWidth={1.6} />
             </div>
             <div className="min-w-0">
-              <h1 className="font-display text-[24px] font-bold tracking-tight">Opportunités</h1>
+              <h1 className="font-display text-[24px] font-bold tracking-tight">
+                {tt("Opportunités")}
+              </h1>
               <p className="mt-1 text-[14px] text-muted-foreground">
-                Répondez aux projets qui correspondent à vos compétences.
+                {tt("Répondez aux projets qui correspondent à vos compétences.")}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary">
               <TrendingUp className="inline h-3.5 w-3.5 mr-1" />
-              {total ?? 0} opportunités
+              {total ?? 0} {tt("opportunités")}
             </span>
           </div>
         </div>
@@ -565,7 +720,7 @@ function AgencyOpportunitiesPage() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Rechercher une opportunité..."
+              placeholder={tt("Rechercher une opportunité...")}
               className="w-full rounded-xl border border-border bg-card px-10 py-3 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-md transition-all"
             />
           </div>
@@ -573,14 +728,19 @@ function AgencyOpportunitiesPage() {
 
         {/* TABS MODERNISÉS */}
         <div className="mt-6">
-          <StatusTabs tabs={TABS} value={activeTab} onChange={setActiveTab} counts={counts} />
+          <StatusTabs
+            tabs={TABS.map((tabItem) => ({ ...tabItem, label: tt(tabItem.label) }))}
+            value={activeTab}
+            onChange={setActiveTab}
+            counts={counts}
+          />
         </div>
 
         {/* FILTRES MODERNISÉS */}
         <div className="mt-6 grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Catégorie
+              {tt("Catégorie")}
             </label>
             <select
               value={subCategoryFilter}
@@ -590,7 +750,7 @@ function AgencyOpportunitiesPage() {
               }}
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all"
             >
-              <option value="">Toutes les catégories</option>
+              <option value="">{tt("Toutes les catégories")}</option>
               {subCategoryOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -600,7 +760,7 @@ function AgencyOpportunitiesPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Budget
+              {tt("Budget")}
             </label>
             <select
               value={budgetFilter}
@@ -610,17 +770,17 @@ function AgencyOpportunitiesPage() {
               }}
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all"
             >
-              <option value="">Tous les budgets</option>
+              <option value="">{tt("Tous les budgets")}</option>
               {BUDGET_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {tt(option.label)}
                 </option>
               ))}
             </select>
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Localisation
+              {tt("Localisation")}
             </label>
             <input
               type="text"
@@ -629,7 +789,7 @@ function AgencyOpportunitiesPage() {
                 setLocationFilter(event.target.value);
                 setPage(1);
               }}
-              placeholder="Toutes les villes"
+              placeholder={tt("Toutes les villes")}
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-sm transition-all"
             />
           </div>

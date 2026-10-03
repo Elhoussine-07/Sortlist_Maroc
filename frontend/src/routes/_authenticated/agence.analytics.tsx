@@ -29,6 +29,67 @@ import {
   getProactiveAlerts,
   getRecommendations,
 } from "@/services/analytics.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const PAGE_TEXT = {
+  "Analytics PQI": { en: "PQI Analytics", ar: "تحليلات مؤشر الجودة", es: "Analítica PQI" },
+  "Suivez vos performances et améliorez votre visibilité.": {
+    en: "Track your performance and improve your visibility.",
+    ar: "تابع أداءك وحسّن ظهورك.",
+    es: "Haz seguimiento de tu rendimiento y mejora tu visibilidad.",
+  },
+  "30 derniers jours": { en: "Last 30 days", ar: "آخر 30 يومًا", es: "Últimos 30 días" },
+  "7 derniers jours": { en: "Last 7 days", ar: "آخر 7 أيام", es: "Últimos 7 días" },
+  "90 derniers jours": { en: "Last 90 days", ar: "آخر 90 يومًا", es: "Últimos 90 días" },
+  "12 mois": { en: "12 months", ar: "12 شهرًا", es: "12 meses" },
+  "Score PQI": { en: "PQI score", ar: "مؤشر الجودة PQI", es: "Puntuación PQI" },
+  "Indice de performance et de qualité de votre agence.": {
+    en: "Your agency's performance and quality index.",
+    ar: "مؤشر الأداء والجودة الخاص بوكالتك.",
+    es: "Índice de rendimiento y calidad de tu agencia.",
+  },
+  "Aucune donnée disponible": {
+    en: "No data available",
+    ar: "لا تتوفر بيانات",
+    es: "No hay datos disponibles",
+  },
+  "Vues du profil": { en: "Profile views", ar: "مشاهدات الملف الشخصي", es: "Visitas al perfil" },
+  "Position moyenne": { en: "Average position", ar: "المتوسط في الترتيب", es: "Posición media" },
+  "Note moyenne": { en: "Average rating", ar: "متوسط التقييم", es: "Calificación media" },
+  "Visites externes": { en: "External visits", ar: "الزيارات الخارجية", es: "Visitas externas" },
+  Évolution: { en: "Trend", ar: "التطور", es: "Evolución" },
+  "Courbe des vues de profil sur la période sélectionnée.": {
+    en: "Profile view trend over the selected period.",
+    ar: "منحنى مشاهدات الملف الشخصي خلال الفترة المحددة.",
+    es: "Curva de visitas al perfil durante el periodo seleccionado.",
+  },
+  points: { en: "points", ar: "نقطة", es: "puntos" },
+  "Alertes proactives": { en: "Proactive alerts", ar: "تنبيهات استباقية", es: "Alertas proactivas" },
+  "Variations détectées sur vos indicateurs.": {
+    en: "Variations detected in your metrics.",
+    ar: "تغيرات تم رصدها في مؤشراتك.",
+    es: "Variaciones detectadas en tus indicadores.",
+  },
+  "Aucune alerte à afficher.": {
+    en: "No alerts to display.",
+    ar: "لا توجد تنبيهات لعرضها.",
+    es: "No hay alertas que mostrar.",
+  },
+  Recommandations: { en: "Recommendations", ar: "التوصيات", es: "Recomendaciones" },
+  "Actions suggérées pour améliorer votre score.": {
+    en: "Suggested actions to improve your score.",
+    ar: "إجراءات مقترحة لتحسين نتيجتك.",
+    es: "Acciones sugeridas para mejorar tu puntuación.",
+  },
+  "Aucune recommandation pour le moment.": {
+    en: "No recommendations at the moment.",
+    ar: "لا توجد توصيات في الوقت الحالي.",
+    es: "No hay recomendaciones por el momento.",
+  },
+  "Priorité élevée": { en: "High priority", ar: "أولوية عالية", es: "Prioridad alta" },
+  "Priorité moyenne": { en: "Medium priority", ar: "أولوية متوسطة", es: "Prioridad media" },
+  "Priorité faible": { en: "Low priority", ar: "أولوية منخفضة", es: "Prioridad baja" },
+} satisfies PageTextDict;
 
 export const Route = createFileRoute("/_authenticated/agence/analytics")({
   head: () => ({
@@ -223,6 +284,7 @@ type Recommendation = {
 };
 
 function AgencyAnalyticsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const pqiQuery = useQuery({
     queryKey: ["agency", "analytics", "pqi"],
     queryFn: getPqi,
@@ -281,18 +343,20 @@ function AgencyAnalyticsPage() {
               <BarChart3 className="h-[22px] w-[22px]" strokeWidth={1.6} />
             </div>
             <div>
-              <h1 className="font-display text-[24px] font-bold tracking-tight">Analytics PQI</h1>
+              <h1 className="font-display text-[24px] font-bold tracking-tight">
+                {tt("Analytics PQI")}
+              </h1>
               <p className="mt-1 text-[14px] text-muted-foreground">
-                Suivez vos performances et améliorez votre visibilité.
+                {tt("Suivez vos performances et améliorez votre visibilité.")}
               </p>
             </div>
           </div>
           <div className="w-full sm:w-[180px]">
             <select className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all">
-              <option value="30d">30 derniers jours</option>
-              <option value="7d">7 derniers jours</option>
-              <option value="90d">90 derniers jours</option>
-              <option value="365d">12 mois</option>
+              <option value="30d">{tt("30 derniers jours")}</option>
+              <option value="7d">{tt("7 derniers jours")}</option>
+              <option value="90d">{tt("90 derniers jours")}</option>
+              <option value="365d">{tt("12 mois")}</option>
             </select>
           </div>
         </div>
@@ -302,9 +366,9 @@ function AgencyAnalyticsPage() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex flex-col items-center justify-between gap-6 md:flex-row md:items-start">
               <div className="text-center md:text-left">
-                <h2 className="text-[16px] font-bold">Score PQI</h2>
+                <h2 className="text-[16px] font-bold">{tt("Score PQI")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Indice de performance et de qualité de votre agence.
+                  {tt("Indice de performance et de qualité de votre agence.")}
                 </p>
               </div>
               {pqiLabel && (
@@ -324,7 +388,7 @@ function AgencyAnalyticsPage() {
 
                 <div>
                   {pqiFactors.length === 0 ? (
-                    <EmptyState message="Aucune donnée disponible" />
+                    <EmptyState message={tt("Aucune donnée disponible")} />
                   ) : (
                     <ul className="space-y-4">
                       {pqiFactors.map((factor) => (
@@ -373,7 +437,9 @@ function AgencyAnalyticsPage() {
                   </div>
                   <DeltaLabel value={profileViews.variation} />
                 </div>
-                <p className="mt-3 text-[13px] font-medium text-muted-foreground">Vues du profil</p>
+                <p className="mt-3 text-[13px] font-medium text-muted-foreground">
+                  {tt("Vues du profil")}
+                </p>
                 <p className="font-display text-2xl font-bold">
                   {profileViews.value === null ? "?" : profileViews.value}
                 </p>
@@ -387,7 +453,7 @@ function AgencyAnalyticsPage() {
                   <DeltaLabel value={averagePosition.variation} />
                 </div>
                 <p className="mt-3 text-[13px] font-medium text-muted-foreground">
-                  Position moyenne
+                  {tt("Position moyenne")}
                 </p>
                 <p className="font-display text-2xl font-bold">
                   {averagePosition.value === null ? "?" : averagePosition.value}
@@ -401,7 +467,9 @@ function AgencyAnalyticsPage() {
                   </div>
                   <DeltaLabel value={averageRating.variation} />
                 </div>
-                <p className="mt-3 text-[13px] font-medium text-muted-foreground">Note moyenne</p>
+                <p className="mt-3 text-[13px] font-medium text-muted-foreground">
+                  {tt("Note moyenne")}
+                </p>
                 <p className="font-display text-2xl font-bold">
                   {averageRating.value === null ? "?" : averageRating.value.toFixed(1)}
                   <span className="text-[14px] font-normal text-muted-foreground">/5</span>
@@ -416,7 +484,7 @@ function AgencyAnalyticsPage() {
                   <DeltaLabel value={externalVisits.variation} />
                 </div>
                 <p className="mt-3 text-[13px] font-medium text-muted-foreground">
-                  Visites externes
+                  {tt("Visites externes")}
                 </p>
                 <p className="font-display text-2xl font-bold">
                   {externalVisits.value === null ? "?" : externalVisits.value}
@@ -431,22 +499,22 @@ function AgencyAnalyticsPage() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
-                <h2 className="text-[16px] font-bold">Évolution</h2>
+                <h2 className="text-[16px] font-bold">{tt("Évolution")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Courbe des vues de profil sur la période sélectionnée.
+                  {tt("Courbe des vues de profil sur la période sélectionnée.")}
                 </p>
               </div>
               <span className="rounded-full bg-primary/10 px-3 py-1 text-[12px] font-semibold text-primary">
-                {profileViews.series.length} points
+                {profileViews.series.length} {tt("points")}
               </span>
             </div>
             <div className="mt-5">
               {isMetricsLoading ? (
                 <StackSkeleton count={2} />
               ) : profileViews.series.length === 0 ? (
-                <EmptyState message="Aucune donnée disponible" />
+                <EmptyState message={tt("Aucune donnée disponible")} />
               ) : (
-                <TrendChart series={profileViews.series} label="Vues du profil" />
+                <TrendChart series={profileViews.series} label={tt("Vues du profil")} />
               )}
             </div>
           </div>
@@ -461,9 +529,9 @@ function AgencyAnalyticsPage() {
                 <Zap className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-[16px] font-bold">Alertes proactives</h2>
+                <h2 className="text-[16px] font-bold">{tt("Alertes proactives")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Variations détectées sur vos indicateurs.
+                  {tt("Variations détectées sur vos indicateurs.")}
                 </p>
               </div>
             </div>
@@ -473,7 +541,7 @@ function AgencyAnalyticsPage() {
                 <StackSkeleton count={3} />
               ) : alerts.length === 0 ? (
                 <div className="rounded-lg border border-border p-6 text-center text-muted-foreground">
-                  Aucune alerte à afficher.
+                  {tt("Aucune alerte à afficher.")}
                 </div>
               ) : (
                 <ul className="space-y-4">
@@ -528,9 +596,9 @@ function AgencyAnalyticsPage() {
                 <Lightbulb className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-[16px] font-bold">Recommandations</h2>
+                <h2 className="text-[16px] font-bold">{tt("Recommandations")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Actions suggérées pour améliorer votre score.
+                  {tt("Actions suggérées pour améliorer votre score.")}
                 </p>
               </div>
             </div>
@@ -540,18 +608,19 @@ function AgencyAnalyticsPage() {
                 <StackSkeleton count={3} />
               ) : recommendations.length === 0 ? (
                 <div className="rounded-lg border border-border p-6 text-center text-muted-foreground">
-                  Aucune recommandation pour le moment.
+                  {tt("Aucune recommandation pour le moment.")}
                 </div>
               ) : (
                 <ul className="space-y-4">
                   {recommendations.map((recommendation) => {
                     const priority = recommendation.priority || "low";
-                    const priorityLabel =
+                    const priorityLabel = tt(
                       priority === "high"
                         ? "Priorité élevée"
                         : priority === "medium"
                           ? "Priorité moyenne"
-                          : "Priorité faible";
+                          : "Priorité faible",
+                    );
                     const priorityClass =
                       priority === "high"
                         ? "bg-rose-100 text-rose-700"

@@ -447,18 +447,18 @@ function ClientProfilePage() {
       void queryClient.invalidateQueries({ queryKey: ["client", "profile"] });
       void queryClient.invalidateQueries({ queryKey: ["client", "dashboard"] });
       if (result.verified) {
-        toast.success("Identité vérifiée : votre score de confiance a été mis à jour.");
+        toast.success(tt("Identité vérifiée : votre score de confiance a été mis à jour."));
       } else {
         toast.error(
           result.expectedFormat
-            ? `Format d'identifiant invalide. Format attendu : ${result.expectedFormat}`
-            : "Format d'identifiant invalide pour le pays renseigné.",
+            ? `${tt("Format d'identifiant invalide. Format attendu : ")}${result.expectedFormat}`
+            : tt("Format d'identifiant invalide pour le pays renseigné."),
         );
       }
     },
     onError: (error) => {
       toast.error(
-        error instanceof ApiError ? error.message : "Vérification de l'identité impossible.",
+        error instanceof ApiError ? error.message : tt("Vérification de l'identité impossible."),
       );
     },
   });
@@ -477,10 +477,10 @@ function ClientProfilePage() {
     mutationFn: () => requestPhoneOtp(phoneInput),
     onSuccess: () => {
       setOtpSent(true);
-      toast.success("Code envoyé par e-mail (valable 5 minutes).");
+      toast.success(tt("Code envoyé par e-mail (valable 5 minutes)."));
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Envoi du code impossible.");
+      toast.error(error instanceof ApiError ? error.message : tt("Envoi du code impossible."));
     },
   });
 
@@ -490,10 +490,10 @@ function ClientProfilePage() {
       setOtpSent(false);
       setOtpCode("");
       void queryClient.invalidateQueries({ queryKey: ["client", "profile"] });
-      toast.success("Téléphone vérifié : votre score de confiance a été mis à jour.");
+      toast.success(tt("Téléphone vérifié : votre score de confiance a été mis à jour."));
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Code invalide ou expiré.");
+      toast.error(error instanceof ApiError ? error.message : tt("Code invalide ou expiré."));
     },
   });
 
@@ -506,11 +506,11 @@ function ClientProfilePage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Le logo doit être une image (PNG, JPG, SVG...).");
+      toast.error(tt("Le logo doit être une image (PNG, JPG, SVG...)."));
       return;
     }
     if (file.size > MAX_LOGO_SIZE_BYTES) {
-      toast.error("Image trop lourde (4 Mo maximum).");
+      toast.error(tt("Image trop lourde (4 Mo maximum)."));
       return;
     }
 
@@ -546,16 +546,18 @@ function ClientProfilePage() {
               <User className="h-[22px] w-[22px]" strokeWidth={1.6} />
             </div>
             <div>
-              <h1 className="font-display text-[24px] font-bold tracking-tight">Mon profil</h1>
+              <h1 className="font-display text-[24px] font-bold tracking-tight">
+                {tt("Mon profil")}
+              </h1>
               <p className="mt-1 text-[14px] text-muted-foreground">
-                Gérez les informations de votre entreprise.
+                {tt("Gérez les informations de votre entreprise.")}
               </p>
             </div>
           </div>
           {profile?.identityVerified && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-[13px] font-semibold text-emerald-700 border border-emerald-200 shadow-sm">
               <ShieldCheck className="h-4 w-4" strokeWidth={2} />
-              Identité vérifiée
+              {tt("Identité vérifiée")}
             </span>
           )}
         </div>
@@ -563,15 +565,15 @@ function ClientProfilePage() {
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
             <div>
-              <h2 className="text-[16px] font-bold">Informations entreprise</h2>
+              <h2 className="text-[16px] font-bold">{tt("Informations entreprise")}</h2>
               <p className="text-[13px] text-muted-foreground">
-                Ces informations sont visibles par les agences que vous contactez.
+                {tt("Ces informations sont visibles par les agences que vous contactez.")}
               </p>
             </div>
             {profile?.identityVerified && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[12px] font-semibold text-emerald-700">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Identité vérifiée
+                {tt("Identité vérifiée")}
               </span>
             )}
           </div>
@@ -597,7 +599,7 @@ function ClientProfilePage() {
                     ) : displayLogo ? (
                       <img
                         src={displayLogo}
-                        alt="Logo de l'entreprise"
+                        alt={tt("Logo de l'entreprise")}
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -609,7 +611,7 @@ function ClientProfilePage() {
                   <button
                     type="button"
                     onClick={() => logoInputRef.current?.click()}
-                    aria-label="Changer le logo"
+                    aria-label={tt("Changer le logo")}
                     className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition-colors hover:bg-accent"
                   >
                     <Camera className="h-3.5 w-3.5" strokeWidth={1.8} />
@@ -623,47 +625,48 @@ function ClientProfilePage() {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold">Logo de l'entreprise</p>
+                  <p className="text-[14px] font-semibold">{tt("Logo de l'entreprise")}</p>
                   <p className="mt-1 text-[13px] leading-[1.5] text-muted-foreground">
-                    PNG, JPG ou SVG, 4 Mo maximum. Affiché sur votre profil et vos échanges avec les
-                    agences.
+                    {tt(
+                      "PNG, JPG ou SVG, 4 Mo maximum. Affiché sur votre profil et vos échanges avec les agences.",
+                    )}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextField
-                  label="Nom du contact"
+                  label={tt("Nom du contact")}
                   error={form.formState.errors.contactLastName?.message}
                   {...form.register("contactLastName")}
                 />
                 <TextField
-                  label="Prénom du contact"
+                  label={tt("Prénom du contact")}
                   error={form.formState.errors.contactFirstName?.message}
                   {...form.register("contactFirstName")}
                 />
                 <TextField
-                  label="Raison sociale"
+                  label={tt("Raison sociale")}
                   error={form.formState.errors.companyName?.message}
                   {...form.register("companyName")}
                 />
                 <TextField
-                  label="Secteur d'activité"
+                  label={tt("Secteur d'activité")}
                   error={form.formState.errors.activitySector?.message}
                   {...form.register("activitySector")}
                 />
                 <TextField
-                  label="Pays"
+                  label={tt("Pays")}
                   error={form.formState.errors.country?.message}
                   {...form.register("country")}
                 />
                 <TextField
-                  label="Type d'identifiant légal"
+                  label={tt("Type d'identifiant légal")}
                   error={form.formState.errors.legalIdType?.message}
                   {...form.register("legalIdType")}
                 />
                 <TextField
-                  label="Identifiant légal"
+                  label={tt("Identifiant légal")}
                   error={form.formState.errors.legalIdValue?.message}
                   {...form.register("legalIdValue")}
                 />
@@ -677,21 +680,21 @@ function ClientProfilePage() {
               <div className="rounded-lg border border-border/60 bg-accent/20 p-4">
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.8} />
-                  <p className="text-[14px] font-semibold">Téléphone</p>
+                  <p className="text-[14px] font-semibold">{tt("Téléphone")}</p>
                   {profile?.phoneVerified ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
                       <CheckCircle2 className="h-3 w-3" />
-                      Vérifié
+                      {tt("Vérifié")}
                     </span>
                   ) : null}
                 </div>
                 <div className="mt-3 flex flex-wrap items-end gap-3">
                   <div className="min-w-[200px] flex-1">
                     <TextField
-                      label="Numéro de téléphone"
+                      label={tt("Numéro de téléphone")}
                       value={phoneInput}
                       onChange={(event) => setPhoneInput(event.target.value)}
-                      placeholder="Ex. 06 12 34 56 78"
+                      placeholder={tt("Ex. 06 12 34 56 78")}
                     />
                   </div>
                   <button
@@ -703,17 +706,17 @@ function ClientProfilePage() {
                     {requestPhoneOtpMutation.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : null}
-                    {otpSent ? "Renvoyer le code" : "Vérifier mon numéro"}
+                    {otpSent ? tt("Renvoyer le code") : tt("Vérifier mon numéro")}
                   </button>
                 </div>
                 {otpSent ? (
                   <div className="mt-3 flex flex-wrap items-end gap-3">
                     <div className="min-w-[160px]">
                       <TextField
-                        label="Code reçu par e-mail"
+                        label={tt("Code reçu par e-mail")}
                         value={otpCode}
                         onChange={(event) => setOtpCode(event.target.value)}
-                        placeholder="Ex. 123456"
+                        placeholder={tt("Ex. 123456")}
                       />
                     </div>
                     <button
@@ -725,7 +728,7 @@ function ClientProfilePage() {
                       {verifyPhoneOtpMutation.isPending ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : null}
-                      Valider le code
+                      {tt("Valider le code")}
                     </button>
                   </div>
                 ) : null}
@@ -742,7 +745,9 @@ function ClientProfilePage() {
                   ) : (
                     <Save className="h-4 w-4" />
                   )}
-                  {updateMutation.isPending ? "Enregistrement..." : "Enregistrer les modifications"}
+                  {updateMutation.isPending
+                    ? tt("Enregistrement...")
+                    : tt("Enregistrer les modifications")}
                 </button>
                 <button
                   onClick={() => verifyIdentityMutation.mutate()}
@@ -756,10 +761,10 @@ function ClientProfilePage() {
                     <RefreshCw className="h-4 w-4" />
                   )}
                   {verifyIdentityMutation.isPending
-                    ? "Vérification..."
+                    ? tt("Vérification...")
                     : profile?.identityVerified
-                      ? "Revérifier mon identité"
-                      : "Vérifier mon identité"}
+                      ? tt("Revérifier mon identité")
+                      : tt("Vérifier mon identité")}
                 </button>
               </div>
             </form>
@@ -769,9 +774,9 @@ function ClientProfilePage() {
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
-              <h2 className="text-[16px] font-bold">Score de confiance</h2>
+              <h2 className="text-[16px] font-bold">{tt("Score de confiance")}</h2>
               <p className="text-[13px] text-muted-foreground">
-                Calculé à partir de la complétion du profil et de votre activité.
+                {tt("Calculé à partir de la complétion du profil et de votre activité.")}
               </p>
             </div>
           </div>
@@ -780,7 +785,7 @@ function ClientProfilePage() {
             {isLoading ? (
               <FormSkeleton fields={2} />
             ) : profile === null ? (
-              <EmptyState message="Aucune donnée disponible" />
+              <EmptyState message={tt("Aucune donnée disponible")} />
             ) : (
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center gap-4">
@@ -826,9 +831,9 @@ function ClientProfilePage() {
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
-              <h2 className="text-[16px] font-bold">Complétion du profil</h2>
+              <h2 className="text-[16px] font-bold">{tt("Complétion du profil")}</h2>
               <p className="text-[13px] text-muted-foreground">
-                Renseignez les champs manquants pour améliorer votre visibilité.
+                {tt("Renseignez les champs manquants pour améliorer votre visibilité.")}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -842,7 +847,7 @@ function ClientProfilePage() {
 
           <div className="mt-5">
             {profile === null ? (
-              <EmptyState message="Aucune donnée disponible" />
+              <EmptyState message={tt("Aucune donnée disponible")} />
             ) : (
               <div className="space-y-4">
                 <div className="h-2 w-full rounded-full bg-accent">
@@ -856,7 +861,7 @@ function ClientProfilePage() {
                 {isProfileComplete ? (
                   <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
                     <CheckCircle2 className="h-5 w-5 shrink-0" />
-                    <p className="text-[13px] font-semibold">Votre profil est complet !</p>
+                    <p className="text-[13px] font-semibold">{tt("Votre profil est complet !")}</p>
                   </div>
                 ) : (
                   <ul className="space-y-2">
@@ -866,7 +871,7 @@ function ClientProfilePage() {
                         className="flex items-center gap-2 rounded-lg border border-border p-3 text-[13px] text-muted-foreground"
                       >
                         <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
-                        <span>{field.label}</span>
+                        <span>{tt(field.label)}</span>
                       </li>
                     ))}
                   </ul>
@@ -879,9 +884,9 @@ function ClientProfilePage() {
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
-              <h2 className="text-[16px] font-bold">Avis reçus</h2>
+              <h2 className="text-[16px] font-bold">{tt("Avis reçus")}</h2>
               <p className="text-[13px] text-muted-foreground">
-                Avis laissés par les agences avec lesquelles vous avez collaboré.
+                {tt("Avis laissés par les agences avec lesquelles vous avez collaboré.")}
               </p>
             </div>
           </div>
@@ -890,7 +895,7 @@ function ClientProfilePage() {
             {reviewsQuery.isPending ? (
               <FormSkeleton fields={2} />
             ) : reviews.length === 0 ? (
-              <EmptyState message="Aucun avis reçu pour le moment" />
+              <EmptyState message={tt("Aucun avis reçu pour le moment")} />
             ) : (
               <ul className="space-y-4">
                 {reviews.map((review) => (
@@ -908,7 +913,7 @@ function ClientProfilePage() {
                         </div>
                         <div>
                           <p className="text-[14px] font-semibold">
-                            {review.agencyName || "Agence"}
+                            {review.agencyName || tt("Agence")}
                           </p>
                           <p className="text-[12px] text-muted-foreground">
                             {review.publishedAt
@@ -917,7 +922,8 @@ function ClientProfilePage() {
                           </p>
                           {review.projectTitle ? (
                             <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
-                              Projet : {review.projectTitle}
+                              {tt("Projet : ")}
+                              {review.projectTitle}
                             </p>
                           ) : null}
                         </div>

@@ -33,6 +33,7 @@ import {
   type JoinRequestSent,
 } from "@/services/agencies.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/agence/invitations")({
   head: () => ({

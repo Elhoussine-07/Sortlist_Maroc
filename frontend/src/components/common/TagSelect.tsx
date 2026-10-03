@@ -1,5 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, ChevronDown, Plus, X } from "lucide-react";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const TAG_SELECT_TEXT = {
+  "Rechercher...": { en: "Search...", ar: "ابحث...", es: "Buscar..." },
+  "Retirer {item}": { en: "Remove {item}", ar: "إزالة {item}", es: "Quitar {item}" },
+  "Retour à la liste": {
+    en: "Back to list",
+    ar: "العودة إلى القائمة",
+    es: "Volver a la lista",
+  },
+  "Écrivez votre réponse...": {
+    en: "Write your answer...",
+    ar: "اكتب إجابتك...",
+    es: "Escribe tu respuesta...",
+  },
+  Ajouter: { en: "Add", ar: "إضافة", es: "Añadir" },
+  "Toutes les options ont été ajoutées.": {
+    en: "All options have been added.",
+    ar: "تمت إضافة جميع الخيارات.",
+    es: "Se han añadido todas las opciones.",
+  },
+  "Aucun résultat.": { en: "No results.", ar: "لا توجد نتائج.", es: "Sin resultados." },
+  "Autre...": { en: "Other...", ar: "أخرى...", es: "Otro..." },
+} satisfies PageTextDict;
 
 export function TagSelect({
   label,
@@ -18,6 +42,7 @@ export function TagSelect({
   error?: string | undefined;
   allowCustom?: boolean;
 }) {
+  const { tt } = usePageText(TAG_SELECT_TEXT);
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [isCustomMode, setIsCustomMode] = useState(false);
@@ -110,7 +135,7 @@ export function TagSelect({
                 removeValue(item);
               }}
               className="rounded-full transition-colors hover:bg-primary/20"
-              aria-label={`Retirer ${item}`}
+              aria-label={tt("Retirer {item}").replace("{item}", item)}
             >
               <X className="h-3 w-3" strokeWidth={2} />
             </button>
@@ -130,7 +155,7 @@ export function TagSelect({
               removeValue(selected[selected.length - 1]!);
             }
           }}
-          placeholder={selected.length === 0 ? placeholder : ""}
+          placeholder={selected.length === 0 ? tt(placeholder) : ""}
           className="min-w-[120px] flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground"
         />
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.8} />
@@ -152,7 +177,7 @@ export function TagSelect({
                 className="mb-2 flex items-center gap-1 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 <ArrowLeft className="h-3 w-3" strokeWidth={2} />
-                Retour à la liste
+                {tt("Retour à la liste")}
               </button>
               <div className="flex items-center gap-1.5">
                 <input
@@ -166,7 +191,7 @@ export function TagSelect({
                       submitCustomValue();
                     }
                   }}
-                  placeholder="Écrivez votre réponse..."
+                  placeholder={tt("Écrivez votre réponse...")}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13.5px] outline-none focus:border-primary"
                 />
                 <button
@@ -176,7 +201,7 @@ export function TagSelect({
                   className="flex shrink-0 items-center gap-1 rounded-md bg-primary px-3 py-2 text-[13px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Check className="h-3.5 w-3.5" strokeWidth={2} />
-                  Ajouter
+                  {tt("Ajouter")}
                 </button>
               </div>
             </div>
@@ -185,8 +210,8 @@ export function TagSelect({
               {filtered.length === 0 ? (
                 <li className="px-3 py-2 text-[13px] text-muted-foreground">
                   {options.length === selected.length
-                    ? "Toutes les options ont été ajoutées."
-                    : "Aucun résultat."}
+                    ? tt("Toutes les options ont été ajoutées.")
+                    : tt("Aucun résultat.")}
                 </li>
               ) : (
                 filtered.map((option) => (
@@ -212,7 +237,7 @@ export function TagSelect({
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13.5px] font-medium text-primary transition-colors hover:bg-accent"
                   >
                     <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-                    Autre...
+                    {tt("Autre...")}
                   </button>
                 </li>
               ) : null}

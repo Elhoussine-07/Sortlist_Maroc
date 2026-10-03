@@ -28,6 +28,7 @@ import {
   type CategoryOption,
 } from "@/services/agencies.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 interface ProjetsSearch {
   country?: string | undefined;
@@ -60,7 +61,78 @@ const SORT_OPTIONS: Array<{ value: NonNullable<ProjectSearchParams["sort"]>; lab
   { value: "relevance", label: "Plus pertinents" },
 ];
 
+const PAGE_TEXT = {
+  "Décrivez le type de projet que vous recherchez...": {
+    en: "Describe the type of project you're looking for...",
+    ar: "صف نوع المشروع الذي تبحث عنه...",
+    es: "Describe el tipo de proyecto que buscas...",
+  },
+  Catégorie: { en: "Category", ar: "الفئة", es: "Categoría" },
+  "Toutes les catégories": { en: "All categories", ar: "جميع الفئات", es: "Todas las categorías" },
+  "Sous-catégorie": { en: "Subcategory", ar: "الفئة الفرعية", es: "Subcategoría" },
+  "Toutes les sous-catégories": {
+    en: "All subcategories",
+    ar: "جميع الفئات الفرعية",
+    es: "Todas las subcategorías",
+  },
+  Budget: { en: "Budget", ar: "الميزانية", es: "Presupuesto" },
+  "Tous les budgets": { en: "All budgets", ar: "جميع الميزانيات", es: "Todos los presupuestos" },
+  "Budget : ": { en: "Budget: ", ar: "الميزانية: ", es: "Presupuesto: " },
+  "Pays : ": { en: "Country: ", ar: "البلد: ", es: "País: " },
+  "Tri : ": { en: "Sort: ", ar: "الترتيب: ", es: "Orden: " },
+  "Plus récents": { en: "Most recent", ar: "الأحدث", es: "Más recientes" },
+  "Plus pertinents": { en: "Most relevant", ar: "الأكثر صلة", es: "Más relevantes" },
+  "Tout réinitialiser": { en: "Reset all", ar: "إعادة تعيين الكل", es: "Restablecer todo" },
+  "projets disponibles": {
+    en: "projects available",
+    ar: "مشروعًا متاحًا",
+    es: "proyectos disponibles",
+  },
+  "Trier par": { en: "Sort by", ar: "ترتيب حسب", es: "Ordenar por" },
+  "Aucun projet à afficher.": {
+    en: "No projects to display.",
+    ar: "لا توجد مشاريع لعرضها.",
+    es: "No hay proyectos para mostrar.",
+  },
+  Entreprise: { en: "Company", ar: "شركة", es: "Empresa" },
+  "Retirer des favoris": {
+    en: "Remove from favorites",
+    ar: "إزالة من المفضلة",
+    es: "Quitar de favoritos",
+  },
+  "Enregistrer le projet": { en: "Save the project", ar: "حفظ المشروع", es: "Guardar el proyecto" },
+  "Budget estimé": { en: "Estimated budget", ar: "الميزانية التقديرية", es: "Presupuesto estimado" },
+  "Budget à définir": { en: "Budget to be defined", ar: "الميزانية غير محددة", es: "Presupuesto por definir" },
+  "Budget flexible": { en: "Flexible budget", ar: "ميزانية مرنة", es: "Presupuesto flexible" },
+  Voir: { en: "View", ar: "عرض", es: "Ver" },
+  "agences intéressées": {
+    en: "interested agencies",
+    ar: "وكالة مهتمة",
+    es: "agencias interesadas",
+  },
+  "Projet enregistré": { en: "Project saved", ar: "تم حفظ المشروع", es: "Proyecto guardado" },
+  "Projet retiré des favoris": {
+    en: "Project removed from favorites",
+    ar: "تمت إزالة المشروع من المفضلة",
+    es: "Proyecto eliminado de favoritos",
+  },
+  "Impossible d'enregistrer ce projet.": {
+    en: "Unable to save this project.",
+    ar: "تعذّر حفظ هذا المشروع.",
+    es: "No se pudo guardar este proyecto.",
+  },
+  "Recherche de projets impossible.": {
+    en: "Unable to search for projects.",
+    ar: "تعذّر البحث عن المشاريع.",
+    es: "No se pudo realizar la búsqueda de proyectos.",
+  },
+  Pagination: { en: "Pagination", ar: "ترقيم الصفحات", es: "Paginación" },
+  Précédent: { en: "Previous", ar: "السابق", es: "Anterior" },
+  Suivant: { en: "Next", ar: "التالي", es: "Siguiente" },
+} satisfies PageTextDict;
+
 function SearchProjectsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const { country: countryFromUrl } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -116,10 +188,10 @@ function SearchProjectsPage() {
           }
           return next;
         });
-        toast(favorited ? "Projet enregistré" : "Projet retiré des favoris");
+        toast(favorited ? tt("Projet enregistré") : tt("Projet retiré des favoris"));
       })
       .catch((error: unknown) => {
-        toast(error instanceof ApiError ? error.message : "Impossible d'enregistrer ce projet.");
+        toast(error instanceof ApiError ? error.message : tt("Impossible d'enregistrer ce projet."));
       })
       .finally(() => setPendingFavoriteId(null));
   }
@@ -143,7 +215,7 @@ function SearchProjectsPage() {
           setTotalPages(result.totalPages);
         })
         .catch((error: unknown) => {
-          toast(error instanceof ApiError ? error.message : "Recherche de projets impossible.");
+          toast(error instanceof ApiError ? error.message : tt("Recherche de projets impossible."));
           setProjects([]);
           setAvailableCount(0);
           setTotalPages(1);
@@ -185,30 +257,30 @@ function SearchProjectsPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Décrivez le type de projet que vous recherchez..."
+            placeholder={tt("Décrivez le type de projet que vous recherchez...")}
             className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground focus:outline-none"
           />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
           <FilterSelectOptions
-            label="Catégorie"
-            placeholder="Toutes les catégories"
+            label={tt("Catégorie")}
+            placeholder={tt("Toutes les catégories")}
             value={category}
             onChange={setCategory}
             options={categories.map((item) => ({ value: item.id, label: item.name }))}
           />
           <FilterSelectOptions
-            label="Sous-catégorie"
-            placeholder="Toutes les sous-catégories"
+            label={tt("Sous-catégorie")}
+            placeholder={tt("Toutes les sous-catégories")}
             value={subCategory}
             onChange={setSubCategory}
             options={subCategoryOptions.map((item) => ({ value: item.id, label: item.name }))}
             disabled={category === ""}
           />
           <FilterInput
-            label="Budget"
-            placeholder="Tous les budgets"
+            label={tt("Budget")}
+            placeholder={tt("Tous les budgets")}
             value={budget}
             onChange={setBudget}
           />
@@ -232,14 +304,16 @@ function SearchProjectsPage() {
               />
             ) : null}
             {budget ? (
-              <FilterPill label={`Budget : ${budget}`} onRemove={() => setBudget("")} />
+              <FilterPill label={`${tt("Budget : ")}${budget}`} onRemove={() => setBudget("")} />
             ) : null}
             {country ? (
-              <FilterPill label={`Pays : ${country}`} onRemove={() => setCountry("")} />
+              <FilterPill label={`${tt("Pays : ")}${country}`} onRemove={() => setCountry("")} />
             ) : null}
             {sort !== "recent" ? (
               <FilterPill
-                label={"Tri : " + (SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "")}
+                label={
+                  tt("Tri : ") + tt(SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "")
+                }
                 onRemove={() => setSort("recent")}
               />
             ) : null}
@@ -248,7 +322,7 @@ function SearchProjectsPage() {
               onClick={resetFilters}
               className="ml-1 text-[12.5px] font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >
-              Tout réinitialiser
+              {tt("Tout réinitialiser")}
             </button>
           </div>
         ) : null}
@@ -256,10 +330,10 @@ function SearchProjectsPage() {
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            {availableCount ?? 0} projets disponibles
+            {availableCount ?? 0} {tt("projets disponibles")}
           </p>
           <label className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground">
-            Trier par
+            {tt("Trier par")}
             <span className="relative flex items-center">
               <select
                 value={sort}
@@ -270,7 +344,7 @@ function SearchProjectsPage() {
               >
                 {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {tt(option.label)}
                   </option>
                 ))}
               </select>
@@ -286,7 +360,7 @@ function SearchProjectsPage() {
           {isLoading ? (
             <CardGridSkeleton count={9} />
           ) : projects.length === 0 ? (
-            <EmptyState message="Aucun projet à afficher." />
+            <EmptyState message={tt("Aucun projet à afficher.")} />
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => {
@@ -316,7 +390,7 @@ function SearchProjectsPage() {
                         )}
                         <div className="min-w-0">
                           <p className="truncate text-[12.5px] font-semibold text-foreground">
-                            {project.clientCompanyName || "Entreprise"}
+                            {project.clientCompanyName || tt("Entreprise")}
                           </p>
                           <span className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground">
                             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -328,7 +402,7 @@ function SearchProjectsPage() {
                         onClick={(e) => handleToggleFavorite(project.id, e)}
                         type="button"
                         disabled={pendingFavoriteId === project.id}
-                        aria-label={isFavorite ? "Retirer des favoris" : "Enregistrer le projet"}
+                        aria-label={isFavorite ? tt("Retirer des favoris") : tt("Enregistrer le projet")}
                         aria-pressed={isFavorite}
                         className="shrink-0 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
                       >
@@ -386,26 +460,26 @@ function SearchProjectsPage() {
                     {project.interestedAgenciesCount ? (
                       <p className="mt-3 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
                         <Users className="h-3.5 w-3.5" strokeWidth={1.8} />
-                        {project.interestedAgenciesCount} agences intéressées
+                        {project.interestedAgenciesCount} {tt("agences intéressées")}
                       </p>
                     ) : null}
 
                     <div className="mt-auto flex items-end justify-between gap-2 border-t border-border/70 pt-4">
                       <div>
-                        <p className="text-[11px] text-muted-foreground">Budget estimé</p>
+                        <p className="text-[11px] text-muted-foreground">{tt("Budget estimé")}</p>
                         <p className="text-[14.5px] font-bold">
                           {project.budgetMin || project.budgetMax
                             ? `${project.budgetMin} € - ${project.budgetMax} €`
-                            : "Budget à définir"}
+                            : tt("Budget à définir")}
                         </p>
                         {project.budgetFlexible ? (
                           <span className="mt-1 inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
-                            Budget flexible
+                            {tt("Budget flexible")}
                           </span>
                         ) : null}
                       </div>
                       <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                        Voir
+                        {tt("Voir")}
                         <ChevronRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
@@ -510,9 +584,10 @@ function Pagination({
   const end = Math.min(pages, start + windowSize - 1);
   start = Math.max(1, end - windowSize + 1);
   const visible = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  const { tt } = usePageText(PAGE_TEXT);
 
   return (
-    <nav aria-label="Pagination" className="mt-12 flex flex-wrap items-center justify-center gap-3">
+    <nav aria-label={tt("Pagination")} className="mt-12 flex flex-wrap items-center justify-center gap-3">
       <button
         type="button"
         onClick={() => onChange(Math.max(1, page - 1))}
@@ -520,7 +595,7 @@ function Pagination({
         className="flex items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       >
         <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
-        Précédent
+        {tt("Précédent")}
       </button>
 
       {start > 1 ? (
@@ -569,7 +644,7 @@ function Pagination({
         disabled={page === pages}
         className="flex items-center gap-1.5 text-[13.5px] transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Suivant
+        {tt("Suivant")}
         <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
       </button>
     </nav>

@@ -18,6 +18,7 @@ import {
   suspendAccount,
   type AccountType,
 } from "@/services/moderation.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/admin/avis")({
   head: () => ({

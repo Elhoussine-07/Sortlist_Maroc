@@ -33,6 +33,7 @@ import { ActionModal } from "@/components/common/ActionModal";
 import { getAgencyProjects, reviewClient } from "@/services/agency-projects.service";
 import { reportProblem } from "@/services/disputes.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/agence/projets-en-cours")({
   head: () => ({
@@ -51,6 +52,127 @@ export const Route = createFileRoute("/_authenticated/agence/projets-en-cours")(
   }),
   component: AgencyProjectsPage,
 });
+
+const PAGE_TEXT = {
+  Tous: { en: "All", ar: "الكل", es: "Todos" },
+  "En cours": { en: "In progress", ar: "قيد التنفيذ", es: "En curso" },
+  Suspendus: { en: "Suspended", ar: "موقوفة", es: "Suspendidos" },
+  Terminés: { en: "Completed", ar: "منتهية", es: "Finalizados" },
+  Brouillon: { en: "Draft", ar: "مسودة", es: "Borrador" },
+  Publié: { en: "Published", ar: "منشور", es: "Publicado" },
+  "En attente": { en: "Pending", ar: "قيد الانتظار", es: "Pendiente" },
+  Terminé: { en: "Completed", ar: "منتهٍ", es: "Finalizado" },
+  Suspendu: { en: "Suspended", ar: "موقوف", es: "Suspendido" },
+  Rejeté: { en: "Rejected", ar: "مرفوض", es: "Rechazado" },
+  "Non définie": { en: "Not set", ar: "غير محددة", es: "No definida" },
+  "Délai dépassé — passage Terminé imminent": {
+    en: "Deadline passed — status will switch to Completed shortly",
+    ar: "تم تجاوز الموعد النهائي — ستتحول الحالة قريبًا إلى منتهٍ",
+    es: "Plazo superado — pasará a Finalizado en breve",
+  },
+  "{days}j {hours}h restantes": {
+    en: "{days}d {hours}h remaining",
+    ar: "متبقٍ {days} يوم و{hours} ساعة",
+    es: "{days}d {hours}h restantes",
+  },
+  "{hours}h restantes": {
+    en: "{hours}h remaining",
+    ar: "متبقٍ {hours} ساعة",
+    es: "{hours}h restantes",
+  },
+  Projet: { en: "Project", ar: "المشروع", es: "Proyecto" },
+  Client: { en: "Client", ar: "العميل", es: "Cliente" },
+  Statut: { en: "Status", ar: "الحالة", es: "Estado" },
+  Budget: { en: "Budget", ar: "الميزانية", es: "Presupuesto" },
+  Échéance: { en: "Deadline", ar: "الموعد النهائي", es: "Plazo" },
+  Action: { en: "Action", ar: "إجراء", es: "Acción" },
+  "Réf.": { en: "Ref.", ar: "المرجع", es: "Ref." },
+  "Nouveau projet": { en: "New project", ar: "مشروع جديد", es: "Proyecto nuevo" },
+  "Non défini": { en: "Not set", ar: "غير محدد", es: "No definido" },
+  Voir: { en: "View", ar: "عرض", es: "Ver" },
+  "Avis envoyé": { en: "Review sent", ar: "تم إرسال التقييم", es: "Reseña enviada" },
+  Avis: { en: "Review", ar: "تقييم", es: "Reseña" },
+  Signaler: { en: "Report", ar: "إبلاغ", es: "Reportar" },
+  "Projets en cours": { en: "Projects in progress", ar: "المشاريع الجارية", es: "Proyectos en curso" },
+  "Suivez l'avancement de vos projets et leurs échéances.": {
+    en: "Track the progress of your projects and their deadlines.",
+    ar: "تابع تقدّم مشاريعك ومواعيدها النهائية.",
+    es: "Haz seguimiento del avance de tus proyectos y sus plazos.",
+  },
+  projet: { en: "project", ar: "مشروع", es: "proyecto" },
+  projets: { en: "projects", ar: "مشاريع", es: "proyectos" },
+  "Rechercher un projet...": {
+    en: "Search for a project...",
+    ar: "ابحث عن مشروع...",
+    es: "Buscar un proyecto...",
+  },
+  Période: { en: "Period", ar: "الفترة", es: "Periodo" },
+  "Tous les clients": { en: "All clients", ar: "جميع العملاء", es: "Todos los clientes" },
+  "Tous les statuts": { en: "All statuses", ar: "جميع الحالات", es: "Todos los estados" },
+  "Toutes les périodes": { en: "All periods", ar: "جميع الفترات", es: "Todos los periodos" },
+  "Trier par :": { en: "Sort by:", ar: "ترتيب حسب:", es: "Ordenar por:" },
+  "Plus récents": { en: "Most recent", ar: "الأحدث", es: "Más recientes" },
+  "Plus anciens": { en: "Oldest", ar: "الأقدم", es: "Más antiguos" },
+  Fermer: { en: "Close", ar: "إغلاق", es: "Cerrar" },
+  "Temps restant": { en: "Time remaining", ar: "الوقت المتبقي", es: "Tiempo restante" },
+  Objectif: { en: "Objective", ar: "الهدف", es: "Objetivo" },
+  "Laisser un avis": { en: "Leave a review", ar: "إضافة تقييم", es: "Dejar una reseña" },
+  "Client :": { en: "Client:", ar: "العميل:", es: "Cliente:" },
+  "Envoi...": { en: "Sending...", ar: "جارٍ الإرسال...", es: "Enviando..." },
+  "Envoyer l'avis": { en: "Send review", ar: "إرسال التقييم", es: "Enviar reseña" },
+  "Votre note": { en: "Your rating", ar: "تقييمك", es: "Tu calificación" },
+  étoile: { en: "star", ar: "نجمة", es: "estrella" },
+  étoiles: { en: "stars", ar: "نجوم", es: "estrellas" },
+  "Très insatisfait": { en: "Very dissatisfied", ar: "غير راضٍ على الإطلاق", es: "Muy insatisfecho" },
+  Insatisfait: { en: "Dissatisfied", ar: "غير راضٍ", es: "Insatisfecho" },
+  Neutre: { en: "Neutral", ar: "محايد", es: "Neutral" },
+  Satisfait: { en: "Satisfied", ar: "راضٍ", es: "Satisfecho" },
+  "Très satisfait": { en: "Very satisfied", ar: "راضٍ جدًا", es: "Muy satisfecho" },
+  "Votre avis": { en: "Your review", ar: "رأيك", es: "Tu reseña" },
+  "Partagez votre expérience avec ce client...": {
+    en: "Share your experience with this client...",
+    ar: "شارك تجربتك مع هذا العميل...",
+    es: "Comparte tu experiencia con este cliente...",
+  },
+  "Signaler un problème": { en: "Report an issue", ar: "الإبلاغ عن مشكلة", es: "Reportar un problema" },
+  "Projet « {title} » — ouvre un litige auprès des modérateurs (ex. client injoignable ou inactif).": {
+    en: 'Project "{title}" — opens a dispute with the moderators (e.g. unreachable or inactive client).',
+    ar: "المشروع «{title}» — يفتح نزاعًا لدى المشرفين (مثال: عميل يتعذر الوصول إليه أو غير نشط).",
+    es: "Proyecto «{title}» — abre una disputa con los moderadores (ej. cliente inaccesible o inactivo).",
+  },
+  "Envoyer le signalement": { en: "Send report", ar: "إرسال البلاغ", es: "Enviar reporte" },
+  Motif: { en: "Reason", ar: "السبب", es: "Motivo" },
+  "Expliquez la raison de ce signalement (ex. client injoignable depuis X jours)...": {
+    en: "Explain the reason for this report (e.g. client unreachable for X days)...",
+    ar: "اشرح سبب هذا البلاغ (مثال: تعذّر الوصول إلى العميل منذ X أيام)...",
+    es: "Explica el motivo de este reporte (ej. cliente inaccesible desde hace X días)...",
+  },
+  "Signalement envoyé — un modérateur va examiner votre demande.": {
+    en: "Report sent — a moderator will review your request.",
+    ar: "تم إرسال البلاغ — سيقوم أحد المشرفين بمراجعة طلبك.",
+    es: "Reporte enviado — un moderador revisará tu solicitud.",
+  },
+  "Impossible d'envoyer le signalement.": {
+    en: "Unable to send the report.",
+    ar: "تعذّر إرسال البلاغ.",
+    es: "No se pudo enviar el reporte.",
+  },
+  "Avis envoyé avec succès !": {
+    en: "Review sent successfully!",
+    ar: "تم إرسال التقييم بنجاح!",
+    es: "¡Reseña enviada con éxito!",
+  },
+  "Impossible d'envoyer l'avis.": {
+    en: "Unable to send the review.",
+    ar: "تعذّر إرسال التقييم.",
+    es: "No se pudo enviar la reseña.",
+  },
+  "Renseignez un motif avant d'envoyer.": {
+    en: "Please provide a reason before sending.",
+    ar: "يرجى تحديد سبب قبل الإرسال.",
+    es: "Indica un motivo antes de enviar.",
+  },
+} satisfies PageTextDict;
 
 const TABS = [
   { value: "all", label: "Tous" },
@@ -120,29 +242,45 @@ function getStatusConfig(status: string): (typeof STATUS_STYLES)[keyof typeof ST
   return STATUS_STYLES[status] ?? DEFAULT_STATUS_STYLE;
 }
 
-function describeRemainingTime(expectedEndDate: string | null | undefined): string {
-  if (!expectedEndDate) return "Non définie";
+function describeRemainingTime(
+  expectedEndDate: string | null | undefined,
+  tt: (source: string) => string,
+): { text: string; isUrgent: boolean } {
+  if (!expectedEndDate) return { text: tt("Non définie"), isUrgent: false };
 
   const endOfDeadlineDay = new Date(expectedEndDate);
   endOfDeadlineDay.setDate(endOfDeadlineDay.getDate() + 1);
   const diffMs = endOfDeadlineDay.getTime() - Date.now();
-  if (diffMs <= 0) return "Délai dépassé — passage Terminé imminent";
+  if (diffMs <= 0) {
+    return { text: tt("Délai dépassé — passage Terminé imminent"), isUrgent: true };
+  }
   const days = Math.floor(diffMs / 86_400_000);
   const hours = Math.floor((diffMs % 86_400_000) / 3_600_000);
 
-  if (days > 0) return `${days}j ${hours}h restantes`;
-  return `${hours}h restantes`;
+  if (days > 0) {
+    return {
+      text: tt("{days}j {hours}h restantes")
+        .replace("{days}", String(days))
+        .replace("{hours}", String(hours)),
+      isUrgent: false,
+    };
+  }
+  return {
+    text: tt("{hours}h restantes").replace("{hours}", String(hours)),
+    isUrgent: true,
+  };
 }
 
 function buildColumns(
   onViewDetails: (project: Project) => void,
   onReview: (project: Project) => void,
   onReport: (project: Project) => void,
+  tt: (source: string) => string,
 ): Column<Project>[] {
   return [
     {
       key: "project",
-      header: "Projet",
+      header: tt("Projet"),
       width: "minmax(0,2.2fr)",
       render: (project) => {
         const statusConfig = getStatusConfig(project.status);
@@ -158,7 +296,9 @@ function buildColumns(
               </p>
               <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-                {project.reference ? `Réf. ${project.reference.slice(0, 8)}` : "Nouveau projet"}
+                {project.reference
+                  ? `${tt("Réf.")} ${project.reference.slice(0, 8)}`
+                  : tt("Nouveau projet")}
               </p>
             </div>
           </div>
@@ -167,7 +307,7 @@ function buildColumns(
     },
     {
       key: "client",
-      header: "Client",
+      header: tt("Client"),
       render: (project) => (
         <p className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium text-foreground">
           <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.7} />
@@ -177,7 +317,7 @@ function buildColumns(
     },
     {
       key: "status",
-      header: "Statut",
+      header: tt("Statut"),
       render: (project) => {
         const config = getStatusConfig(project.status);
         const Icon = config.icon;
@@ -190,41 +330,40 @@ function buildColumns(
             `}
           >
             <Icon className="h-3 w-3" strokeWidth={2} />
-            {config.label}
+            {tt(config.label)}
           </span>
         );
       },
     },
     {
       key: "budget",
-      header: "Budget",
+      header: tt("Budget"),
       render: (project) => (
         <p className="truncate text-[13px] font-medium">
           {project.budgetMin !== null && project.budgetMax !== null
             ? `${project.budgetMin.toLocaleString()} € – ${project.budgetMax.toLocaleString()} €`
-            : "Non défini"}
+            : tt("Non défini")}
         </p>
       ),
     },
     {
       key: "deadline",
-      header: "Échéance",
+      header: tt("Échéance"),
       render: (project) => {
-        const time = describeRemainingTime(project.expectedEndDate);
-        const isUrgent = time.includes("dépassé") || (time.includes("h") && !time.includes("j"));
+        const time = describeRemainingTime(project.expectedEndDate, tt);
         return (
           <p
-            className={`flex items-center gap-1.5 text-[13px] ${isUrgent ? "text-destructive font-semibold" : "text-muted-foreground"}`}
+            className={`flex items-center gap-1.5 text-[13px] ${time.isUrgent ? "text-destructive font-semibold" : "text-muted-foreground"}`}
           >
             <CalendarDays className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />
-            <span className="truncate">{project.deadline || "Non définie"}</span>
+            <span className="truncate">{project.deadline || tt("Non définie")}</span>
           </p>
         );
       },
     },
     {
       key: "action",
-      header: "Action",
+      header: tt("Action"),
       render: (project) => (
         <div className="flex flex-wrap gap-2">
           <button
@@ -233,13 +372,13 @@ function buildColumns(
             className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-[13px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
           >
             <Eye className="h-3.5 w-3.5" strokeWidth={1.8} />
-            Voir
+            {tt("Voir")}
           </button>
           {project.status === "finished" &&
             (project.reviewedByAgency ? (
               <span className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-[13px] font-semibold text-emerald-700">
                 <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
-                Avis envoyé
+                {tt("Avis envoyé")}
               </span>
             ) : (
               <button
@@ -248,7 +387,7 @@ function buildColumns(
                 className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-amber-600 hover:shadow-md"
               >
                 <Star className="h-3.5 w-3.5 fill-current" strokeWidth={0} />
-                Avis
+                {tt("Avis")}
               </button>
             ))}
           {project.status === "in_progress" ? (
@@ -258,7 +397,7 @@ function buildColumns(
               className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-[13px] font-semibold text-foreground transition-all hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
             >
               <ShieldAlert className="h-3.5 w-3.5" strokeWidth={1.8} />
-              Signaler
+              {tt("Signaler")}
             </button>
           ) : null}
         </div>
@@ -268,6 +407,7 @@ function buildColumns(
 }
 
 function AgencyProjectsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [query, setQuery] = useState("");
@@ -288,13 +428,13 @@ function AgencyProjectsPage() {
       return reportProblem(reportTarget.id, reportReason.trim());
     },
     onSuccess: () => {
-      toast("Signalement envoyé — un modérateur va examiner votre demande.");
+      toast(tt("Signalement envoyé — un modérateur va examiner votre demande."));
       void queryClient.invalidateQueries({ queryKey: ["agency", "projects"] });
       setReportTarget(null);
       setReportReason("");
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'envoyer le signalement.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'envoyer le signalement."));
     },
   });
 
@@ -304,14 +444,14 @@ function AgencyProjectsPage() {
       return reviewClient(reviewTarget.id, reviewRating, reviewComment.trim() || undefined);
     },
     onSuccess: () => {
-      toast("Avis envoyé avec succès !");
+      toast(tt("Avis envoyé avec succès !"));
       void queryClient.invalidateQueries({ queryKey: ["agency", "projects"] });
       setReviewTarget(null);
       setReviewRating(5);
       setReviewComment("");
     },
     onError: (error) => {
-      toast(error instanceof ApiError ? error.message : "Impossible d'envoyer l'avis.");
+      toast(error instanceof ApiError ? error.message : tt("Impossible d'envoyer l'avis."));
     },
   });
 
@@ -348,17 +488,17 @@ function AgencyProjectsPage() {
             </div>
             <div>
               <h1 className="font-display text-[24px] font-bold tracking-tight">
-                Projets en cours
+                {tt("Projets en cours")}
               </h1>
               <p className="mt-1 text-[14px] text-muted-foreground">
-                Suivez l'avancement de vos projets et leurs échéances.
+                {tt("Suivez l'avancement de vos projets et leurs échéances.")}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary">
               <TrendingUp className="inline h-3.5 w-3.5 mr-1" />
-              {total ?? 0} projet{total !== 1 ? "s" : ""}
+              {total ?? 0} {tt(total !== 1 ? "projets" : "projet")}
             </span>
           </div>
         </div>
@@ -370,60 +510,65 @@ function AgencyProjectsPage() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Rechercher un projet..."
+              placeholder={tt("Rechercher un projet...")}
               className="w-full rounded-xl border border-border bg-card px-10 py-3 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-md transition-all"
             />
           </div>
         </div>
 
         <div className="mt-6">
-          <StatusTabs tabs={TABS} value={activeTab} onChange={setActiveTab} counts={counts} />
+          <StatusTabs
+            tabs={TABS.map((tab) => ({ ...tab, label: tt(tab.label) }))}
+            value={activeTab}
+            onChange={setActiveTab}
+            counts={counts}
+          />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Client
+              {tt("Client")}
             </label>
             <select className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all">
-              <option value="">Tous les clients</option>
+              <option value="">{tt("Tous les clients")}</option>
             </select>
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Statut
+              {tt("Statut")}
             </label>
             <select className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all">
-              <option value="">Tous les statuts</option>
+              <option value="">{tt("Tous les statuts")}</option>
             </select>
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Période
+              {tt("Période")}
             </label>
             <select className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all">
-              <option value="">Toutes les périodes</option>
+              <option value="">{tt("Toutes les périodes")}</option>
             </select>
           </div>
         </div>
 
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">
-            {total ?? 0} projet{total !== 1 ? "s" : ""}
+            {total ?? 0} {tt(total !== 1 ? "projets" : "projet")}
           </p>
           <button
             onClick={() => setSortDirection((current) => (current === "recent" ? "old" : "recent"))}
             type="button"
             className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
           >
-            Trier par : {sortDirection === "recent" ? "Plus récents" : "Plus anciens"}
+            {tt("Trier par :")} {tt(sortDirection === "recent" ? "Plus récents" : "Plus anciens")}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
           </button>
         </div>
 
         <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <DataTable
-            columns={buildColumns(setSelectedProject, setReviewTarget, setReportTarget)}
+            columns={buildColumns(setSelectedProject, setReviewTarget, setReportTarget, tt)}
             rows={projects}
             isLoading={isLoading}
           />
@@ -439,53 +584,59 @@ function AgencyProjectsPage() {
         }}
         title={selectedProject?.title ?? ""}
         {...(selectedProject?.reference
-          ? { description: `Réf. ${selectedProject.reference}` }
+          ? { description: `${tt("Réf.")} ${selectedProject.reference}` }
           : {})}
-        confirmLabel="Fermer"
+        confirmLabel={tt("Fermer")}
         onConfirm={() => setSelectedProject(null)}
       >
         {selectedProject ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Statut</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {tt("Statut")}
+                </p>
                 <p className="mt-1 text-[13px] font-semibold">{selectedProject.statusLabel}</p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Client</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {tt("Client")}
+                </p>
                 <p className="mt-1 text-[13px] font-semibold">
                   {selectedProject.partnerAgencyName ?? "—"}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
-                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Budget</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {tt("Budget")}
+                </p>
                 <p className="mt-1 text-[13px] font-semibold">
                   {selectedProject.budgetMin !== null && selectedProject.budgetMax !== null
                     ? `${selectedProject.budgetMin.toLocaleString()} € – ${selectedProject.budgetMax.toLocaleString()} €`
-                    : "Non défini"}
+                    : tt("Non défini")}
                 </p>
               </div>
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Échéance
+                  {tt("Échéance")}
                 </p>
                 <p className="mt-1 text-[13px] font-semibold">
-                  {selectedProject.deadline || "Non définie"}
+                  {selectedProject.deadline || tt("Non définie")}
                 </p>
               </div>
             </div>
             <div className="rounded-lg border border-border p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Temps restant
+                {tt("Temps restant")}
               </p>
               <p className="mt-1 text-[13px] font-semibold">
-                {describeRemainingTime(selectedProject.expectedEndDate)}
+                {describeRemainingTime(selectedProject.expectedEndDate, tt).text}
               </p>
             </div>
             {selectedProject.objective && (
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Objectif
+                  {tt("Objectif")}
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-[13px] leading-[1.6]">
                   {selectedProject.objective}
@@ -505,21 +656,21 @@ function AgencyProjectsPage() {
             setReviewComment("");
           }
         }}
-        title="Laisser un avis"
-        description={reviewTarget ? `Client : ${reviewTarget.partnerAgencyName ?? "—"}` : ""}
-        confirmLabel={reviewMutation.isPending ? "Envoi..." : "Envoyer l'avis"}
+        title={tt("Laisser un avis")}
+        description={reviewTarget ? `${tt("Client :")} ${reviewTarget.partnerAgencyName ?? "—"}` : ""}
+        confirmLabel={reviewMutation.isPending ? tt("Envoi...") : tt("Envoyer l'avis")}
         onConfirm={() => reviewMutation.mutate()}
       >
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-accent/30 p-4 text-center">
-            <p className="text-[13px] text-muted-foreground">Votre note</p>
+            <p className="text-[13px] text-muted-foreground">{tt("Votre note")}</p>
             <div className="mt-2 flex items-center justify-center gap-1.5">
               {[1, 2, 3, 4, 5].map((value) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setReviewRating(value)}
-                  aria-label={`${value} étoile${value > 1 ? "s" : ""}`}
+                  aria-label={`${value} ${tt(value > 1 ? "étoiles" : "étoile")}`}
                   className="transition-transform hover:scale-110"
                 >
                   <Star
@@ -532,19 +683,19 @@ function AgencyProjectsPage() {
               ))}
             </div>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              {reviewRating === 1 && "Très insatisfait"}
-              {reviewRating === 2 && "Insatisfait"}
-              {reviewRating === 3 && "Neutre"}
-              {reviewRating === 4 && "Satisfait"}
-              {reviewRating === 5 && "Très satisfait"}
+              {reviewRating === 1 && tt("Très insatisfait")}
+              {reviewRating === 2 && tt("Insatisfait")}
+              {reviewRating === 3 && tt("Neutre")}
+              {reviewRating === 4 && tt("Satisfait")}
+              {reviewRating === 5 && tt("Très satisfait")}
             </p>
           </div>
           <TextAreaField
-            label="Votre avis"
+            label={tt("Votre avis")}
             rows={4}
             value={reviewComment}
             onChange={(event) => setReviewComment(event.target.value)}
-            placeholder="Partagez votre expérience avec ce client..."
+            placeholder={tt("Partagez votre expérience avec ce client...")}
           />
         </div>
       </ActionModal>
@@ -557,27 +708,31 @@ function AgencyProjectsPage() {
             setReportReason("");
           }
         }}
-        title="Signaler un problème"
+        title={tt("Signaler un problème")}
         description={
           reportTarget
-            ? `Projet « ${reportTarget.title} » — ouvre un litige auprès des modérateurs (ex. client injoignable ou inactif).`
+            ? tt(
+                "Projet « {title} » — ouvre un litige auprès des modérateurs (ex. client injoignable ou inactif).",
+              ).replace("{title}", reportTarget.title)
             : ""
         }
-        confirmLabel={reportMutation.isPending ? "Envoi..." : "Envoyer le signalement"}
+        confirmLabel={reportMutation.isPending ? tt("Envoi...") : tt("Envoyer le signalement")}
         onConfirm={() => {
           if (!reportReason.trim()) {
-            toast("Renseignez un motif avant d'envoyer.");
+            toast(tt("Renseignez un motif avant d'envoyer."));
             return;
           }
           reportMutation.mutate();
         }}
       >
         <TextAreaField
-          label="Motif"
+          label={tt("Motif")}
           rows={4}
           value={reportReason}
           onChange={(event) => setReportReason(event.target.value)}
-          placeholder="Expliquez la raison de ce signalement (ex. client injoignable depuis X jours)..."
+          placeholder={tt(
+            "Expliquez la raison de ce signalement (ex. client injoignable depuis X jours)...",
+          )}
         />
       </ActionModal>
     </DashboardShell>

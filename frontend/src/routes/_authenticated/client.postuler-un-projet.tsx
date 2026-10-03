@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SmartBriefing } from "@/components/briefing/SmartBriefing";
 import { ArrowLeft, Sparkles, Clock } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 interface ClientPostulerUnProjetSearch {
   resume?: string | undefined;
@@ -29,8 +30,37 @@ export const Route = createFileRoute("/_authenticated/client/postuler-un-projet"
   component: ClientApplyPage,
 });
 
+const PAGE_TEXT = {
+  "Reprendre mon projet": {
+    en: "Resume my project",
+    ar: "متابعة مشروعي",
+    es: "Reanudar mi proyecto",
+  },
+  "Nouveau projet": {
+    en: "New project",
+    ar: "مشروع جديد",
+    es: "Nuevo proyecto",
+  },
+  "IA": {
+    en: "AI",
+    ar: "ذكاء اصطناعي",
+    es: "IA",
+  },
+  "brouillon": {
+    en: "draft",
+    ar: "مسودة",
+    es: "borrador",
+  },
+  "Projet visible par les agences correspondantes • 100% gratuit": {
+    en: "Project visible to matching agencies • 100% free",
+    ar: "المشروع مرئي للوكالات المطابقة • مجاني 100%",
+    es: "Proyecto visible para las agencias coincidentes • 100% gratis",
+  },
+} satisfies PageTextDict;
+
 function ClientApplyPage() {
   const { resume } = Route.useSearch();
+  const { tt } = usePageText(PAGE_TEXT);
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,18 +75,18 @@ function ClientApplyPage() {
           </Link>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-[18px] font-bold tracking-tight">
-              {resume ? "Reprendre mon projet" : "Nouveau projet"}
+              {resume ? tt("Reprendre mon projet") : tt("Nouveau projet")}
             </h1>
             {!resume && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                 <Sparkles className="h-2.5 w-2.5" strokeWidth={2} />
-                IA
+                {tt("IA")}
               </span>
             )}
             {resume && (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                 <Clock className="h-2.5 w-2.5" strokeWidth={2} />
-                brouillon
+                {tt("brouillon")}
               </span>
             )}
           </div>
@@ -69,7 +99,7 @@ function ClientApplyPage() {
 
         {/* ✅ FOOTER MINIMALISTE */}
         <div className="mt-3 text-center text-[11px] text-muted-foreground">
-          <span>Projet visible par les agences correspondantes • 100% gratuit</span>
+          <span>{tt("Projet visible par les agences correspondantes • 100% gratuit")}</span>
         </div>
       </div>
     </div>

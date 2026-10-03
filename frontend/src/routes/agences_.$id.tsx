@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { SectionCard, StatusBadge } from "@/components/common/Blocks";
 import { StackSkeleton } from "@/components/common/Skeletons";
@@ -190,7 +191,456 @@ function initialsOf(name: string): string {
     .join("");
 }
 
+const PAGE_TEXT = {
+  "Impossible de charger cette agence.": {
+    en: "Unable to load this agency.",
+    ar: "تعذر تحميل بيانات هذه الوكالة.",
+    es: "No se pudo cargar esta agencia.",
+  },
+  "Agence ajoutée à vos favoris": {
+    en: "Agency added to your favorites",
+    ar: "تمت إضافة الوكالة إلى مفضلاتك",
+    es: "Agencia añadida a tus favoritos",
+  },
+  "Agence retirée de vos favoris": {
+    en: "Agency removed from your favorites",
+    ar: "تمت إزالة الوكالة من مفضلاتك",
+    es: "Agencia eliminada de tus favoritos",
+  },
+  "Action impossible.": {
+    en: "This action failed.",
+    ar: "تعذر تنفيذ هذا الإجراء.",
+    es: "No se pudo realizar esta acción.",
+  },
+  "Décrivez votre besoin avant d'envoyer.": {
+    en: "Describe your need before sending.",
+    ar: "يرجى وصف احتياجك قبل الإرسال.",
+    es: "Describe tu necesidad antes de enviar.",
+  },
+  "Votre demande a été envoyée à l'agence, avec le cahier des charges généré à partir de vos informations.": {
+    en: "Your request has been sent to the agency, along with the brief generated from your information.",
+    ar: "تم إرسال طلبك إلى الوكالة، مع كراسة الشروط التي تم إنشاؤها بناءً على معلوماتك.",
+    es: "Tu solicitud ha sido enviada a la agencia, junto con el pliego de condiciones generado a partir de tu información.",
+  },
+  "Votre demande a été envoyée à l'agence.": {
+    en: "Your request has been sent to the agency.",
+    ar: "تم إرسال طلبك إلى الوكالة.",
+    es: "Tu solicitud ha sido enviada a la agencia.",
+  },
+  "Envoi impossible.": {
+    en: "Sending failed.",
+    ar: "تعذر الإرسال.",
+    es: "No se pudo enviar.",
+  },
+  "Retour aux agences": {
+    en: "Back to agencies",
+    ar: "العودة إلى الوكالات",
+    es: "Volver a las agencias",
+  },
+  "Aucune donnée disponible pour cette agence.": {
+    en: "No data available for this agency.",
+    ar: "لا توجد بيانات متاحة لهذه الوكالة.",
+    es: "No hay datos disponibles para esta agencia.",
+  },
+  "Non spécifiée": {
+    en: "Not specified",
+    ar: "غير محدد",
+    es: "No especificada",
+  },
+  "Vérifié": {
+    en: "Verified",
+    ar: "موثّق",
+    es: "Verificada",
+  },
+  "Depuis ": {
+    en: "Since ",
+    ar: "منذ عام ",
+    es: "Desde ",
+  },
+  " employés": {
+    en: " employees",
+    ar: " موظف",
+    es: " empleados",
+  },
+  "avis": {
+    en: "reviews",
+    ar: "تقييمات",
+    es: "reseñas",
+  },
+  "Aucune description disponible.": {
+    en: "No description available.",
+    ar: "لا يوجد وصف متاح.",
+    es: "No hay descripción disponible.",
+  },
+  "Contacter": {
+    en: "Contact",
+    ar: "تواصل",
+    es: "Contactar",
+  },
+  "Favori": {
+    en: "Favorited",
+    ar: "في المفضلة",
+    es: "Favorita",
+  },
+  "Ajouter aux favoris": {
+    en: "Add to favorites",
+    ar: "أضف إلى المفضلة",
+    es: "Añadir a favoritos",
+  },
+  "Publier un projet": {
+    en: "Post a project",
+    ar: "نشر مشروع",
+    es: "Publicar un proyecto",
+  },
+  "Réalisations": {
+    en: "Work",
+    ar: "الأعمال",
+    es: "Trabajos",
+  },
+  "Services": {
+    en: "Services",
+    ar: "الخدمات",
+    es: "Servicios",
+  },
+  "Note moyenne": {
+    en: "Average rating",
+    ar: "متوسط التقييم",
+    es: "Valoración media",
+  },
+  "Avis clients": {
+    en: "Client reviews",
+    ar: "تقييمات العملاء",
+    es: "Reseñas de clientes",
+  },
+  "Aperçu": {
+    en: "Overview",
+    ar: "نظرة عامة",
+    es: "Resumen",
+  },
+  "Portfolio": {
+    en: "Portfolio",
+    ar: "معرض الأعمال",
+    es: "Portafolio",
+  },
+  "Prestations": {
+    en: "Services",
+    ar: "الخدمات",
+    es: "Prestaciones",
+  },
+  "Certificats": {
+    en: "Certifications",
+    ar: "الشهادات",
+    es: "Certificados",
+  },
+  "Équipe": {
+    en: "Team",
+    ar: "الفريق",
+    es: "Equipo",
+  },
+  "Avis": {
+    en: "Reviews",
+    ar: "التقييمات",
+    es: "Reseñas",
+  },
+  "Contact": {
+    en: "Contact",
+    ar: "التواصل",
+    es: "Contacto",
+  },
+  "À propos et compétences": {
+    en: "About and skills",
+    ar: "نبذة ومهارات",
+    es: "Acerca de y habilidades",
+  },
+  "Présentation, expertise et technologies de l'agence.": {
+    en: "The agency's presentation, expertise, and technologies.",
+    ar: "تقديم الوكالة وخبرتها والتقنيات التي تستخدمها.",
+    es: "Presentación, experiencia y tecnologías de la agencia.",
+  },
+  "Aucune donnée disponible": {
+    en: "No data available",
+    ar: "لا توجد بيانات متاحة",
+    es: "No hay datos disponibles",
+  },
+  "Aucune présentation renseignée pour le moment.": {
+    en: "No presentation provided yet.",
+    ar: "لم يتم إضافة أي تقديم حتى الآن.",
+    es: "Aún no se ha proporcionado ninguna presentación.",
+  },
+  "Compétences": {
+    en: "Skills",
+    ar: "المهارات",
+    es: "Habilidades",
+  },
+  "Non renseigné.": {
+    en: "Not provided.",
+    ar: "غير محدد.",
+    es: "No proporcionado.",
+  },
+  "Technologies": {
+    en: "Technologies",
+    ar: "التقنيات",
+    es: "Tecnologías",
+  },
+  "Langues": {
+    en: "Languages",
+    ar: "اللغات",
+    es: "Idiomas",
+  },
+  "Services proposés": {
+    en: "Services offered",
+    ar: "الخدمات المقدمة",
+    es: "Servicios ofrecidos",
+  },
+  "Aperçu rapide des prestations de l'agence.": {
+    en: "A quick look at the agency's services.",
+    ar: "نظرة سريعة على خدمات الوكالة.",
+    es: "Un vistazo rápido a los servicios de la agencia.",
+  },
+  "Voir tous →": {
+    en: "View all →",
+    ar: "عرض الكل ←",
+    es: "Ver todos →",
+  },
+  "Aperçu des projets réalisés.": {
+    en: "A preview of completed projects.",
+    ar: "نظرة سريعة على المشاريع المنجزة.",
+    es: "Una vista previa de los proyectos realizados.",
+  },
+  "Voir toutes →": {
+    en: "View all →",
+    ar: "عرض الكل ←",
+    es: "Ver todas →",
+  },
+  "Réalisations publiées par l'agence.": {
+    en: "Work published by the agency.",
+    ar: "الأعمال المنشورة من قبل الوكالة.",
+    es: "Trabajos publicados por la agencia.",
+  },
+  "Aucune réalisation à afficher.": {
+    en: "No work to display.",
+    ar: "لا توجد أعمال لعرضها.",
+    es: "No hay trabajos para mostrar.",
+  },
+  "En cours": {
+    en: "In progress",
+    ar: "قيد التنفيذ",
+    es: "En curso",
+  },
+  "Services proposés par l'agence.": {
+    en: "Services offered by the agency.",
+    ar: "الخدمات التي تقدمها الوكالة.",
+    es: "Servicios ofrecidos por la agencia.",
+  },
+  "Aucune prestation renseignée.": {
+    en: "No services provided yet.",
+    ar: "لم تتم إضافة أي خدمة بعد.",
+    es: "Aún no se ha proporcionado ningún servicio.",
+  },
+  "Certifications mises en avant par l'agence.": {
+    en: "Certifications highlighted by the agency.",
+    ar: "الشهادات التي تبرزها الوكالة.",
+    es: "Certificaciones destacadas por la agencia.",
+  },
+  "Aucun certificat renseigné.": {
+    en: "No certifications added yet.",
+    ar: "لم تتم إضافة أي شهادة بعد.",
+    es: "Aún no se ha añadido ningún certificado.",
+  },
+  "Membres de l'agence mis en avant publiquement.": {
+    en: "Agency members featured publicly.",
+    ar: "أعضاء الوكالة الظاهرون للعموم.",
+    es: "Miembros de la agencia destacados públicamente.",
+  },
+  "Aucun membre d'équipe renseigné.": {
+    en: "No team members added yet.",
+    ar: "لم تتم إضافة أي عضو في الفريق بعد.",
+    es: "Aún no se ha añadido ningún miembro del equipo.",
+  },
+  "Membre": {
+    en: "Member",
+    ar: "عضو",
+    es: "Miembro",
+  },
+  "Retours des clients ayant collaboré avec l'agence.": {
+    en: "Feedback from clients who have worked with the agency.",
+    ar: "آراء العملاء الذين تعاملوا مع الوكالة.",
+    es: "Opiniones de los clientes que han colaborado con la agencia.",
+  },
+  "Aucun avis à afficher.": {
+    en: "No reviews to display.",
+    ar: "لا توجد تقييمات لعرضها.",
+    es: "No hay reseñas para mostrar.",
+  },
+  "Coordonnées de ": {
+    en: "Contact details for ",
+    ar: "معلومات التواصل الخاصة بـ ",
+    es: "Datos de contacto de ",
+  },
+  "Coordonnées de l'agence.": {
+    en: "Agency contact details.",
+    ar: "معلومات التواصل الخاصة بالوكالة.",
+    es: "Datos de contacto de la agencia.",
+  },
+  "Carte de ": {
+    en: "Map of ",
+    ar: "خريطة ",
+    es: "Mapa de ",
+  },
+  "Ouvrir dans Google Maps": {
+    en: "Open in Google Maps",
+    ar: "فتح في خرائط جوجل",
+    es: "Abrir en Google Maps",
+  },
+  "Contacter ": {
+    en: "Contact ",
+    ar: "تواصل مع ",
+    es: "Contactar a ",
+  },
+  "Siège social": {
+    en: "Headquarters",
+    ar: "المقر الرئيسي",
+    es: "Sede social",
+  },
+  "Agences similaires": {
+    en: "Similar agencies",
+    ar: "وكالات مشابهة",
+    es: "Agencias similares",
+  },
+  "Découvrir plus d'agences": {
+    en: "Discover more agencies",
+    ar: "اكتشف المزيد من الوكالات",
+    es: "Descubrir más agencias",
+  },
+  "Défiler vers la gauche": {
+    en: "Scroll left",
+    ar: "التمرير إلى اليمين",
+    es: "Desplazar a la izquierda",
+  },
+  "Défiler vers la droite": {
+    en: "Scroll right",
+    ar: "التمرير إلى اليسار",
+    es: "Desplazar a la derecha",
+  },
+  "Voir le résultat": {
+    en: "View the result",
+    ar: "عرض النتيجة",
+    es: "Ver el resultado",
+  },
+  "Fermer": {
+    en: "Close",
+    ar: "إغلاق",
+    es: "Cerrar",
+  },
+  "Contacter l'agence": {
+    en: "Contact the agency",
+    ar: "تواصل مع الوكالة",
+    es: "Contactar a la agencia",
+  },
+  "Renseignez votre besoin, le cahier des charges (CDC) est généré automatiquement et envoyé uniquement à cette agence.": {
+    en: "Describe your need — the brief is generated automatically and sent only to this agency.",
+    ar: "صف احتياجك، وسيتم إنشاء كراسة الشروط تلقائيًا وإرسالها إلى هذه الوكالة فقط.",
+    es: "Describe tu necesidad: el pliego de condiciones se genera automáticamente y se envía únicamente a esta agencia.",
+  },
+  "Votre demande sera envoyée uniquement à cette agence.": {
+    en: "Your request will be sent only to this agency.",
+    ar: "سيتم إرسال طلبك إلى هذه الوكالة فقط.",
+    es: "Tu solicitud se enviará únicamente a esta agencia.",
+  },
+  "Envoi...": {
+    en: "Sending...",
+    ar: "جارٍ الإرسال...",
+    es: "Enviando...",
+  },
+  "Envoyer": {
+    en: "Send",
+    ar: "إرسال",
+    es: "Enviar",
+  },
+  "Type de besoin": {
+    en: "Type of need",
+    ar: "نوع الطلب",
+    es: "Tipo de necesidad",
+  },
+  "Projet": {
+    en: "Project",
+    ar: "مشروع",
+    es: "Proyecto",
+  },
+  "Stage": {
+    en: "Internship",
+    ar: "تدريب",
+    es: "Prácticas",
+  },
+  "Job": {
+    en: "Job",
+    ar: "وظيفة",
+    es: "Empleo",
+  },
+  "Titre du projet": {
+    en: "Project title",
+    ar: "عنوان المشروع",
+    es: "Título del proyecto",
+  },
+  "Ex. Refonte de notre site vitrine": {
+    en: "E.g. Redesign of our showcase website",
+    ar: "مثال: إعادة تصميم موقعنا الإلكتروني",
+    es: "Ej. Rediseño de nuestro sitio web corporativo",
+  },
+  "Décrivez votre besoin": {
+    en: "Describe your need",
+    ar: "صف احتياجك",
+    es: "Describe tu necesidad",
+  },
+  "Contexte, objectifs, contraintes...": {
+    en: "Context, goals, constraints...",
+    ar: "السياق، الأهداف، القيود...",
+    es: "Contexto, objetivos, limitaciones...",
+  },
+  "Catégorie": {
+    en: "Category",
+    ar: "الفئة",
+    es: "Categoría",
+  },
+  "Sélectionner...": {
+    en: "Select...",
+    ar: "اختر...",
+    es: "Seleccionar...",
+  },
+  "Sous-catégorie": {
+    en: "Subcategory",
+    ar: "الفئة الفرعية",
+    es: "Subcategoría",
+  },
+  "Budget min (€)": {
+    en: "Minimum budget (€)",
+    ar: "الميزانية الدنيا (€)",
+    es: "Presupuesto mínimo (€)",
+  },
+  "Budget max (€)": {
+    en: "Maximum budget (€)",
+    ar: "الميزانية القصوى (€)",
+    es: "Presupuesto máximo (€)",
+  },
+  "Localisation": {
+    en: "Location",
+    ar: "الموقع",
+    es: "Ubicación",
+  },
+  "Ex. Casablanca, à distance...": {
+    en: "E.g. Casablanca, remote...",
+    ar: "مثال: الدار البيضاء، عن بُعد...",
+    es: "Ej. Casablanca, en remoto...",
+  },
+  "Délai souhaité (jours)": {
+    en: "Desired timeline (days)",
+    ar: "المدة المرغوبة (بالأيام)",
+    es: "Plazo deseado (días)",
+  },
+} satisfies PageTextDict;
+
 function PublicAgencyProfilePage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const { id } = Route.useParams();
   const token = useAuthStore((state) => state.token);
   const authUser = useAuthStore((state) => state.user);
@@ -241,7 +691,7 @@ function PublicAgencyProfilePage() {
     getAgencyProfile(id)
       .then(setAgency)
       .catch((error: unknown) => {
-        toast(error instanceof ApiError ? error.message : "Impossible de charger cette agence.");
+        toast(error instanceof ApiError ? error.message : tt("Impossible de charger cette agence."));
         setAgency(null);
       })
       .finally(() => setIsLoading(false));
@@ -280,12 +730,12 @@ function PublicAgencyProfilePage() {
     try {
       const result = await toggleFavoriteAgency(id);
       setIsFavorite(result.favorited);
-      toast(result.favorited ? "Agence ajoutée à vos favoris" : "Agence retirée de vos favoris");
+      toast(result.favorited ? tt("Agence ajoutée à vos favoris") : tt("Agence retirée de vos favoris"));
       if (result.favorited) {
         trackProspectionSignal(id, "favorite", { clientEmail, clientName }).catch(() => {});
       }
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Action impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Action impossible."));
     } finally {
       setIsTogglingFavorite(false);
     }
@@ -347,7 +797,7 @@ function PublicAgencyProfilePage() {
 
   async function handleSubmitContact() {
     if (!contactForm.description.trim()) {
-      toast("Décrivez votre besoin avant d'envoyer.");
+      toast(tt("Décrivez votre besoin avant d'envoyer."));
       return;
     }
     setIsSubmittingContact(true);
@@ -367,8 +817,8 @@ function PublicAgencyProfilePage() {
       });
       toast(
         contactForm.needType === "Projet"
-          ? "Votre demande a été envoyée à l'agence, avec le cahier des charges généré à partir de vos informations."
-          : "Votre demande a été envoyée à l'agence.",
+          ? tt("Votre demande a été envoyée à l'agence, avec le cahier des charges généré à partir de vos informations.")
+          : tt("Votre demande a été envoyée à l'agence."),
       );
       setIsContactOpen(false);
       setContactForm({
@@ -383,7 +833,7 @@ function PublicAgencyProfilePage() {
         deliveryDelayDays: "",
       });
     } catch (error) {
-      toast(error instanceof ApiError ? error.message : "Envoi impossible.");
+      toast(error instanceof ApiError ? error.message : tt("Envoi impossible."));
     } finally {
       setIsSubmittingContact(false);
     }
@@ -400,7 +850,7 @@ function PublicAgencyProfilePage() {
           className="mt-6 inline-flex items-center gap-2 text-[14px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
-          Retour aux agences
+          {tt("Retour aux agences")}
         </Link>
 
         {/* EN-TÊTE MODERNISÉ */}
@@ -411,7 +861,7 @@ function PublicAgencyProfilePage() {
             </div>
           ) : agency === null ? (
             <div className="p-6">
-              <EmptyState message="Aucune donnée disponible pour cette agence." />
+              <EmptyState message={tt("Aucune donnée disponible pour cette agence.")} />
             </div>
           ) : (
             <div className="relative">
@@ -453,7 +903,7 @@ function PublicAgencyProfilePage() {
                       {agency.legalIdValid && (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
                           <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2} />
-                          Vérifié
+                          {tt("Vérifié")}
                         </span>
                       )}
                     </div>
@@ -461,18 +911,18 @@ function PublicAgencyProfilePage() {
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <MapPin className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-                        {agency.location || "Non spécifiée"}
+                        {agency.location || tt("Non spécifiée")}
                       </span>
                       {agency.foundedYear && (
                         <span className="flex items-center gap-1.5">
                           <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-                          Depuis {agency.foundedYear}
+                          {tt("Depuis ")}{agency.foundedYear}
                         </span>
                       )}
                       {agency.teamSize && (
                         <span className="flex items-center gap-1.5">
                           <Users className="h-4 w-4 shrink-0" strokeWidth={1.7} />
-                          {agency.teamSize} employés
+                          {agency.teamSize}{tt(" employés")}
                         </span>
                       )}
                     </div>
@@ -495,13 +945,13 @@ function PublicAgencyProfilePage() {
                         </div>
                         <span className="text-[14px] font-semibold">{agency.rating || "—"}</span>
                         <span className="text-[13px] text-muted-foreground">
-                          ({agency.reviewsCount || 0} avis)
+                          ({agency.reviewsCount || 0} {tt("avis")})
                         </span>
                       </div>
                     </div>
 
                     <p className="mt-4 max-w-[62ch] text-[15px] leading-[1.6] text-muted-foreground">
-                      {agency.description || "Aucune description disponible."}
+                      {agency.description || tt("Aucune description disponible.")}
                     </p>
 
                     {/* CONTACTS RAPIDES */}
@@ -546,7 +996,7 @@ function PublicAgencyProfilePage() {
                       className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-[14px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md"
                     >
                       <Send className="h-4 w-4" strokeWidth={1.8} />
-                      Contacter
+                      {tt("Contacter")}
                     </button>
                     <button
                       type="button"
@@ -559,7 +1009,7 @@ function PublicAgencyProfilePage() {
                         strokeWidth={1.8}
                         fill={isFavorite ? "currentColor" : "none"}
                       />
-                      {isFavorite ? "Favori" : "Ajouter aux favoris"}
+                      {isFavorite ? tt("Favori") : tt("Ajouter aux favoris")}
                     </button>
                     <Link
                       to="/postuler-un-projet"
@@ -567,7 +1017,7 @@ function PublicAgencyProfilePage() {
                       className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-[14px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
                     >
                       <FileText className="h-4 w-4" strokeWidth={1.8} />
-                      Publier un projet
+                      {tt("Publier un projet")}
                     </Link>
                   </div>
                 </div>
@@ -582,17 +1032,17 @@ function PublicAgencyProfilePage() {
             <div className="flex flex-col items-center gap-1 px-3 py-4 text-center">
               <ImageIcon className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.6} />
               <p className="text-[18px] font-bold leading-none">{portfolio.length}</p>
-              <p className="text-[12px] text-muted-foreground">Réalisations</p>
+              <p className="text-[12px] text-muted-foreground">{tt("Réalisations")}</p>
             </div>
             <div className="flex flex-col items-center gap-1 px-3 py-4 text-center">
               <Briefcase className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.6} />
               <p className="text-[18px] font-bold leading-none">{services.length}</p>
-              <p className="text-[12px] text-muted-foreground">Services</p>
+              <p className="text-[12px] text-muted-foreground">{tt("Services")}</p>
             </div>
             <div className="flex flex-col items-center gap-1 px-3 py-4 text-center">
               <Star className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.6} />
               <p className="text-[18px] font-bold leading-none">{agency.rating ?? "—"}</p>
-              <p className="text-[12px] text-muted-foreground">Note moyenne</p>
+              <p className="text-[12px] text-muted-foreground">{tt("Note moyenne")}</p>
             </div>
             <div className="flex flex-col items-center gap-1 px-3 py-4 text-center">
               <MessageSquare
@@ -600,7 +1050,7 @@ function PublicAgencyProfilePage() {
                 strokeWidth={1.6}
               />
               <p className="text-[18px] font-bold leading-none">{agency.reviewsCount ?? 0}</p>
-              <p className="text-[12px] text-muted-foreground">Avis clients</p>
+              <p className="text-[12px] text-muted-foreground">{tt("Avis clients")}</p>
             </div>
           </div>
         )}
@@ -622,7 +1072,7 @@ function PublicAgencyProfilePage() {
                   }`}
                 >
                   <Icon className="h-4 w-4" strokeWidth={1.8} />
-                  {tab.label}
+                  {tt(tab.label)}
                   {count !== undefined && count > 0 && (
                     <span
                       className={`ml-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
@@ -646,9 +1096,9 @@ function PublicAgencyProfilePage() {
             {activeTab === "apercu" && (
               <div className="space-y-6">
                 <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                  <h2 className="text-[16px] font-bold">À propos et compétences</h2>
+                  <h2 className="text-[16px] font-bold">{tt("À propos et compétences")}</h2>
                   <p className="text-[13px] text-muted-foreground">
-                    Présentation, expertise et technologies de l'agence.
+                    {tt("Présentation, expertise et technologies de l'agence.")}
                   </p>
                   {isLoading ? (
                     <div className="mt-5">
@@ -656,21 +1106,21 @@ function PublicAgencyProfilePage() {
                     </div>
                   ) : agency === null ? (
                     <div className="mt-5">
-                      <EmptyState message="Aucune donnée disponible" />
+                      <EmptyState message={tt("Aucune donnée disponible")} />
                     </div>
                   ) : (
                     <div className="mt-5 space-y-6">
                       <p className="text-[14.5px] leading-[1.7] text-muted-foreground">
-                        {agency.description || "Aucune présentation renseignée pour le moment."}
+                        {agency.description || tt("Aucune présentation renseignée pour le moment.")}
                       </p>
                       <div className="grid grid-cols-1 gap-5 border-t border-border pt-5 sm:grid-cols-3">
                         <div>
                           <p className="text-[13px] font-semibold text-muted-foreground">
-                            Compétences
+                            {tt("Compétences")}
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2">
                             {(agency.skills ?? []).length === 0 ? (
-                              <p className="text-[13px] text-muted-foreground">Non renseigné.</p>
+                              <p className="text-[13px] text-muted-foreground">{tt("Non renseigné.")}</p>
                             ) : (
                               (agency.skills ?? []).map((skill) => (
                                 <span
@@ -685,11 +1135,11 @@ function PublicAgencyProfilePage() {
                         </div>
                         <div>
                           <p className="text-[13px] font-semibold text-muted-foreground">
-                            Technologies
+                            {tt("Technologies")}
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2">
                             {(agency.techStack ?? []).length === 0 ? (
-                              <p className="text-[13px] text-muted-foreground">Non renseigné.</p>
+                              <p className="text-[13px] text-muted-foreground">{tt("Non renseigné.")}</p>
                             ) : (
                               (agency.techStack ?? []).map((tech) => (
                                 <span
@@ -703,10 +1153,10 @@ function PublicAgencyProfilePage() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-[13px] font-semibold text-muted-foreground">Langues</p>
+                          <p className="text-[13px] font-semibold text-muted-foreground">{tt("Langues")}</p>
                           <div className="mt-2 flex flex-wrap gap-2">
                             {(agency.languages ?? []).length === 0 ? (
-                              <p className="text-[13px] text-muted-foreground">Non renseigné.</p>
+                              <p className="text-[13px] text-muted-foreground">{tt("Non renseigné.")}</p>
                             ) : (
                               (agency.languages ?? []).map((language) => (
                                 <span
@@ -728,9 +1178,9 @@ function PublicAgencyProfilePage() {
                   <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-[16px] font-bold">Services proposés</h2>
+                        <h2 className="text-[16px] font-bold">{tt("Services proposés")}</h2>
                         <p className="text-[13px] text-muted-foreground">
-                          Aperçu rapide des prestations de l'agence.
+                          {tt("Aperçu rapide des prestations de l'agence.")}
                         </p>
                       </div>
                       <button
@@ -738,7 +1188,7 @@ function PublicAgencyProfilePage() {
                         onClick={() => selectTab("prestations")}
                         className="text-[13px] font-semibold text-primary hover:underline"
                       >
-                        Voir tous →
+                        {tt("Voir tous →")}
                       </button>
                     </div>
                     <ul className="mt-5 divide-y divide-border">
@@ -768,9 +1218,9 @@ function PublicAgencyProfilePage() {
                   <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-[16px] font-bold">Réalisations</h2>
+                        <h2 className="text-[16px] font-bold">{tt("Réalisations")}</h2>
                         <p className="text-[13px] text-muted-foreground">
-                          Aperçu des projets réalisés.
+                          {tt("Aperçu des projets réalisés.")}
                         </p>
                       </div>
                       <button
@@ -778,7 +1228,7 @@ function PublicAgencyProfilePage() {
                         onClick={() => selectTab("portfolio")}
                         className="text-[13px] font-semibold text-primary hover:underline"
                       >
-                        Voir toutes →
+                        {tt("Voir toutes →")}
                       </button>
                     </div>
                     <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -822,15 +1272,15 @@ function PublicAgencyProfilePage() {
             <div id="section-portfolio" className="scroll-mt-24" />
             {activeTab === "portfolio" && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <h2 className="text-[16px] font-bold">Portfolio</h2>
+                <h2 className="text-[16px] font-bold">{tt("Portfolio")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Réalisations publiées par l'agence.
+                  {tt("Réalisations publiées par l'agence.")}
                 </p>
                 <div className="mt-5">
                   {isLoading ? (
                     <StackSkeleton count={3} />
                   ) : portfolio.length === 0 ? (
-                    <EmptyState message="Aucune réalisation à afficher." />
+                    <EmptyState message={tt("Aucune réalisation à afficher.")} />
                   ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {portfolio.map((item) => (
@@ -858,7 +1308,7 @@ function PublicAgencyProfilePage() {
                           <div className="p-4">
                             <p className="text-[14px] font-bold">{item.title}</p>
                             <p className="mt-1 text-[13px] text-muted-foreground">
-                              {item.status || "En cours"}
+                              {item.status || tt("En cours")}
                             </p>
                           </div>
                         </div>
@@ -873,13 +1323,13 @@ function PublicAgencyProfilePage() {
             <div id="section-prestations" className="scroll-mt-24" />
             {activeTab === "prestations" && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <h2 className="text-[16px] font-bold">Prestations</h2>
-                <p className="text-[13px] text-muted-foreground">Services proposés par l'agence.</p>
+                <h2 className="text-[16px] font-bold">{tt("Prestations")}</h2>
+                <p className="text-[13px] text-muted-foreground">{tt("Services proposés par l'agence.")}</p>
                 <div className="mt-5">
                   {isLoading ? (
                     <StackSkeleton count={2} />
                   ) : services.length === 0 ? (
-                    <EmptyState message="Aucune prestation renseignée." />
+                    <EmptyState message={tt("Aucune prestation renseignée.")} />
                   ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       {services.map((service, index) => (
@@ -915,15 +1365,15 @@ function PublicAgencyProfilePage() {
             <div id="section-certificats" className="scroll-mt-24" />
             {activeTab === "certificats" && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <h2 className="text-[16px] font-bold">Certificats</h2>
+                <h2 className="text-[16px] font-bold">{tt("Certificats")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Certifications mises en avant par l'agence.
+                  {tt("Certifications mises en avant par l'agence.")}
                 </p>
                 <div className="mt-5">
                   {isLoading ? (
                     <StackSkeleton count={2} />
                   ) : certifications.length === 0 ? (
-                    <EmptyState message="Aucun certificat renseigné." />
+                    <EmptyState message={tt("Aucun certificat renseigné.")} />
                   ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       {certifications.map((cert, index) => (
@@ -960,15 +1410,15 @@ function PublicAgencyProfilePage() {
             <div id="section-equipe" className="scroll-mt-24" />
             {activeTab === "equipe" && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <h2 className="text-[16px] font-bold">Équipe</h2>
+                <h2 className="text-[16px] font-bold">{tt("Équipe")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  Membres de l'agence mis en avant publiquement.
+                  {tt("Membres de l'agence mis en avant publiquement.")}
                 </p>
                 <div className="mt-5">
                   {isLoading ? (
                     <StackSkeleton count={2} />
                   ) : team.length === 0 ? (
-                    <EmptyState message="Aucun membre d'équipe renseigné." />
+                    <EmptyState message={tt("Aucun membre d'équipe renseigné.")} />
                   ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {team.map((member, index) => (
@@ -991,7 +1441,7 @@ function PublicAgencyProfilePage() {
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="text-[14px] font-bold">{member.memberName || "Membre"}</p>
+                            <p className="text-[14px] font-bold">{member.memberName || tt("Membre")}</p>
                             {member.role && (
                               <p className="text-[13px] text-muted-foreground">{member.role}</p>
                             )}
@@ -1015,9 +1465,9 @@ function PublicAgencyProfilePage() {
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <div className="flex items-center justify-between border-b border-border pb-4">
                   <div>
-                    <h2 className="text-[16px] font-bold">Avis clients</h2>
+                    <h2 className="text-[16px] font-bold">{tt("Avis clients")}</h2>
                     <p className="text-[13px] text-muted-foreground">
-                      Retours des clients ayant collaboré avec l'agence.
+                      {tt("Retours des clients ayant collaboré avec l'agence.")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1044,7 +1494,7 @@ function PublicAgencyProfilePage() {
                   {isReviewsLoading ? (
                     <StackSkeleton count={3} />
                   ) : reviews.length === 0 ? (
-                    <EmptyState message="Aucun avis à afficher." />
+                    <EmptyState message={tt("Aucun avis à afficher.")} />
                   ) : (
                     <>
                       {/* RÉPARTITION DES NOTES */}
@@ -1068,7 +1518,7 @@ function PublicAgencyProfilePage() {
                               />
                             ))}
                           </div>
-                          <p className="text-[12px] text-muted-foreground">{reviews.length} avis</p>
+                          <p className="text-[12px] text-muted-foreground">{reviews.length} {tt("avis")}</p>
                         </div>
                         <div className="flex-1 space-y-1.5">
                           {ratingBreakdown.map((row) => (
@@ -1141,20 +1591,20 @@ function PublicAgencyProfilePage() {
             <div id="section-contact" className="scroll-mt-24" />
             {activeTab === "contact" && (
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <h2 className="text-[16px] font-bold">Contact</h2>
+                <h2 className="text-[16px] font-bold">{tt("Contact")}</h2>
                 <p className="text-[13px] text-muted-foreground">
-                  {agency ? `Coordonnées de ${agency.name}` : "Coordonnées de l'agence."}
+                  {agency ? `${tt("Coordonnées de ")}${agency.name}` : tt("Coordonnées de l'agence.")}
                 </p>
                 <div className="mt-5">
                   {isLoading ? (
                     <StackSkeleton count={2} />
                   ) : agency === null ? (
-                    <EmptyState message="Aucune donnée disponible" />
+                    <EmptyState message={tt("Aucune donnée disponible")} />
                   ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_220px]">
                       <div className="overflow-hidden rounded-lg border border-border">
                         <iframe
-                          title={"Carte de " + agency.location}
+                          title={tt("Carte de ") + agency.location}
                           src={
                             "https://www.google.com/maps?q=" +
                             encodeURIComponent(agency.location) +
@@ -1175,7 +1625,7 @@ function PublicAgencyProfilePage() {
                           className="flex items-center justify-center gap-1.5 border-t border-border py-2 text-[12.5px] font-semibold text-primary hover:bg-accent"
                         >
                           <MapPin className="h-3.5 w-3.5" strokeWidth={1.7} />
-                          Ouvrir dans Google Maps
+                          {tt("Ouvrir dans Google Maps")}
                         </a>
                       </div>
 
@@ -1185,7 +1635,7 @@ function PublicAgencyProfilePage() {
                           onClick={openContactModal}
                           className="w-full rounded-lg bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md"
                         >
-                          Contacter {agency.name}
+                          {tt("Contacter ")}{agency.name}
                         </button>
                         {agency.website && (
                           <a
@@ -1199,7 +1649,7 @@ function PublicAgencyProfilePage() {
                           </a>
                         )}
                         <div className="rounded-lg border border-border p-2.5 text-[13px]">
-                          <p className="font-semibold">Siège social</p>
+                          <p className="font-semibold">{tt("Siège social")}</p>
                           <p className="mt-1 text-muted-foreground">{agency.address}</p>
                         </div>
                       </div>
@@ -1213,12 +1663,12 @@ function PublicAgencyProfilePage() {
             {similarAgencies.length > 0 && (
               <div className="mt-10 rounded-xl border border-border bg-card p-6 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-[16px] font-bold">Agences similaires</h2>
+                  <h2 className="text-[16px] font-bold">{tt("Agences similaires")}</h2>
                   <Link
                     to="/agences"
                     className="flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline"
                   >
-                    Découvrir plus d'agences
+                    {tt("Découvrir plus d'agences")}
                     <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
                   </Link>
                 </div>
@@ -1229,7 +1679,7 @@ function PublicAgencyProfilePage() {
                     onClick={() =>
                       similarScrollRef.current?.scrollBy({ left: -280, behavior: "smooth" })
                     }
-                    aria-label="Défiler vers la gauche"
+                    aria-label={tt("Défiler vers la gauche")}
                     className="absolute left-0 top-1/2 z-10 hidden h-8 w-8 -translate-x-3 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-colors hover:bg-accent sm:flex"
                   >
                     <ChevronLeft className="h-4 w-4" strokeWidth={1.8} />
@@ -1270,7 +1720,7 @@ function PublicAgencyProfilePage() {
                           />
                           {other.rating}
                           <span className="font-normal text-muted-foreground">
-                            ({other.reviewsCount} avis)
+                            ({other.reviewsCount} {tt("avis")})
                           </span>
                         </div>
                       </Link>
@@ -1282,7 +1732,7 @@ function PublicAgencyProfilePage() {
                     onClick={() =>
                       similarScrollRef.current?.scrollBy({ left: 280, behavior: "smooth" })
                     }
-                    aria-label="Défiler vers la droite"
+                    aria-label={tt("Défiler vers la droite")}
                     className="absolute right-0 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 translate-x-3 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-colors hover:bg-accent sm:flex"
                   >
                     <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
@@ -1317,7 +1767,7 @@ function PublicAgencyProfilePage() {
               <button
                 type="button"
                 onClick={() => setSelectedPortfolioItem(null)}
-                aria-label="Fermer"
+                aria-label={tt("Fermer")}
                 className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm transition-colors hover:bg-accent"
               >
                 <X className="h-4 w-4" strokeWidth={2} />
@@ -1336,7 +1786,7 @@ function PublicAgencyProfilePage() {
                   className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-[13px] font-semibold transition-colors hover:bg-accent"
                 >
                   <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  Voir le résultat
+                  {tt("Voir le résultat")}
                 </a>
               )}
             </div>
@@ -1348,19 +1798,19 @@ function PublicAgencyProfilePage() {
       <ActionModal
         open={isContactOpen}
         onOpenChange={setIsContactOpen}
-        title="Contacter l'agence"
+        title={tt("Contacter l'agence")}
         description={
           contactForm.needType === "Projet"
-            ? "Renseignez votre besoin, le cahier des charges (CDC) est généré automatiquement et envoyé uniquement à cette agence."
-            : "Votre demande sera envoyée uniquement à cette agence."
+            ? tt("Renseignez votre besoin, le cahier des charges (CDC) est généré automatiquement et envoyé uniquement à cette agence.")
+            : tt("Votre demande sera envoyée uniquement à cette agence.")
         }
-        confirmLabel={isSubmittingContact ? "Envoi..." : "Envoyer"}
+        confirmLabel={isSubmittingContact ? tt("Envoi...") : tt("Envoyer")}
         onConfirm={handleSubmitContact}
       >
         <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
           <div>
             <label className="text-[13px] font-semibold" htmlFor="contact-need-type">
-              Type de besoin
+              {tt("Type de besoin")}
             </label>
             <select
               id="contact-need-type"
@@ -1373,16 +1823,16 @@ function PublicAgencyProfilePage() {
               }
               className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary/50 focus:shadow-sm transition-all"
             >
-              <option value="Projet">Projet</option>
-              <option value="Stage">Stage</option>
-              <option value="Job">Job</option>
+              <option value="Projet">{tt("Projet")}</option>
+              <option value="Stage">{tt("Stage")}</option>
+              <option value="Job">{tt("Job")}</option>
             </select>
           </div>
 
           {contactForm.needType === "Projet" && (
             <div>
               <label className="text-[13px] font-semibold" htmlFor="contact-title">
-                Titre du projet
+                {tt("Titre du projet")}
               </label>
               <input
                 id="contact-title"

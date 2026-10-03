@@ -17,6 +17,7 @@ import { FilterSelect, ListPagination } from "@/components/common/ListControls";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import { EmptyState } from "@/components/common/EmptyState";
 import { getLeads, type Lead, type LeadTemperature } from "@/services/prospection.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/agence/mes-prospections")({
   head: () => ({
@@ -35,6 +36,159 @@ export const Route = createFileRoute("/_authenticated/agence/mes-prospections")(
   }),
   component: AgencyMyProspectionsPage,
 });
+
+const PAGE_TEXT = {
+  Toutes: {
+    en: "All",
+    ar: "الكل",
+    es: "Todas",
+  },
+  Chaudes: {
+    en: "Hot",
+    ar: "ساخنة",
+    es: "Calientes",
+  },
+  Tièdes: {
+    en: "Warm",
+    ar: "فاترة",
+    es: "Tibias",
+  },
+  Froides: {
+    en: "Cold",
+    ar: "باردة",
+    es: "Frías",
+  },
+  "7 derniers jours": {
+    en: "Last 7 days",
+    ar: "آخر 7 أيام",
+    es: "Últimos 7 días",
+  },
+  "30 derniers jours": {
+    en: "Last 30 days",
+    ar: "آخر 30 يومًا",
+    es: "Últimos 30 días",
+  },
+  "90 derniers jours": {
+    en: "Last 90 days",
+    ar: "آخر 90 يومًا",
+    es: "Últimos 90 días",
+  },
+  Chaud: {
+    en: "Hot",
+    ar: "ساخن",
+    es: "Caliente",
+  },
+  Tiède: {
+    en: "Warm",
+    ar: "فاتر",
+    es: "Tibio",
+  },
+  Froid: {
+    en: "Cold",
+    ar: "بارد",
+    es: "Frío",
+  },
+  Prospect: {
+    en: "Prospect",
+    ar: "العميل المحتمل",
+    es: "Prospecto",
+  },
+  "Visiteur non identifié": {
+    en: "Unidentified visitor",
+    ar: "زائر غير معروف",
+    es: "Visitante no identificado",
+  },
+  "Localisation non spécifiée": {
+    en: "Location not specified",
+    ar: "الموقع غير محدد",
+    es: "Ubicación no especificada",
+  },
+  "Signaux détectés": {
+    en: "Detected signals",
+    ar: "الإشارات المكتشفة",
+    es: "Señales detectadas",
+  },
+  Statut: {
+    en: "Status",
+    ar: "الحالة",
+    es: "Estado",
+  },
+  Score: {
+    en: "Score",
+    ar: "النقاط",
+    es: "Puntuación",
+  },
+  Action: {
+    en: "Action",
+    ar: "الإجراء",
+    es: "Acción",
+  },
+  Suivi: {
+    en: "Track",
+    ar: "متابعة",
+    es: "Seguimiento",
+  },
+  "Mes prospections": {
+    en: "My prospecting",
+    ar: "عمليات التنقيب الخاصة بي",
+    es: "Mi prospección",
+  },
+  "Suivez les prospects que vous avez contactés.": {
+    en: "Track the prospects you've contacted.",
+    ar: "تابع العملاء المحتملين الذين تواصلت معهم.",
+    es: "Haz seguimiento de los prospectos que has contactado.",
+  },
+  prospection: {
+    en: "prospect",
+    ar: "عملية تنقيب",
+    es: "prospección",
+  },
+  prospections: {
+    en: "prospects",
+    ar: "عمليات تنقيب",
+    es: "prospecciones",
+  },
+  "Rechercher une prospection...": {
+    en: "Search for a prospect...",
+    ar: "ابحث عن عملية تنقيب...",
+    es: "Buscar una prospección...",
+  },
+  Période: {
+    en: "Period",
+    ar: "الفترة",
+    es: "Periodo",
+  },
+  "Toutes les périodes": {
+    en: "All periods",
+    ar: "كل الفترات",
+    es: "Todos los periodos",
+  },
+  "Trier par :": {
+    en: "Sort by:",
+    ar: "ترتيب حسب:",
+    es: "Ordenar por:",
+  },
+  "Plus récentes": {
+    en: "Most recent",
+    ar: "الأحدث",
+    es: "Más recientes",
+  },
+  "Plus anciennes": {
+    en: "Oldest",
+    ar: "الأقدم",
+    es: "Más antiguas",
+  },
+  "Besoin de nouveaux prospects ?": {
+    en: "Need new prospects?",
+    ar: "بحاجة إلى عملاء محتملين جدد؟",
+    es: "¿Necesitas nuevos prospectos?",
+  },
+  "Découvrir la Prospection IA": {
+    en: "Discover AI Prospecting",
+    ar: "اكتشف التنقيب بالذكاء الاصطناعي",
+    es: "Descubrir la Prospección con IA",
+  },
+} satisfies PageTextDict;
 
 const TABS = [
   { value: "all", label: "Toutes" },
@@ -102,11 +256,11 @@ function getStatusConfig(status: string): StatusConfig {
   return STATUS_STYLES.cold;
 }
 
-function buildColumns(): Column<Lead>[] {
+function buildColumns(tt: (source: string) => string): Column<Lead>[] {
   return [
     {
       key: "prospect",
-      header: "Prospect",
+      header: tt("Prospect"),
       width: "minmax(0,2.2fr)",
       render: (item) => (
         <div className="flex min-w-0 items-start gap-3">
@@ -127,11 +281,11 @@ function buildColumns(): Column<Lead>[] {
           )}
           <div className="min-w-0">
             <p className="font-display truncate text-[14px] font-bold leading-tight tracking-tight text-foreground transition-colors hover:text-primary">
-              {item.companyName || "Visiteur non identifié"}
+              {item.companyName || tt("Visiteur non identifié")}
             </p>
             <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/40" />
-              {item.location || "Localisation non spécifiée"}
+              {item.location || tt("Localisation non spécifiée")}
             </p>
           </div>
         </div>
@@ -139,7 +293,7 @@ function buildColumns(): Column<Lead>[] {
     },
     {
       key: "actions",
-      header: "Signaux détectés",
+      header: tt("Signaux détectés"),
       render: (item) => (
         <div className="flex flex-wrap gap-1.5">
           {item.actions.slice(0, 3).map((action, index) => (
@@ -160,7 +314,7 @@ function buildColumns(): Column<Lead>[] {
     },
     {
       key: "status",
-      header: "Statut",
+      header: tt("Statut"),
       render: (item) => {
         const config = getStatusConfig(item.temperature);
         const Icon = config.icon;
@@ -173,14 +327,14 @@ function buildColumns(): Column<Lead>[] {
             `}
           >
             <Icon className="h-3 w-3" strokeWidth={2} />
-            {config.label}
+            {tt(config.label)}
           </span>
         );
       },
     },
     {
       key: "score",
-      header: "Score",
+      header: tt("Score"),
       render: (item) => {
         const scoreColor =
           item.score >= 70
@@ -203,14 +357,14 @@ function buildColumns(): Column<Lead>[] {
     },
     {
       key: "action",
-      header: "Action",
+      header: tt("Action"),
       render: (item) => (
         <Link
           to="/agence/prospection"
           className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-[13px] font-semibold text-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
         >
           <Eye className="h-3.5 w-3.5" strokeWidth={1.8} />
-          Suivi
+          {tt("Suivi")}
         </Link>
       ),
     },
@@ -220,6 +374,7 @@ function buildColumns(): Column<Lead>[] {
 const PAGE_SIZE = 20;
 
 function AgencyMyProspectionsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | LeadTemperature>("all");
   const [periodFilter, setPeriodFilter] = useState("");
@@ -265,6 +420,9 @@ function AgencyMyProspectionsPage() {
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
+  const tabs = TABS.map((tab) => ({ ...tab, label: tt(tab.label) }));
+  const periodOptions = PERIOD_OPTIONS.map((option) => ({ ...option, label: tt(option.label) }));
+  const prospectionWord = total !== 1 ? tt("prospections") : tt("prospection");
 
   return (
     <DashboardShell role="agency">
@@ -279,17 +437,17 @@ function AgencyMyProspectionsPage() {
             </div>
             <div>
               <h1 className="font-display text-[24px] font-bold tracking-tight">
-                Mes prospections
+                {tt("Mes prospections")}
               </h1>
               <p className="mt-1 text-[14px] text-muted-foreground">
-                Suivez les prospects que vous avez contactés.
+                {tt("Suivez les prospects que vous avez contactés.")}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary">
               <TrendingUp className="inline h-3.5 w-3.5 mr-1" />
-              {total} prospection{total !== 1 ? "s" : ""}
+              {total} {prospectionWord}
             </span>
           </div>
         </div>
@@ -305,7 +463,7 @@ function AgencyMyProspectionsPage() {
                 setQuery(event.target.value);
                 setPage(1);
               }}
-              placeholder="Rechercher une prospection..."
+              placeholder={tt("Rechercher une prospection...")}
               className="w-full rounded-xl border border-border bg-card px-10 py-3 text-[14px] outline-none placeholder:text-muted-foreground focus:border-primary/50 focus:shadow-md transition-all"
             />
           </div>
@@ -314,7 +472,7 @@ function AgencyMyProspectionsPage() {
         {/* Onglets */}
         <div className="mt-6">
           <StatusTabs
-            tabs={TABS}
+            tabs={tabs}
             value={activeTab}
             onChange={(value) => {
               setActiveTab(isValidStatusKey(value) ? value : "all");
@@ -327,9 +485,9 @@ function AgencyMyProspectionsPage() {
         {/* Filtres */}
         <div className="mt-6 rounded-xl border border-border bg-card p-4 shadow-sm sm:max-w-xs">
           <FilterSelect
-            label="Période"
-            placeholder="Toutes les périodes"
-            options={PERIOD_OPTIONS}
+            label={tt("Période")}
+            placeholder={tt("Toutes les périodes")}
+            options={periodOptions}
             value={periodFilter}
             onChange={(value) => {
               setPeriodFilter(value);
@@ -341,21 +499,21 @@ function AgencyMyProspectionsPage() {
         {/* Compteur + tri */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <p className="truncate text-[14px] font-semibold">
-            {total} prospection{total !== 1 ? "s" : ""}
+            {total} {prospectionWord}
           </p>
           <button
             onClick={() => setSortDirection((current) => (current === "recent" ? "old" : "recent"))}
             type="button"
             className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
           >
-            Trier par : {sortDirection === "recent" ? "Plus récentes" : "Plus anciennes"}
+            {tt("Trier par :")} {sortDirection === "recent" ? tt("Plus récentes") : tt("Plus anciennes")}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
           </button>
         </div>
 
         {/* Tableau */}
         <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <DataTable columns={buildColumns()} rows={paginatedProspections} isLoading={isLoading} />
+          <DataTable columns={buildColumns(tt)} rows={paginatedProspections} isLoading={isLoading} />
         </div>
 
         <ListPagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
@@ -363,12 +521,12 @@ function AgencyMyProspectionsPage() {
         {/* Lien vers la prospection IA */}
         <div className="mt-6 rounded-lg border border-border bg-accent/30 p-4 text-center">
           <p className="text-[13px] text-muted-foreground">
-            Besoin de nouveaux prospects ?{" "}
+            {tt("Besoin de nouveaux prospects ?")}{" "}
             <Link
               to="/agence/prospection"
               className="inline-flex items-center gap-1 font-semibold text-primary transition-colors hover:underline"
             >
-              Découvrir la Prospection IA
+              {tt("Découvrir la Prospection IA")}
               <ChevronDown className="h-3.5 w-3.5 rotate-[-90deg]" strokeWidth={1.8} />
             </Link>
           </p>

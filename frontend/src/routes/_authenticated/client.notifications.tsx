@@ -352,7 +352,7 @@ function ClientNotificationsPage() {
         },
       },
     ],
-    [markReadMutation],
+    [markReadMutation, tt, locale],
   );
 
   const [query, setQuery] = useState("");
@@ -476,7 +476,7 @@ function ClientNotificationsPage() {
                           : "bg-yellow-50 text-yellow-700"
                       }`}
                     >
-                      {selectedNotification.read ? "✅ Lue" : "⏳ Non lue"}
+                      {selectedNotification.read ? tt("✅ Lue") : tt("⏳ Non lue")}
                     </span>
                   </div>
                 )}
@@ -488,7 +488,7 @@ function ClientNotificationsPage() {
                       rel="noopener noreferrer"
                       className="text-sm text-blue-500 hover:underline inline-flex items-center gap-1"
                     >
-                      Voir le lien associé
+                      {tt("Voir le lien associé")}
                       <svg
                         className="h-3.5 w-3.5"
                         fill="none"
@@ -511,7 +511,7 @@ function ClientNotificationsPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                 >
-                  Fermer
+                  {tt("Fermer")}
                 </button>
               </div>
             </div>
@@ -520,9 +520,11 @@ function ClientNotificationsPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div className="min-w-0">
-            <h1 className="text-[24px] font-bold tracking-tight">Historique des notifications</h1>
+            <h1 className="text-[24px] font-bold tracking-tight">
+              {tt("Historique des notifications")}
+            </h1>
             <p className="mt-1 text-[14px] text-muted-foreground">
-              Retrouvez toutes les notifications reçues sur votre compte.
+              {tt("Retrouvez toutes les notifications reçues sur votre compte.")}
             </p>
           </div>
           <button
@@ -532,7 +534,7 @@ function ClientNotificationsPage() {
             className="flex items-center justify-center gap-1.5 rounded-md border border-border px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60 sm:justify-self-end"
           >
             <CheckCheck className="h-3.5 w-3.5" strokeWidth={1.8} />
-            Tout marquer comme lu
+            {tt("Tout marquer comme lu")}
           </button>
         </div>
 
@@ -540,13 +542,13 @@ function ClientNotificationsPage() {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Rechercher une notification..."
+            placeholder={tt("Rechercher une notification...")}
           />
         </div>
 
         <div className="mt-6">
           <StatusTabs
-            tabs={TABS}
+            tabs={TABS.map((tab) => ({ ...tab, label: tt(tab.label) }))}
             value={activeTab}
             onChange={(value) => {
               setActiveTab(value);
@@ -557,7 +559,7 @@ function ClientNotificationsPage() {
         </div>
 
         <div className="mt-6 max-w-[280px]">
-          <label className="mb-1.5 block text-[13.5px] font-semibold">Type</label>
+          <label className="mb-1.5 block text-[13.5px] font-semibold">{tt("Type")}</label>
           <select
             value={typeFilter}
             onChange={(event) => {
@@ -566,24 +568,26 @@ function ClientNotificationsPage() {
             }}
             className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-[14px] outline-none focus:border-primary"
           >
-            <option value="">Tous les types</option>
+            <option value="">{tt("Tous les types")}</option>
             {TYPE_FILTERS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {tt(option.label)}
               </option>
             ))}
           </select>
         </div>
 
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-          <p className="truncate text-[14px] font-semibold">{total} notifications</p>
+          <p className="truncate text-[14px] font-semibold">
+            {total} {tt("notifications")}
+          </p>
           <div className="relative">
             <button
               onClick={() => setIsSortOpen((open) => !open)}
               type="button"
               className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Trier par : {currentSortLabel}
+              {tt("Trier par :")} {tt(currentSortLabel)}
               <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.8} />
             </button>
             {isSortOpen ? (
@@ -608,7 +612,7 @@ function ClientNotificationsPage() {
                         (option.value === sortValue ? "font-semibold" : "")
                       }
                     >
-                      {option.label}
+                      {tt(option.label)}
                     </button>
                   ))}
                 </div>

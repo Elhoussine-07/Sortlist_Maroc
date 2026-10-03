@@ -1136,6 +1136,7 @@ function DescriptionStep({
   isEnriching: boolean;
   onEnrich: () => void;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   return (
     <div className="space-y-5">
       <div>
@@ -1143,19 +1144,24 @@ function DescriptionStep({
           htmlFor="briefing-description"
           className="block text-sm font-semibold text-slate-700"
         >
-          Décrivez votre besoin <span className="ml-1 text-sm font-normal text-red-500">*</span>
+          {tt("Décrivez votre besoin")}{" "}
+          <span className="ml-1 text-sm font-normal text-red-500">*</span>
         </label>
         <textarea
           id="briefing-description"
           value={brief.description ?? ""}
           onChange={(event) => updateBrief({ description: event.target.value })}
           rows={8}
-          placeholder="Décrivez votre projet en détail : objectifs, cibles, contraintes, périmètre..."
+          placeholder={tt(
+            "Décrivez votre projet en détail : objectifs, cibles, contraintes, périmètre...",
+          )}
           className="mt-2 w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         />
         <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
-          <span>Minimum 20 caractères pour une description complète</span>
-          <span>{brief.description?.length || 0} caractères</span>
+          <span>{tt("Minimum 20 caractères pour une description complète")}</span>
+          <span>
+            {brief.description?.length || 0} {tt("caractères")}
+          </span>
         </div>
       </div>
       <button
@@ -1173,8 +1179,8 @@ function DescriptionStep({
           />
         )}
         {isAuthenticated
-          ? "Assistance IA : reformulation + suggestion de budget"
-          : "Connectez-vous pour l'assistance IA"}
+          ? tt("Assistance IA : reformulation + suggestion de budget")
+          : tt("Connectez-vous pour l'assistance IA")}
       </button>
     </div>
   );
@@ -1187,6 +1193,7 @@ function BudgetStep({
   brief: BriefingBrief;
   updateBrief: (patch: Partial<BriefingBrief>) => void;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -1195,7 +1202,7 @@ function BudgetStep({
             htmlFor="briefing-budget-min"
             className="block text-sm font-semibold text-slate-700"
           >
-            Budget minimum (€)
+            {tt("Budget minimum (€)")}
           </label>
           <div className="relative mt-2">
             <DollarSign
@@ -1222,7 +1229,7 @@ function BudgetStep({
             htmlFor="briefing-budget-max"
             className="block text-sm font-semibold text-slate-700"
           >
-            Budget maximum (€)
+            {tt("Budget maximum (€)")}
           </label>
           <div className="relative mt-2">
             <DollarSign
@@ -1248,8 +1255,9 @@ function BudgetStep({
       <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
         <p className="flex items-start gap-2 text-sm text-slate-500">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
-          Champ optionnel — vous pouvez passer cette étape si vous ne connaissez pas encore votre
-          budget.
+          {tt(
+            "Champ optionnel — vous pouvez passer cette étape si vous ne connaissez pas encore votre budget.",
+          )}
         </p>
       </div>
     </div>
@@ -1263,11 +1271,12 @@ function LocationStep({
   brief: BriefingBrief;
   updateBrief: (patch: Partial<BriefingBrief>) => void;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   return (
     <div className="space-y-5">
       <div>
         <label htmlFor="briefing-location" className="block text-sm font-semibold text-slate-700">
-          Localisation
+          {tt("Localisation")}
         </label>
         <div className="relative mt-2">
           <MapPin
@@ -1279,14 +1288,14 @@ function LocationStep({
             type="text"
             value={brief.location ?? ""}
             onChange={(event) => updateBrief({ location: event.target.value })}
-            placeholder="Ville, pays, ou « à distance »"
+            placeholder={tt("Ville, pays, ou « à distance »")}
             className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
         <div className="mt-2 rounded-xl bg-slate-50 p-4 border border-slate-100">
           <p className="flex items-start gap-2 text-sm text-slate-500">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
-            Champ optionnel — vous pouvez passer cette étape.
+            {tt("Champ optionnel — vous pouvez passer cette étape.")}
           </p>
         </div>
       </div>
@@ -1301,11 +1310,13 @@ function DelayStep({
   brief: BriefingBrief;
   updateBrief: (patch: Partial<BriefingBrief>) => void;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   return (
     <div className="space-y-6">
       <div>
         <label className="block text-sm font-semibold text-slate-700 mb-3">
-          Délai de réalisation <span className="ml-1 text-sm font-normal text-red-500">*</span>
+          {tt("Délai de réalisation")}{" "}
+          <span className="ml-1 text-sm font-normal text-red-500">*</span>
         </label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {DELAY_PRESETS.map((preset) => {
@@ -1325,7 +1336,7 @@ function DelayStep({
                   className={`h-4 w-4 ${isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-indigo-500"}`}
                   strokeWidth={1.8}
                 />
-                {preset.label}
+                {tt(preset.label)}
               </button>
             );
           })}
@@ -1333,7 +1344,7 @@ function DelayStep({
       </div>
       <div>
         <label htmlFor="briefing-delay" className="block text-sm font-semibold text-slate-700">
-          Ou préciser un nombre de jours
+          {tt("Ou préciser un nombre de jours")}
         </label>
         <div className="relative mt-2 max-w-[200px]">
           <Calendar
@@ -1351,7 +1362,7 @@ function DelayStep({
                   event.target.value === "" ? undefined : Number(event.target.value),
               })
             }
-            placeholder="Jours"
+            placeholder={tt("Jours")}
             className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
@@ -1367,12 +1378,13 @@ function TitleStep({
   brief: BriefingBrief;
   updateBrief: (patch: Partial<BriefingBrief>) => void;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   return (
     <div className="space-y-5">
       <div>
         <label htmlFor="briefing-title" className="block text-sm font-semibold text-slate-700">
-          Titre du projet
-          <span className="ml-2 text-sm font-normal text-slate-400">(optionnel)</span>
+          {tt("Titre du projet")}
+          <span className="ml-2 text-sm font-normal text-slate-400">{tt("(optionnel)")}</span>
         </label>
         <div className="relative mt-2">
           <Heading
@@ -1384,15 +1396,18 @@ function TitleStep({
             type="text"
             value={brief.title ?? ""}
             onChange={(event) => updateBrief({ title: event.target.value })}
-            placeholder="Ex: Refonte site e-commerce, Création d'application mobile..."
+            placeholder={tt(
+              "Ex: Refonte site e-commerce, Création d'application mobile...",
+            )}
             className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-3 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
         <div className="mt-2 rounded-xl bg-slate-50 p-4 border border-slate-100">
           <p className="flex items-start gap-2 text-sm text-slate-500">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
-            Ce titre apparaîtra dans votre tableau de bord. S'il est laissé vide, un titre
-            automatique sera attribué.
+            {tt(
+              "Ce titre apparaîtra dans votre tableau de bord. S'il est laissé vide, un titre automatique sera attribué.",
+            )}
           </p>
         </div>
       </div>
@@ -1433,16 +1448,20 @@ function RecapView({
   onContactAgency: (agencyId: string) => void;
   onResetBriefing: () => void;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   return (
     <div className="mx-auto max-w-[820px]">
       <div className="text-center mb-12">
         <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-4">
           <Check className="h-8 w-8" strokeWidth={2} />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Votre brief est prêt !</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          {tt("Votre brief est prêt !")}
+        </h1>
         <p className="mt-3 text-base text-slate-500 max-w-lg mx-auto">
-          Voici le récapitulatif de votre cahier des charges. Cliquez sur une étape ci-dessus pour
-          la modifier.
+          {tt(
+            "Voici le récapitulatif de votre cahier des charges. Cliquez sur une étape ci-dessus pour la modifier.",
+          )}
         </p>
       </div>
 
@@ -1469,14 +1488,14 @@ function RecapView({
                   <row.icon className="h-4.5 w-4.5" strokeWidth={1.6} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <dt className="text-sm font-semibold text-slate-700">{row.label}</dt>
+                  <dt className="text-sm font-semibold text-slate-700">{tt(row.label)}</dt>
                   <dd className="mt-1">
                     {displayValue ? (
                       <p className="whitespace-pre-line text-sm font-medium text-slate-900 leading-relaxed">
                         {displayValue}
                       </p>
                     ) : (
-                      <p className="text-sm text-slate-400 italic">À compléter</p>
+                      <p className="text-sm text-slate-400 italic">{tt("À compléter")}</p>
                     )}
                     {subValue ? <p className="mt-0.5 text-sm text-slate-400">{subValue}</p> : null}
                   </dd>
@@ -1499,8 +1518,9 @@ function RecapView({
               <p className="flex items-start gap-3 text-sm text-amber-700">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.8} />
                 <span>
-                  La description et le délai de réalisation sont obligatoires. Cliquez sur ces
-                  étapes ci-dessus pour les compléter avant de générer le CDC.
+                  {tt(
+                    "La description et le délai de réalisation sont obligatoires. Cliquez sur ces étapes ci-dessus pour les compléter avant de générer le CDC.",
+                  )}
                 </span>
               </p>
             </div>
@@ -1512,7 +1532,7 @@ function RecapView({
               className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 shadow-sm"
             >
               <PenLine className="h-4 w-4" strokeWidth={1.8} />
-              Modifier
+              {tt("Modifier")}
             </button>
             <button
               type="button"
@@ -1525,7 +1545,7 @@ function RecapView({
               ) : (
                 <FileText className="h-4 w-4 text-indigo-500" strokeWidth={1.8} />
               )}
-              Générer le CDC (PDF)
+              {tt("Générer le CDC (PDF)")}
             </button>
             <button
               type="button"
@@ -1538,7 +1558,7 @@ function RecapView({
               ) : (
                 <Send className="h-4 w-4" strokeWidth={1.8} />
               )}
-              Publier le projet
+              {tt("Publier le projet")}
             </button>
           </div>
 
@@ -1546,8 +1566,9 @@ function RecapView({
             <p className="flex items-start gap-2 text-sm text-slate-500">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
               <span>
-                « Générer le CDC » publie automatiquement votre projet aux agences. « Publier le
-                projet » est le point d'entrée normal.
+                {tt(
+                  "« Générer le CDC » publie automatiquement votre projet aux agences. « Publier le projet » est le point d'entrée normal.",
+                )}
               </span>
             </p>
           </div>
@@ -1584,6 +1605,7 @@ function ShortlistSection({
   onContactAgency: (agencyId: string) => void;
   onResetBriefing: () => void;
 }) {
+  const { tt } = usePageText(BRIEFING_TEXT);
   return (
     <div className="mt-12">
       <div className="flex items-center gap-3 mb-6">
@@ -1591,9 +1613,9 @@ function ShortlistSection({
           <Users className="h-6 w-6" strokeWidth={1.8} />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Agences recommandées</h2>
+          <h2 className="text-xl font-bold text-slate-900">{tt("Agences recommandées")}</h2>
           <p className="text-sm text-slate-500">
-            Sélection générée par l'IA pour votre projet{" "}
+            {tt("Sélection générée par l'IA pour votre projet")}{" "}
             <span className="font-semibold text-slate-700">#{projectId}</span>
           </p>
         </div>
@@ -1619,7 +1641,7 @@ function ShortlistSection({
           </div>
         ) : shortlist.length === 0 ? (
           <div className="rounded-2xl bg-white/70 p-12 text-center border border-slate-200/60">
-            <EmptyState message="Aucune agence recommandée pour le moment." />
+            <EmptyState message={tt("Aucune agence recommandée pour le moment.")} />
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -1669,7 +1691,7 @@ function ShortlistSection({
                       ) : (
                         <Send className="h-4 w-4" />
                       )}
-                      {isContacted ? "Contactée" : "Contacter"}
+                      {isContacted ? tt("Contactée") : tt("Contacter")}
                     </button>
                     <Link
                       to="/agences/$id"
@@ -1677,7 +1699,7 @@ function ShortlistSection({
                       className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300"
                     >
                       <Globe className="h-4 w-4" strokeWidth={1.8} />
-                      Voir profil
+                      {tt("Voir profil")}
                     </Link>
                   </div>
                 </article>
@@ -1693,7 +1715,7 @@ function ShortlistSection({
           className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200"
         >
           <Briefcase className="h-4 w-4" strokeWidth={1.8} />
-          Voir mes projets
+          {tt("Voir mes projets")}
         </Link>
         <button
           type="button"
@@ -1701,7 +1723,7 @@ function ShortlistSection({
           className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300"
         >
           <RotateCcw className="h-4 w-4" strokeWidth={1.8} />
-          Nouveau projet
+          {tt("Nouveau projet")}
         </button>
       </div>
     </div>

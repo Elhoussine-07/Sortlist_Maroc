@@ -43,6 +43,280 @@ import {
 import type { Project, ProjectStatus } from "@/lib/types";
 import { ApiError } from "@/services/http";
 import { deleteProject, getMyProjects, repostProject } from "@/services/projects.service";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
+
+const PAGE_TEXT = {
+  "Tous": {
+    en: "All",
+    ar: "الكل",
+    es: "Todos",
+  },
+  "Brouillons": {
+    en: "Drafts",
+    ar: "المسودات",
+    es: "Borradores",
+  },
+  "Postulés": {
+    en: "Submitted",
+    ar: "المقدَّمة",
+    es: "Enviados",
+  },
+  "En attente": {
+    en: "Pending",
+    ar: "قيد الانتظار",
+    es: "Pendientes",
+  },
+  "En cours": {
+    en: "In progress",
+    ar: "قيد التنفيذ",
+    es: "En curso",
+  },
+  "Terminés": {
+    en: "Completed",
+    ar: "المكتملة",
+    es: "Finalizados",
+  },
+  "Suspendus": {
+    en: "Suspended",
+    ar: "المعلَّقة",
+    es: "Suspendidos",
+  },
+  "Rejetés": {
+    en: "Rejected",
+    ar: "المرفوضة",
+    es: "Rechazados",
+  },
+  "Brouillon": {
+    en: "Draft",
+    ar: "مسودة",
+    es: "Borrador",
+  },
+  "Publié": {
+    en: "Published",
+    ar: "منشور",
+    es: "Publicado",
+  },
+  "Terminé": {
+    en: "Completed",
+    ar: "مكتمل",
+    es: "Finalizado",
+  },
+  "Suspendu": {
+    en: "Suspended",
+    ar: "معلَّق",
+    es: "Suspendido",
+  },
+  "Rejeté": {
+    en: "Rejected",
+    ar: "مرفوض",
+    es: "Rechazado",
+  },
+  "Projet sans titre": {
+    en: "Untitled project",
+    ar: "مشروع بدون عنوان",
+    es: "Proyecto sin título",
+  },
+  "Mes projets": {
+    en: "My projects",
+    ar: "مشاريعي",
+    es: "Mis proyectos",
+  },
+  "Suivez l'ensemble de vos projets.": {
+    en: "Track all of your projects.",
+    ar: "تابع جميع مشاريعك.",
+    es: "Haz seguimiento de todos tus proyectos.",
+  },
+  "Postuler un projet": {
+    en: "Submit a project",
+    ar: "أرسل مشروعًا",
+    es: "Enviar un proyecto",
+  },
+  "Rechercher un projet...": {
+    en: "Search for a project...",
+    ar: "ابحث عن مشروع...",
+    es: "Buscar un proyecto...",
+  },
+  "Catégorie": {
+    en: "Category",
+    ar: "الفئة",
+    es: "Categoría",
+  },
+  "Toutes les catégories": {
+    en: "All categories",
+    ar: "جميع الفئات",
+    es: "Todas las categorías",
+  },
+  "Statut": {
+    en: "Status",
+    ar: "الحالة",
+    es: "Estado",
+  },
+  "Tous les statuts": {
+    en: "All statuses",
+    ar: "جميع الحالات",
+    es: "Todos los estados",
+  },
+  "Période": {
+    en: "Period",
+    ar: "الفترة",
+    es: "Período",
+  },
+  "Toutes les périodes": {
+    en: "All periods",
+    ar: "جميع الفترات",
+    es: "Todos los períodos",
+  },
+  "{count} projet": {
+    en: "{count} project",
+    ar: "{count} مشروع",
+    es: "{count} proyecto",
+  },
+  "{count} projets": {
+    en: "{count} projects",
+    ar: "{count} مشروع",
+    es: "{count} proyectos",
+  },
+  "Trier par : ": {
+    en: "Sort by: ",
+    ar: "الترتيب حسب: ",
+    es: "Ordenar por: ",
+  },
+  "Plus récents": {
+    en: "Most recent",
+    ar: "الأحدث",
+    es: "Más recientes",
+  },
+  "Plus anciens": {
+    en: "Oldest",
+    ar: "الأقدم",
+    es: "Más antiguos",
+  },
+  "Projet": {
+    en: "Project",
+    ar: "المشروع",
+    es: "Proyecto",
+  },
+  "Agence": {
+    en: "Agency",
+    ar: "الوكالة",
+    es: "Agencia",
+  },
+  "Budget": {
+    en: "Budget",
+    ar: "الميزانية",
+    es: "Presupuesto",
+  },
+  "Dernière activité": {
+    en: "Last activity",
+    ar: "آخر نشاط",
+    es: "Última actividad",
+  },
+  "Action": {
+    en: "Action",
+    ar: "الإجراء",
+    es: "Acción",
+  },
+  "Aucun projet à afficher.": {
+    en: "No projects to display.",
+    ar: "لا توجد مشاريع لعرضها.",
+    es: "No hay proyectos para mostrar.",
+  },
+  "Plus d'actions": {
+    en: "More actions",
+    ar: "المزيد من الإجراءات",
+    es: "Más acciones",
+  },
+  "Republication...": {
+    en: "Reposting...",
+    ar: "جارٍ إعادة النشر...",
+    es: "Volviendo a publicar...",
+  },
+  "Repostuler": {
+    en: "Repost",
+    ar: "إعادة النشر",
+    es: "Volver a publicar",
+  },
+  "Suppression...": {
+    en: "Deleting...",
+    ar: "جارٍ الحذف...",
+    es: "Eliminando...",
+  },
+  "Supprimer": {
+    en: "Delete",
+    ar: "حذف",
+    es: "Eliminar",
+  },
+  "(a refusé)": {
+    en: "(declined)",
+    ar: "(رفضت)",
+    es: "(rechazó)",
+  },
+  "Voir l'agence": {
+    en: "View agency",
+    ar: "عرض الوكالة",
+    es: "Ver agencia",
+  },
+  "Projet republié auprès des agences pertinentes.": {
+    en: "Project reposted to relevant agencies.",
+    ar: "تمت إعادة نشر المشروع لدى الوكالات ذات الصلة.",
+    es: "Proyecto vuelto a publicar entre las agencias pertinentes.",
+  },
+  "Impossible de republier ce projet.": {
+    en: "Unable to repost this project.",
+    ar: "تعذّرت إعادة نشر هذا المشروع.",
+    es: "No se pudo volver a publicar este proyecto.",
+  },
+  "Projet supprimé.": {
+    en: "Project deleted.",
+    ar: "تم حذف المشروع.",
+    es: "Proyecto eliminado.",
+  },
+  "Impossible de supprimer ce projet.": {
+    en: "Unable to delete this project.",
+    ar: "تعذّر حذف هذا المشروع.",
+    es: "No se pudo eliminar este proyecto.",
+  },
+  "Supprimer définitivement ce projet ?": {
+    en: "Permanently delete this project?",
+    ar: "هل تريد حذف هذا المشروع نهائيًا؟",
+    es: "¿Eliminar definitivamente este proyecto?",
+  },
+  "Reprendre": {
+    en: "Resume",
+    ar: "استئناف",
+    es: "Reanudar",
+  },
+  "Voir": {
+    en: "View",
+    ar: "عرض",
+    es: "Ver",
+  },
+  "Réf.": {
+    en: "Ref.",
+    ar: "المرجع:",
+    es: "Ref.",
+  },
+  "Nouveau projet": {
+    en: "New project",
+    ar: "مشروع جديد",
+    es: "Nuevo proyecto",
+  },
+  "Non catégorisé": {
+    en: "Uncategorized",
+    ar: "غير مصنّف",
+    es: "Sin categorizar",
+  },
+  "Non défini": {
+    en: "Not defined",
+    ar: "غير محدد",
+    es: "No definido",
+  },
+  "Agence :": {
+    en: "Agency:",
+    ar: "الوكالة:",
+    es: "Agencia:",
+  },
+} satisfies PageTextDict;
 
 export const Route = createFileRoute("/_authenticated/client/mes-projets")({
   head: () => ({
