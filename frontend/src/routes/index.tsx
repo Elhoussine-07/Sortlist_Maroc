@@ -31,11 +31,13 @@ import {
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Footer } from "@/components/marketing/Footer";
 import { MarketingHeader } from "@/components/marketing/MarketingHeader";
 import { StackSkeleton } from "@/components/common/Skeletons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { flagEmoji } from "@/lib/countries";
+import { getActiveCountries, type CountryOption } from "@/services/countries.service";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -341,27 +343,17 @@ const SECTORS = [
   },
 ];
 
-const COUNTRIES = [
-  { name: "Algérie", viewBox: "922.6 328.9 126.8 128.9", d: "M1021 336.9l-3.6.4-2.2-1.5h-5.6l-4.9 2.6-2.7-1-8.7.5-8.9 1.2-5 2-3.4 2.6-5.7 1.2-5.1 3.5 2 4.1.3 3.9 1.8 6.7 1.4 1.4-1 2.5-7 1-2.5 2.4-3.1.5-.3 4.7-6.3 2.5-2.1 3.2-4.4 1.7-5.4 1-8.9 4.7-.1 7.5v.4l-.1 1.2 20.3 15.5 18.4 13.9 18.6 13.8 1.3 3 3.4 1.8 2.6 1.1.1 4 6.1-.6 7.8-2.8 15.8-12.5 18.6-12.2-2.5-4-4.3-2.9-2.6 1.2-2-3.6-.2-2.7-3.4-4.7 2.1-2.6-.5-4 .6-3.5-.5-2.9.9-5.2-.4-3-1.9-5.6-2.6-11.3-3.4-2.6v-1.5l-4.5-3.8-.6-4.8 3.2-3.6 1.1-5.3-1-6.2 1-3.3z" },
-  { name: "Maroc", viewBox: "877.5 339.1 98.7 102.3", d: "M965.2 348.4l-2.3-.1-5.5-1.4-5 .4-3.1-2.7h-3.9l-1.8 3.9-3.7 6.7-4 2.6-5.4 2.9-3.5 4.3-.9 3.4-2.1 5.4 1.1 7.9-4.7 5.3-2.7 1.7-4.4 4.4-5.1.7-2.8 2.4-.1.1-3.6 6.5-3.7 2.3-2.1 4-.2 3.3-1.6 3.8-1.9 1-3.1 4-2 4.5.3 2.2-1.9 3.3-2.2 1.7-.3 3h.1l12.4-.5.7-2.3 2.3-2.9 2-8.8 7.8-6.8 2.8-8.1 1.7-.4 1.9-5 4.6-.7 1.9.9h2.5l1.8-1.5 3.4-.2-.1-3.4h.8l.1-7.5 8.9-4.7 5.4-1 4.4-1.7 2.1-3.2 6.3-2.5.3-4.7 3.1-.5 2.5-2.4 7-1 1-2.5-1.4-1.4-1.8-6.7-.3-3.9-2-4.1z" },
-  { name: "Tunisie", viewBox: "1014.0 331.6 26.7 50.4", d: "M1038 361.4l-2-1-1.5-3-2.8-.1-1.1-3.5 3.4-3.2.5-5.6-1.9-1.6-.1-3 2.5-3.2-.4-1.3-4.4 2.4.1-3.3-3.7-.7-5.6 2.6-1 3.3 1 6.2-1.1 5.3-3.2 3.6.6 4.8 4.5 3.8v1.5l3.4 2.6 2.6 11.3 2.6-1.4.4-2.7-.7-2.6 3.7-2.5 1.5-2 2.6-1.8.1-4.9z" },
-  { name: "Sénégal", viewBox: "876.6 464.6 38.2 31.2", d: "M908.9 479.2l-3.6-4.4-3.2-4.7-3.7-1.7-2.6-1.8h-3.1l-2.8 1.4-2.7-.5-2 2-1.3 3.3-2.8 4.4-2.5 1.2 2.7 2.3 2.2 5 6.1-.2 1.3-1.5 1.8-.1 2.1 1.5 1.8.1 1.8-1.1 1.1 1.8-2.4 1.5-2.4-.1-2.4-1.4-2.1 1.5h-1l-1.4.9-5-.1.8 4.9 3-1.1 1.8.2 1.5-.7 10.3.3 2.7.1 4 1.5 1.3-.1.4-.7 3 .5.8-.4.3-2-.4-2.4-2.1-1.8-1.1-3.7-.2-3.9z" },
-  { name: "Côte d'Ivoire", viewBox: "926.1 502.8 38.5 44.1", d: "M946.5 506.2l-2.3.9-1.3.8-.9-2.7-1.6.7-1-.1-1 1.9-4.3-.1-1.6-1-.7.6-1.1.5-.5 2.2 1.3 2.6 1.3 5.1-2 .8-.6.9.4 1.2-.3 2.8h-.9l-.3 1.8.6 3.1-1.2 2.8 1.6 1.8 1.8.4 2.3 2.7.2 2.5-.5.8-.5 5.2 1.1.2 5.6-2.4 3.9-1.8 6.6-1.1 3.6-.1 3.9 1.3 2.6-.1.2-2.5-2.4-5.5 1.5-7.2 2.3-5.3-1.4-9.1-3.8-1.6-2.7.2-1.9 1.6-2.5-1.3-1-2.1-2.5-1.4z" },
-  { name: "Ghana", viewBox: "956.1 499.2 29.0 45.5", d: "M976.8 502.1l-2.6-.5-1.8 1-2.4-.5-9.7.3-.2 3.6.8 4.8 1.4 9.1-2.3 5.3-1.5 7.2 2.4 5.5-.2 2.5 5 1.8 5-1.9 3.2-2.1 8.7-3.8-1.2-2.2-1.5-4-.4-3.2 1.2-5.7-1.4-2.3-.6-5.1.1-4.6-2.4-3.3.4-1.9z" },
-  { name: "Nigeria", viewBox: "987.8 479.9 74.3 69.3", d: "M1055.8 492.7l-1 .2-3.9-7-1.3-.2-4.3 3.5-4.3-1.8-3-.4-1.6.9-3.3-.2-3.3 2.7-2.8.2-6.8-3.3-2.6 1.5-2.9-.1-2.1-2.4-5.6-2.4-6 .8-1.4 1.4-.8 3.6-1.6 2.6-.3 5.7-.2 2.1 1.2 3.8-1.1 2.5.6 1.7-2.7 4-1.7 1.9-1 4 .1 4.1-.3 10.2h9.2l3.9 4.2 1.9 4.6 3 3.9 4.5.2 2.2-1.4 2.1.3 5.8-2.3 1.4-4.5 2.7-6.1 1.6-.1 3.3-3.7 2.1-.1 3.2 2.6 3.9-2.2.5-2.6 1.2-2.6.8-3.2 3-2.6 1.1-4.5 1.2-1.4.7-3.3 1.5-4 4.6-5 .3-2.1.6-1.1-2.3-2.6z" },
-  { name: "Cameroun", viewBox: "1020.1 486.0 50.8 79.4", d: "M1060.1 502.9l.2-4.3-.5-4.2-2.2-4.1-1.6.4-.2 2 2.3 2.6-.6 1.1-.3 2.1-4.6 5-1.5 4-.7 3.3-1.2 1.4-1.1 4.5-3 2.6-.8 3.2-1.2 2.6-.5 2.6-3.9 2.2-3.2-2.6-2.1.1-3.3 3.7-1.6.1-2.7 6.1-1.4 4.5v1.8l1.4.9 1.1 2.8 2.6 1.1 2.2 4.2-.8 5 9.2.2 2.6-.4 3.4.8 3.4-.8.7.3 7.1.3 4.5 1.7 4.5 1.5.4-3.5-.6-1.8-.3-2.9-2.6-2.1-2.1-3.2-.5-2.3-2.6-3.3.4-1.9-.6-2.7.4-5 1.4-1.1 2.7-6.5.9-1.7-1.8-4.4-.8-2.6-2.5-1.1-3.3-3.7 1.2-3 2.5.6 1.6-.4 3.1.1-3.1-5.8z" },
-  { name: "Éthiopie", viewBox: "1156.4 472.0 93.1 83.4", d: "M1187.6 477l-1.5 4.7-6.5-1.3-.7 5.5-2.1 6.2-3.2 3.2-2.3 4.8-.5 2.6-2.6 1.8-1.4 6.7v.7l.2 5-.8 2-3 .1-1.8 3.6 3.4.5 2.9 3.1 1 2.5 2.6 1.5 3.5 6.9 2.9 1.1v3.6l2 2.1h3.9l7.2 5.4h1.8l1.3-.1 1.2.7 3.8.5 1.6-2.7 5.1-2.6 2.3 2.1h3.8l1.5-2 3.6-.1 4.9-4.5 7.4-.3 15.4-19.1-4.8.1-18.5-7.6-2.2-2.2-2.1-3.1-2.2-3.5 1.1-2.3-1.3-1.1-1.3.5-3.1-.1-.2-2-.5-1.7 1.8-3 1.9-2.8-2-2.1-2.5-3.7-2.5-2.1-1.6-2.2-4.9-2.5-3.9-.1-1.4-1.3-3.2 1.5-3.5-2.9z" },
-  { name: "Kenya", viewBox: "1163.3 533.2 52.3 72.6", d: "M1211.7 547.2h-3.8l-2.3-2.1-5.1 2.6-1.6 2.7-3.8-.5-1.2-.7-1.3.1h-1.8l-7.2-5.4h-3.9l-2-2.1v-3.6l-2.9-1.1-3.8 4.2-3.4 3.8 2.7 4.4.7 3.2 2.6 7.3-2.1 4.7-2.7 4.2-1.6 2.6v.3l1.4 2.4-.4 4.7 20.2 13 .4 3.7 8 6.3 2.2-2.1 1.2-4.2 1.8-2.6.9-4.5 2.1-.4 1.4-2.7 4-2.5-3.3-5.3-.2-23.2 4.8-7.2z" },
-  { name: "Afrique du Sud", viewBox: "1059.9 707.3 101.0 91.8", d: "M1148.2 713.7l-2.9-.6-1.9.8-2.6-1.1-2.2-.1-8 4.7-5.2 4.7-2 4.3-1.7 2.4-3 .5-1.2 3-.6 2-3.6 1.5-4.4-.3-2.5-1.8-2.3-.8-2.7 1.5-1.5 3.1-2.7 1.9-2.8 2.8-4 .7-1.1-2.3.7-3.8-3-6.1-1.4-1-1.1 23.6-5 3.2-2.9.5-3.3-1.2-2.4-.5-.8-2.7-2.1-1.8-2.7 3.2 3.5 8.2v.1l2.5 5.3 3.2 6-.2 4.8-1.7 1.2 1.4 4.2-.2 3.8.6 1.7.3-.9 2.1 2.9 1.8.1 2.1 2.3 2.4-.2 3.5-2.4 4.6-1 5.6-2.5 2.2.3 3.3-.8 5.7 1.2 2.7-1.2 3.2 1 .8-1.8 2.7-.3 5.8-2.5 4.3-2.9 4.1-3.8 6.7-6.5 3.4-4.6 1.8-3.2 2.5-3.3 1.2-.9 3.9-3.2 1.6-2.9 1.1-5.2 1.7-4.7h-4.1l-1.3 2.8-3.3.7-3-3.5.1-2.2 1.6-2.4.7-1.8 1.6-.5 2.7 1.2-.4-2.3 1.4-7.1-1.1-4.5-2.2-9zm-20.1 52.8l-2 .6-3.7-4.9 3.2-4 3.1-2.5 2.6-1.3 2.3 2 1.7 1.9-1.9 3.1-1.1 2.1-3.1 1-1.1 2z" },
-  { name: "Égypte", viewBox: "1105.7 367.0 78.0 69.4", d: "M1129.7 374.8l-5.5-1.9-5.3-1.7-7.1.2-1.8 3 1.1 2.7-1.2 3.9 2 5.1 1.3 22.7 1 23.4h65.3l-1-1.3-6.8-5.7-.4-4.2 1-1.1-5.3-7-2-3.6-2.3-3.5-4.8-9.9-3.9-6.4-2.8-6.7.5-.6 4.6 9.1 2.7 2.9 2 2 1.2-1.1 1.2-3.3.7-4.8 1.3-2.5-.7-1.7-3.9-9.2-2.5 1.6-4.2-.4-4.4-1.5-1.1 2.1-1.7-3.2-3.9-.8-4.7.6-2.1 1.8-3.9 2-2.6-1z" },
-];
-
 const DEMO_NAV = ["Dashboard", "Projets", "Agences", "Messages", "Favoris", "Paramètres"];
 
 function HomePage() {
   const [openDemoSlug, setOpenDemoSlug] = useState<string | null>(null);
   const countriesScrollRef = useRef<HTMLDivElement>(null);
   const demoFeature = ADVANTAGES.find((item) => item.slug === openDemoSlug) ?? null;
+
+  const [activeCountries, setActiveCountries] = useState<CountryOption[]>([]);
+  useEffect(() => {
+    getActiveCountries().then(setActiveCountries);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -573,62 +565,62 @@ function HomePage() {
         </section>
 
         {/* ✅ PAYS MODERNISÉS */}
-        <section className="pt-16">
-          <h2 className="text-center text-[18px] font-bold">
-            Présent partout où vous en avez besoin
-          </h2>
-          <p className="mx-auto mt-3 max-w-[440px] text-center text-[14px] text-muted-foreground">
-            Trouvez des agences et des projets dans plusieurs pays d'Afrique.
-          </p>
+        {activeCountries.length > 0 ? (
+          <section className="pt-16">
+            <h2 className="text-center text-[18px] font-bold">
+              Présent partout où vous en avez besoin
+            </h2>
+            <p className="mx-auto mt-3 max-w-[440px] text-center text-[14px] text-muted-foreground">
+              Trouvez des agences et des projets déjà inscrits dans ces pays.
+            </p>
 
-          <div className="relative mt-8">
-            <button
-              type="button"
-              onClick={() =>
-                countriesScrollRef.current?.scrollBy({ left: -220, behavior: "smooth" })
-              }
-              aria-label="Défiler vers la gauche"
-              className="absolute left-0 top-1/2 z-10 hidden h-10 w-10 -translate-x-5 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-md sm:flex"
-            >
-              <ChevronLeft className="h-4 w-4" strokeWidth={1.8} />
-            </button>
+            <div className="relative mt-8">
+              <button
+                type="button"
+                onClick={() =>
+                  countriesScrollRef.current?.scrollBy({ left: -220, behavior: "smooth" })
+                }
+                aria-label="Défiler vers la gauche"
+                className="absolute left-0 top-1/2 z-10 hidden h-10 w-10 -translate-x-5 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-md sm:flex"
+              >
+                <ChevronLeft className="h-4 w-4" strokeWidth={1.8} />
+              </button>
 
-            <div
-              ref={countriesScrollRef}
-              className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
-              {COUNTRIES.map((country) => (
-                <Link
-                  key={country.name}
-                  to="/agences"
-                  search={{ country: country.name }}
-                  className="group flex w-[160px] shrink-0 flex-col items-center rounded-xl border border-border bg-card p-5 text-center transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
-                >
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
-                    <svg viewBox={country.viewBox} className="h-7 w-7">
-                      <path d={country.d} fill="currentColor" />
-                    </svg>
-                  </span>
-                  <h3 className="mt-3 text-[14px] font-bold">{country.name}</h3>
-                  <span className="mt-3 text-[12px] font-semibold text-muted-foreground/50 group-hover:text-primary/70 transition-colors">
-                    Découvrir →
-                  </span>
-                </Link>
-              ))}
+              <div
+                ref={countriesScrollRef}
+                className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {activeCountries.map((country) => (
+                  <Link
+                    key={country.name}
+                    to="/agences"
+                    search={{ country: country.name }}
+                    className="group flex w-[160px] shrink-0 flex-col items-center rounded-xl border border-border bg-card p-5 text-center transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
+                  >
+                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-primary/5 text-[28px]">
+                      {country.code ? flagEmoji(country.code) : "🌍"}
+                    </span>
+                    <h3 className="mt-3 text-[14px] font-bold">{country.name}</h3>
+                    <span className="mt-3 text-[12px] font-semibold text-muted-foreground/50 group-hover:text-primary/70 transition-colors">
+                      Découvrir →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  countriesScrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })
+                }
+                aria-label="Défiler vers la droite"
+                className="absolute right-0 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 translate-x-5 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-md sm:flex"
+              >
+                <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                countriesScrollRef.current?.scrollBy({ left: 220, behavior: "smooth" })
-              }
-              aria-label="Défiler vers la droite"
-              className="absolute right-0 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 translate-x-5 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-md sm:flex"
-            >
-              <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
-            </button>
-          </div>
-        </section>
+          </section>
+        ) : null}
       </main>
 
       {/* ✅ CTA FINAL MODERNISÉ */}

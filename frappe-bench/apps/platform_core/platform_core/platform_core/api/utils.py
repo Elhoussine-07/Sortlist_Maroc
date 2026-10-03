@@ -38,6 +38,23 @@ def get_countries():
 	return [{"name": c.name, "code": (c.code or "").upper()} for c in countries]
 
 @frappe.whitelist(allow_guest=True)
+def get_active_countries():
+	agency_countries = frappe.get_all(
+		"AgencyProfile", filters={"country": ["is", "set"]}, pluck="country", distinct=True
+	)
+	client_countries = frappe.get_all(
+		"ClientProfile", filters={"country": ["is", "set"]}, pluck="country", distinct=True
+	)
+	names = sorted(set(agency_countries) | set(client_countries))
+	if not names:
+		return []
+
+	countries = frappe.get_all(
+		"Country", filters={"name": ["in", names]}, fields=["name", "code"], order_by="name asc"
+	)
+	return [{"name": c.name, "code": (c.code or "").upper()} for c in countries]
+
+@frappe.whitelist(allow_guest=True)
 def get_legal_id_rule(country=None):
 	country = require_body_arg(country, "country", "Pays manquant")
 	rule = frappe.db.get_value(
