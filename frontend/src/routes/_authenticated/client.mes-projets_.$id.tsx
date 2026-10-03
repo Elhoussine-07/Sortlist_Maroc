@@ -186,7 +186,6 @@ function ClientProjectDetailPage() {
 
   const [downloadingProposalId, setDownloadingProposalId] = useState<string | null>(null);
   async function handleDownloadDevis(proposal: PendingProposal) {
-    if (!proposal.devisFile) return;
     setDownloadingProposalId(proposal.id);
     try {
       const blob = await downloadDevisPdf(proposal.id);
@@ -601,26 +600,24 @@ function ClientProjectDetailPage() {
                             {proposal.description}
                           </p>
                         ) : null}
-                        {proposal.devisFile ? (
-                          <div className="mt-3 flex items-center gap-2 rounded-md border border-border bg-accent/40 px-3 py-2">
-                            <FileText
-                              className="h-4 w-4 shrink-0 text-muted-foreground"
-                              strokeWidth={1.8}
-                            />
-                            <p className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
-                              Devis détaillé — informations de l'agence, prestations, tarifs
-                            </p>
-                            <button
-                              type="button"
-                              disabled={downloadingProposalId === proposal.id}
-                              onClick={() => void handleDownloadDevis(proposal)}
-                              className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <Download className="h-3.5 w-3.5" strokeWidth={1.8} />
-                              {downloadingProposalId === proposal.id ? "..." : "Télécharger le PDF"}
-                            </button>
-                          </div>
-                        ) : null}
+                        <div className="mt-3 flex items-center gap-2 rounded-md border border-border bg-accent/40 px-3 py-2">
+                          <FileText
+                            className="h-4 w-4 shrink-0 text-muted-foreground"
+                            strokeWidth={1.8}
+                          />
+                          <p className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
+                            Devis détaillé — informations de l'agence, prestations, tarifs
+                          </p>
+                          <button
+                            type="button"
+                            disabled={downloadingProposalId === proposal.id}
+                            onClick={() => void handleDownloadDevis(proposal)}
+                            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Download className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            {downloadingProposalId === proposal.id ? "..." : "Télécharger le PDF"}
+                          </button>
+                        </div>
                         <div className="mt-4 flex flex-wrap gap-2">
                           <button
                             type="button"

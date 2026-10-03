@@ -336,6 +336,13 @@ def download_devis(proposal=None):
 	doc = frappe.get_doc("Proposal", proposal)
 	project = frappe.get_doc("Project", doc.project)
 	_assert_owner(project, claims["sub"])
+
+	if not doc.devis_file:
+		from platform_core.platform_core.devis import generate_devis
+
+		generate_devis(doc.name)
+		doc.reload()
+
 	if not doc.devis_file:
 		frappe.throw(_("Aucun devis disponible pour cette proposition"))
 
