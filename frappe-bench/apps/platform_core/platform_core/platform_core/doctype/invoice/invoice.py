@@ -1,6 +1,6 @@
 import frappe
 from frappe.model.document import Document
-from frappe.utils import add_days, nowdate
+from frappe.utils import add_days, add_to_date, get_datetime, nowdate
 
 class Invoice(Document):
 
@@ -24,6 +24,11 @@ class Invoice(Document):
 
         invoice_due_days = frappe.db.get_single_value("PlatformSettings", "invoice_due_days") or 7
         self.due_date = add_days(self.issue_date, invoice_due_days)
+
+        payment_deadline_hours = (
+            frappe.db.get_single_value("PlatformSettings", "invoice_payment_deadline_hours") or 24
+        )
+        self.payment_deadline = add_to_date(get_datetime(self.due_date), hours=payment_deadline_hours)
 
         if not self.status:
             self.status = "Pending"
