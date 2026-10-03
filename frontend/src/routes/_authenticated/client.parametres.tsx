@@ -29,6 +29,13 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
   { value: "mono", label: "Monospace" },
 ];
 
+const LANGUAGE_OPTIONS: { value: string; label: string }[] = [
+  { value: "fr", label: "Français" },
+  { value: "en", label: "English" },
+  { value: "ar", label: "العربية" },
+  { value: "es", label: "Español" },
+];
+
 const THEME_OPTIONS: { value: Settings["theme"]; label: string; icon: typeof Sun }[] = [
   { value: "light", label: "Clair", icon: Sun },
   { value: "dark", label: "Sombre", icon: Moon },
@@ -106,6 +113,9 @@ function passwordStrength(value: string): {
 
 function ClientSettingsPage() {
   const queryClient = useQueryClient();
+  const currentTheme = useThemeStore((state) => state.theme);
+  const currentFont = useThemeStore((state) => state.font);
+  const currentTextSize = useThemeStore((state) => state.textSize);
   const settingsQuery = useQuery({
     queryKey: ["client", "settings"],
     queryFn: getSettings,
@@ -286,7 +296,7 @@ function ClientSettingsPage() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {THEME_OPTIONS.map((option) => {
                     const Icon = option.icon;
-                    const active = settings?.theme === option.value;
+                    const active = currentTheme === option.value;
                     return (
                       <button
                         key={option.value}
@@ -323,23 +333,23 @@ function ClientSettingsPage() {
                 <div>
                   <PreferenceRow label="Langue" description="Langue de l'interface">
                     <select
-                      value={settings?.language ?? ""}
+                      value={settings?.language ?? "fr"}
                       onChange={(event) => updateSetting("language", event.target.value)}
                       className="rounded-md border border-border bg-transparent px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-primary/50"
                     >
-                      <option value="">—</option>
-                      {settings?.language ? (
-                        <option value={settings.language}>{settings.language}</option>
-                      ) : null}
+                      {LANGUAGE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </PreferenceRow>
                   <PreferenceRow label="Police" description="Police d'affichage">
                     <select
-                      value={settings?.font ?? ""}
+                      value={currentFont}
                       onChange={(event) => updateSetting("font", event.target.value)}
                       className="rounded-md border border-border bg-transparent px-3 py-2 text-[13.5px] outline-none transition-colors focus:border-primary/50"
                     >
-                      <option value="">—</option>
                       {FONT_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -357,13 +367,13 @@ function ClientSettingsPage() {
                         type="range"
                         min={80}
                         max={130}
-                        value={settings?.textSize ?? 100}
+                        value={currentTextSize}
                         onChange={(event) => updateSetting("textSize", Number(event.target.value))}
                         className="w-40 accent-primary"
                       />
                       <span className="text-[16px] text-muted-foreground">A</span>
                       <span className="w-11 shrink-0 text-[13px] font-semibold">
-                        {settings?.textSize ?? 100}%
+                        {currentTextSize}%
                       </span>
                     </div>
                   </PreferenceRow>
