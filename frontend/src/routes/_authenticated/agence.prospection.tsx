@@ -479,11 +479,12 @@ function buildColumns(
   onViewClientProfile: (lead: Lead) => void,
   expandedActionIds: Set<string>,
   onToggleActions: (leadId: string) => void,
+  tt: (source: string) => string,
 ): Column<Lead>[] {
   return [
     {
       key: "lead",
-      header: "Prospect",
+      header: tt("Prospect"),
       width: "minmax(0,2.2fr)",
       render: (lead) => (
         <div className="flex min-w-0 items-start gap-3">
@@ -516,13 +517,13 @@ function buildColumns(
                   chaque /track) reflète les vraies visites répétées. */}
               {lead.visitCount > 1 && (
                 <span className="shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                  ×{lead.visitCount} visites
+                  ×{lead.visitCount} {tt("visites")}
                 </span>
               )}
             </div>
             <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
               <MapPin className="h-3.5 w-3.5" strokeWidth={1.6} />
-              <span className="truncate">{lead.location || "Localisation non spécifiée"}</span>
+              <span className="truncate">{lead.location || tt("Localisation non spécifiée")}</span>
             </p>
             {lead.clientEmail ? (
               <button
@@ -531,12 +532,12 @@ function buildColumns(
                 className="mt-1 flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline"
               >
                 <BadgeCheck className="h-3 w-3" strokeWidth={2} />
-                Client identifié — voir le profil
+                {tt("Client identifié — voir le profil")}
               </button>
             ) : (
               <p className="mt-1 flex items-center gap-1 text-[12px] text-muted-foreground/70">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-                Non identifié (détection IP)
+                {tt("Non identifié (détection IP)")}
               </p>
             )}
           </div>
@@ -545,7 +546,7 @@ function buildColumns(
     },
     {
       key: "actions",
-      header: "Signaux détectés",
+      header: tt("Signaux détectés"),
       width: "minmax(0,1.6fr)",
       render: (lead) => {
         const isExpanded = expandedActionIds.has(lead.id);
@@ -567,7 +568,7 @@ function buildColumns(
                 onClick={() => onToggleActions(lead.id)}
                 className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10"
               >
-                {isExpanded ? "Réduire" : `+${hiddenCount}`}
+                {isExpanded ? tt("Réduire") : `+${hiddenCount}`}
               </button>
             )}
           </div>
@@ -576,7 +577,7 @@ function buildColumns(
     },
     {
       key: "temperature",
-      header: "Température",
+      header: tt("Température"),
       render: (lead) => {
         const config = getTemperatureConfig(lead.temperature);
         const Icon = config.icon;
@@ -589,14 +590,14 @@ function buildColumns(
             `}
           >
             <Icon className="h-3 w-3" strokeWidth={2} />
-            {config.label}
+            {tt(config.label)}
           </span>
         );
       },
     },
     {
       key: "score",
-      header: "Score",
+      header: tt("Score"),
       render: (lead) => {
         const scoreColor =
           lead.score >= 70
@@ -619,7 +620,7 @@ function buildColumns(
     },
     {
       key: "action",
-      header: "Action",
+      header: tt("Action"),
       render: (lead) => (
         <button
           type="button"
@@ -628,7 +629,7 @@ function buildColumns(
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-[13px] font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 hover:shadow-md disabled:opacity-60"
         >
           <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
-          {generatingId === lead.id ? "Génération..." : "Générer"}
+          {generatingId === lead.id ? tt("Génération...") : tt("Générer")}
         </button>
       ),
     },

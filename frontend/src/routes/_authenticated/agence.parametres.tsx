@@ -569,7 +569,7 @@ function AgencySettingsPage() {
                     <div className="min-w-0">
                       <p className="text-[15px] font-bold">{agencyProfileQuery.data.name}</p>
                       <p className="text-[13px] text-muted-foreground">
-                        {agencyProfileQuery.data.email || "E-mail non renseigné"}
+                        {agencyProfileQuery.data.email || tt("E-mail non renseigné")}
                       </p>
                     </div>
                   </div>
@@ -577,7 +577,7 @@ function AgencySettingsPage() {
                     to="/agence/profil"
                     className="rounded-md border border-border px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-accent"
                   >
-                    Modifier le profil agence
+                    {tt("Modifier le profil agence")}
                   </Link>
                 </div>
               ) : null}
@@ -586,7 +586,7 @@ function AgencySettingsPage() {
 
           {}
           <TabsContent value="apparence" className="mt-6 space-y-6">
-            <SectionCard title="Thème" description="Choisissez le thème d'affichage.">
+            <SectionCard title={tt("Thème")} description={tt("Choisissez le thème d'affichage.")}>
               {isLoading ? (
                 <FormSkeleton fields={3} />
               ) : (
@@ -612,7 +612,7 @@ function AgencySettingsPage() {
                           </span>
                         ) : null}
                         <Icon className="h-5 w-5" strokeWidth={1.8} />
-                        {option.label}
+                        {tt(option.label)}
                       </button>
                     );
                   })}
@@ -621,14 +621,14 @@ function AgencySettingsPage() {
             </SectionCard>
 
             <SectionCard
-              title="Préférences d'affichage"
-              description="Langue, police et taille du texte."
+              title={tt("Préférences d'affichage")}
+              description={tt("Langue, police et taille du texte.")}
             >
               {isLoading ? (
                 <FormSkeleton fields={3} />
               ) : (
                 <div>
-                  <PreferenceRow label="Langue" description="Langue de l'interface">
+                  <PreferenceRow label={tt("Langue")} description={tt("Langue de l'interface")}>
                     <select
                       value={currentLocale}
                       onChange={(event) => {
@@ -644,7 +644,7 @@ function AgencySettingsPage() {
                       ))}
                     </select>
                   </PreferenceRow>
-                  <PreferenceRow label="Police" description="Police d'affichage">
+                  <PreferenceRow label={tt("Police")} description={tt("Police d'affichage")}>
                     <select
                       value={currentFont}
                       onChange={(event) => applyDisplaySetting({ font: event.target.value })}
@@ -652,14 +652,14 @@ function AgencySettingsPage() {
                     >
                       {FONT_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
-                          {option.label}
+                          {tt(option.label)}
                         </option>
                       ))}
                     </select>
                   </PreferenceRow>
                   <PreferenceRow
-                    label="Taille du texte"
-                    description="Ajustez la lisibilité de l'interface"
+                    label={tt("Taille du texte")}
+                    description={tt("Ajustez la lisibilité de l'interface")}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-[12px] text-muted-foreground">A</span>
@@ -685,13 +685,13 @@ function AgencySettingsPage() {
           {}
           <TabsContent value="notifications" className="mt-6">
             <SectionCard
-              title="Notifications"
-              description="Alertes opportunités, rappels de devis et notifications générales."
+              title={tt("Notifications")}
+              description={tt("Alertes opportunités, rappels de devis et notifications générales.")}
             >
               <div>
                 <PreferenceRow
-                  label="Notifications par e-mail"
-                  description="Opportunités, litiges, factures"
+                  label={tt("Notifications par e-mail")}
+                  description={tt("Opportunités, litiges, factures")}
                 >
                   <Switch
                     checked={settings?.emailNotifications ?? false}
@@ -699,8 +699,8 @@ function AgencySettingsPage() {
                   />
                 </PreferenceRow>
                 <PreferenceRow
-                  label="Notifications push"
-                  description="Alertes en temps réel dans le navigateur"
+                  label={tt("Notifications push")}
+                  description={tt("Alertes en temps réel dans le navigateur")}
                 >
                   <Switch
                     checked={settings?.pushNotifications ?? false}
@@ -708,8 +708,8 @@ function AgencySettingsPage() {
                   />
                 </PreferenceRow>
                 <PreferenceRow
-                  label="Alertes nouvelles opportunités"
-                  description="Recevez un e-mail dès qu'un projet correspond à vos compétences"
+                  label={tt("Alertes nouvelles opportunités")}
+                  description={tt("Recevez un e-mail dès qu'un projet correspond à vos compétences")}
                 >
                   <Switch
                     checked={settings?.opportunityAlerts ?? false}
@@ -717,8 +717,8 @@ function AgencySettingsPage() {
                   />
                 </PreferenceRow>
                 <PreferenceRow
-                  label="Rappels de devis"
-                  description="Relance automatique avant expiration d'une opportunité"
+                  label={tt("Rappels de devis")}
+                  description={tt("Relance automatique avant expiration d'une opportunité")}
                 >
                   <Switch
                     checked={settings?.autoQuoteReminders ?? false}
@@ -732,23 +732,23 @@ function AgencySettingsPage() {
           {}
           <TabsContent value="facturation" className="mt-6">
             <SectionCard
-              title="Informations de facturation"
-              description="Utilisées sur les factures émises par votre agence."
+              title={tt("Informations de facturation")}
+              description={tt("Utilisées sur les factures émises par votre agence.")}
             >
               <form onSubmit={onSubmitBilling} className="space-y-5" noValidate>
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                   <TextField
-                    label="E-mail de facturation"
+                    label={tt("E-mail de facturation")}
                     error={billingForm.formState.errors.billingEmail?.message}
                     {...billingForm.register("billingEmail")}
                   />
                   <TextField
-                    label="Numéro de TVA"
+                    label={tt("Numéro de TVA")}
                     error={billingForm.formState.errors.vatNumber?.message}
                     {...billingForm.register("vatNumber")}
                   />
                   <TextField
-                    label="Adresse de facturation"
+                    label={tt("Adresse de facturation")}
                     error={billingForm.formState.errors.billingAddress?.message}
                     {...billingForm.register("billingAddress")}
                   />
@@ -758,7 +758,7 @@ function AgencySettingsPage() {
                   disabled={registerBillingMutation.isPending}
                   className="rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
-                  {registerBillingMutation.isPending ? "Enregistrement..." : "Enregistrer"}
+                  {registerBillingMutation.isPending ? tt("Enregistrement...") : tt("Enregistrer")}
                 </button>
               </form>
             </SectionCard>
@@ -767,20 +767,20 @@ function AgencySettingsPage() {
           {}
           <TabsContent value="securite" className="mt-6 space-y-6">
             <SectionCard
-              title="Mot de passe"
-              description="Modifiez régulièrement votre mot de passe."
+              title={tt("Mot de passe")}
+              description={tt("Modifiez régulièrement votre mot de passe.")}
             >
               <form onSubmit={onSubmitPassword} className="space-y-5" noValidate>
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                   <TextField
-                    label="Mot de passe actuel"
+                    label={tt("Mot de passe actuel")}
                     type="password"
                     error={passwordForm.formState.errors.currentPassword?.message}
                     {...passwordForm.register("currentPassword")}
                   />
                   <div>
                     <TextField
-                      label="Nouveau mot de passe"
+                      label={tt("Nouveau mot de passe")}
                       type="password"
                       error={passwordForm.formState.errors.newPassword?.message}
                       {...passwordForm.register("newPassword")}
@@ -799,13 +799,13 @@ function AgencySettingsPage() {
                           ))}
                         </div>
                         <p className="mt-1 text-[12px] text-muted-foreground">
-                          Robustesse : {strength.label}
+                          {tt("Robustesse :")} {tt(strength.label)}
                         </p>
                       </div>
                     ) : null}
                   </div>
                   <TextField
-                    label="Confirmer le mot de passe"
+                    label={tt("Confirmer le mot de passe")}
                     type="password"
                     error={passwordForm.formState.errors.confirmPassword?.message}
                     {...passwordForm.register("confirmPassword")}
@@ -817,15 +817,17 @@ function AgencySettingsPage() {
                   className="rounded-md bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {changePasswordMutation.isPending
-                    ? "Mise à jour..."
-                    : "Mettre à jour le mot de passe"}
+                    ? tt("Mise à jour...")
+                    : tt("Mettre à jour le mot de passe")}
                 </button>
               </form>
             </SectionCard>
 
             <SectionCard
-              title="Double authentification"
-              description="Sécurisez votre compte avec un code de vérification envoyé par e-mail à chaque connexion."
+              title={tt("Double authentification")}
+              description={tt(
+                "Sécurisez votre compte avec un code de vérification envoyé par e-mail à chaque connexion.",
+              )}
             >
               {isLoading ? (
                 <Skeleton className="h-9 w-full" />
@@ -836,8 +838,8 @@ function AgencySettingsPage() {
                   </div>
                   <div className="flex-1">
                     <PreferenceRow
-                      label="Authentification à deux facteurs (2FA)"
-                      description={settings?.twoFactorEnabled ? "2FA activée" : "2FA désactivée"}
+                      label={tt("Authentification à deux facteurs (2FA)")}
+                      description={tt(settings?.twoFactorEnabled ? "2FA activée" : "2FA désactivée")}
                     >
                       <Switch
                         checked={settings?.twoFactorEnabled ?? false}
