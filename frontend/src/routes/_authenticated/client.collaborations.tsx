@@ -12,6 +12,7 @@ import { TextAreaField } from "@/components/common/Blocks";
 import type { Collaboration, CollaborationProjectReview } from "@/lib/types";
 import { getCollaborations, submitCollaborationReview } from "@/services/collaborations.service";
 import { ApiError } from "@/services/http";
+import { usePageText, type PageTextDict } from "@/i18n/useTranslation";
 
 export const Route = createFileRoute("/_authenticated/client/collaborations")({
   head: () => ({
@@ -60,7 +61,231 @@ const SORT_OPTIONS: Array<{ value: "recent" | "rating" | "budget"; label: string
   { value: "budget", label: "Budget le plus élevé" },
 ];
 
+const PAGE_TEXT = {
+  "Toutes": {
+    en: "All",
+    ar: "الكل",
+    es: "Todas",
+  },
+  "Avis publiés": {
+    en: "Published reviews",
+    ar: "التقييمات المنشورة",
+    es: "Reseñas publicadas",
+  },
+  "Avis à publier": {
+    en: "Reviews to publish",
+    ar: "التقييمات بانتظار النشر",
+    es: "Reseñas por publicar",
+  },
+  "7 derniers jours": {
+    en: "Last 7 days",
+    ar: "آخر 7 أيام",
+    es: "Últimos 7 días",
+  },
+  "30 derniers jours": {
+    en: "Last 30 days",
+    ar: "آخر 30 يومًا",
+    es: "Últimos 30 días",
+  },
+  "90 derniers jours": {
+    en: "Last 90 days",
+    ar: "آخر 90 يومًا",
+    es: "Últimos 90 días",
+  },
+  "5 étoiles": {
+    en: "5 stars",
+    ar: "5 نجوم",
+    es: "5 estrellas",
+  },
+  "4 étoiles et +": {
+    en: "4 stars and up",
+    ar: "4 نجوم فأكثر",
+    es: "4 estrellas o más",
+  },
+  "3 étoiles et +": {
+    en: "3 stars and up",
+    ar: "3 نجوم فأكثر",
+    es: "3 estrellas o más",
+  },
+  "2 étoiles et +": {
+    en: "2 stars and up",
+    ar: "نجمتان فأكثر",
+    es: "2 estrellas o más",
+  },
+  "1 étoile et +": {
+    en: "1 star and up",
+    ar: "نجمة واحدة فأكثر",
+    es: "1 estrella o más",
+  },
+  "Plus récentes": {
+    en: "Most recent",
+    ar: "الأحدث",
+    es: "Más recientes",
+  },
+  "Mieux notées": {
+    en: "Top rated",
+    ar: "الأعلى تقييمًا",
+    es: "Mejor valoradas",
+  },
+  "Budget le plus élevé": {
+    en: "Highest budget",
+    ar: "أعلى ميزانية",
+    es: "Mayor presupuesto",
+  },
+  "Collaborations": {
+    en: "Collaborations",
+    ar: "التعاونات",
+    es: "Colaboraciones",
+  },
+  "Agences avec lesquelles vous avez des projets terminés": {
+    en: "Agencies you have completed projects with",
+    ar: "الوكالات التي أنجزت معها مشاريع",
+    es: "Agencias con las que has completado proyectos",
+  },
+  "Rechercher une agence ou un projet...": {
+    en: "Search for an agency or a project...",
+    ar: "ابحث عن وكالة أو مشروع...",
+    es: "Buscar una agencia o un proyecto...",
+  },
+  "Agence": {
+    en: "Agency",
+    ar: "الوكالة",
+    es: "Agencia",
+  },
+  "Toutes les agences": {
+    en: "All agencies",
+    ar: "جميع الوكالات",
+    es: "Todas las agencias",
+  },
+  "Période": {
+    en: "Period",
+    ar: "الفترة",
+    es: "Período",
+  },
+  "Toutes les périodes": {
+    en: "All periods",
+    ar: "جميع الفترات",
+    es: "Todos los períodos",
+  },
+  "Note reçue": {
+    en: "Rating received",
+    ar: "التقييم المُستلم",
+    es: "Calificación recibida",
+  },
+  "Toutes les notes": {
+    en: "All ratings",
+    ar: "جميع التقييمات",
+    es: "Todas las calificaciones",
+  },
+  "collaborations": {
+    en: "collaborations",
+    ar: "تعاونات",
+    es: "colaboraciones",
+  },
+  "Trier par": {
+    en: "Sort by",
+    ar: "ترتيب حسب",
+    es: "Ordenar por",
+  },
+  "Projets terminés": {
+    en: "Completed projects",
+    ar: "المشاريع المنجزة",
+    es: "Proyectos completados",
+  },
+  "Budget": {
+    en: "Budget",
+    ar: "الميزانية",
+    es: "Presupuesto",
+  },
+  "Action": {
+    en: "Action",
+    ar: "الإجراء",
+    es: "Acción",
+  },
+  "Aucune collaboration à afficher.": {
+    en: "No collaboration to display.",
+    ar: "لا يوجد تعاون لعرضه.",
+    es: "No hay colaboración para mostrar.",
+  },
+  "Agence :": {
+    en: "Agency:",
+    ar: "الوكالة:",
+    es: "Agencia:",
+  },
+  "Fermer": {
+    en: "Close",
+    ar: "إغلاق",
+    es: "Cerrar",
+  },
+  "Voir l'avis": {
+    en: "View review",
+    ar: "عرض التقييم",
+    es: "Ver la reseña",
+  },
+  "Laisser un avis": {
+    en: "Leave a review",
+    ar: "ترك تقييم",
+    es: "Dejar una reseña",
+  },
+  "Votre avis": {
+    en: "Your review",
+    ar: "تقييمك",
+    es: "Tu reseña",
+  },
+  "Projet :": {
+    en: "Project:",
+    ar: "المشروع:",
+    es: "Proyecto:",
+  },
+  "Envoi…": {
+    en: "Sending…",
+    ar: "جارٍ الإرسال…",
+    es: "Enviando…",
+  },
+  "Envoyer l'avis": {
+    en: "Send review",
+    ar: "إرسال التقييم",
+    es: "Enviar reseña",
+  },
+  "Note": {
+    en: "Rating",
+    ar: "التقييم",
+    es: "Calificación",
+  },
+  "étoile": {
+    en: "star",
+    ar: "نجمة",
+    es: "estrella",
+  },
+  "étoiles": {
+    en: "stars",
+    ar: "نجوم",
+    es: "estrellas",
+  },
+  "Voir les avis": {
+    en: "View reviews",
+    ar: "عرض التقييمات",
+    es: "Ver las reseñas",
+  },
+  "avis laissés": {
+    en: "reviews left",
+    ar: "تقييمات مُقدَّمة",
+    es: "reseñas dejadas",
+  },
+  "Avis envoyé": {
+    en: "Review sent",
+    ar: "تم إرسال التقييم",
+    es: "Reseña enviada",
+  },
+  "Impossible d'envoyer l'avis.": {
+    en: "Unable to send the review.",
+    ar: "تعذّر إرسال التقييم.",
+    es: "No se pudo enviar la reseña.",
+  },
+} satisfies PageTextDict;
+
 function ClientCollaborationsPage() {
+  const { tt } = usePageText(PAGE_TEXT);
   const queryClient = useQueryClient();
 
   const collaborationsQuery = useQuery({
@@ -160,11 +385,11 @@ function ClientCollaborationsPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client", "collaborations"] });
-      toast.success("Avis envoyé");
+      toast.success(tt("Avis envoyé"));
       setReviewTarget(null);
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Impossible d'envoyer l'avis.");
+      toast.error(error instanceof ApiError ? error.message : tt("Impossible d'envoyer l'avis."));
     },
   });
 
@@ -182,9 +407,9 @@ function ClientCollaborationsPage() {
   return (
     <DashboardShell role="client">
       <div className="mx-auto max-w-[1080px]">
-        <h1 className="text-[24px] font-bold tracking-tight">Collaborations</h1>
+        <h1 className="text-[24px] font-bold tracking-tight">{tt("Collaborations")}</h1>
         <p className="mt-1 text-[14px] text-muted-foreground">
-          Agences avec lesquelles vous avez des projets terminés
+          {tt("Agences avec lesquelles vous avez des projets terminés")}
         </p>
 
         {/* Recherche */}
@@ -194,7 +419,7 @@ function ClientCollaborationsPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Rechercher une agence ou un projet..."
+            placeholder={tt("Rechercher une agence ou un projet...")}
             className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground focus:outline-none"
           />
         </div>
@@ -216,7 +441,7 @@ function ClientCollaborationsPage() {
                   : "rounded-full border border-border px-3.5 py-1.5 text-[13px] font-semibold transition-colors hover:bg-accent"
               }
             >
-              {tab.label}
+              {tt(tab.label)}
               <span className="ml-1.5 text-[13px] font-normal opacity-70">
                 {counts[tab.value] ?? 0}
               </span>
@@ -227,8 +452,8 @@ function ClientCollaborationsPage() {
         {/* Filtres */}
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
           <FilterSelect
-            label="Agence"
-            placeholder="Toutes les agences"
+            label={tt("Agence")}
+            placeholder={tt("Toutes les agences")}
             options={agencyOptions}
             value={agencyFilter}
             onChange={(value) => {
@@ -237,9 +462,9 @@ function ClientCollaborationsPage() {
             }}
           />
           <FilterSelect
-            label="Période"
-            placeholder="Toutes les périodes"
-            options={PERIOD_OPTIONS}
+            label={tt("Période")}
+            placeholder={tt("Toutes les périodes")}
+            options={PERIOD_OPTIONS.map((option) => ({ ...option, label: tt(option.label) }))}
             value={periodFilter}
             onChange={(value) => {
               setPeriodFilter(value);
@@ -247,9 +472,9 @@ function ClientCollaborationsPage() {
             }}
           />
           <FilterSelect
-            label="Note reçue"
-            placeholder="Toutes les notes"
-            options={RATING_OPTIONS}
+            label={tt("Note reçue")}
+            placeholder={tt("Toutes les notes")}
+            options={RATING_OPTIONS.map((option) => ({ ...option, label: tt(option.label) }))}
             value={ratingFilter}
             onChange={(value) => {
               setRatingFilter(value);
@@ -260,9 +485,11 @@ function ClientCollaborationsPage() {
 
         {/* Compteur + tri */}
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-          <p className="truncate text-[14px] font-semibold">{total} collaborations</p>
+          <p className="truncate text-[14px] font-semibold">
+            {total} {tt("collaborations")}
+          </p>
           <label className="flex shrink-0 items-center gap-1.5 text-[13.5px] text-muted-foreground">
-            Trier par
+            {tt("Trier par")}
             <span className="relative flex items-center">
               <select
                 value={sortBy}
@@ -273,7 +500,7 @@ function ClientCollaborationsPage() {
               >
                 {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {tt(option.label)}
                   </option>
                 ))}
               </select>
@@ -288,12 +515,12 @@ function ClientCollaborationsPage() {
         {/* Tableau */}
         <div className="mt-4 rounded-lg border border-border">
           <div className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-4 border-b border-border px-5 py-3 lg:grid">
-            <p className="text-[13px] font-semibold">Agence</p>
-            <p className="text-[13px] font-semibold">Projets terminés</p>
-            <p className="text-[13px] font-semibold">Période</p>
-            <p className="text-[13px] font-semibold">Budget</p>
-            <p className="text-[13px] font-semibold">Note reçue</p>
-            <p className="text-[13px] font-semibold">Action</p>
+            <p className="text-[13px] font-semibold">{tt("Agence")}</p>
+            <p className="text-[13px] font-semibold">{tt("Projets terminés")}</p>
+            <p className="text-[13px] font-semibold">{tt("Période")}</p>
+            <p className="text-[13px] font-semibold">{tt("Budget")}</p>
+            <p className="text-[13px] font-semibold">{tt("Note reçue")}</p>
+            <p className="text-[13px] font-semibold">{tt("Action")}</p>
           </div>
 
           {isLoading ? (
@@ -302,7 +529,7 @@ function ClientCollaborationsPage() {
             </div>
           ) : collaborations.length === 0 ? (
             <div className="p-5">
-              <EmptyState message="Aucune collaboration à afficher." />
+              <EmptyState message={tt("Aucune collaboration à afficher.")} />
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -311,6 +538,7 @@ function ClientCollaborationsPage() {
                   <CollaborationRow
                     collaboration={collaboration}
                     onReview={() => openReviewFlow(collaboration)}
+                    tt={tt}
                   />
                 </li>
               ))}
@@ -329,9 +557,9 @@ function ClientCollaborationsPage() {
         onOpenChange={(open) => {
           if (!open) setProjectPickerTarget(null);
         }}
-        title="Projets terminés"
-        description={projectPickerTarget ? `Agence : ${projectPickerTarget.agencyName}` : ""}
-        confirmLabel="Fermer"
+        title={tt("Projets terminés")}
+        description={projectPickerTarget ? `${tt("Agence :")} ${projectPickerTarget.agencyName}` : ""}
+        confirmLabel={tt("Fermer")}
         singleAction
         onConfirm={() => setProjectPickerTarget(null)}
       >
@@ -357,7 +585,7 @@ function ClientCollaborationsPage() {
                 onClick={() => openReviewModal(projectPickerTarget!, project)}
                 className="shrink-0 rounded-md border border-border px-3 py-1.5 text-[12.5px] font-semibold transition-colors hover:bg-accent"
               >
-                {project.reviewed ? "Voir l'avis" : "Laisser un avis"}
+                {project.reviewed ? tt("Voir l'avis") : tt("Laisser un avis")}
               </button>
             </li>
           ))}
@@ -369,18 +597,18 @@ function ClientCollaborationsPage() {
         onOpenChange={(open) => {
           if (!open) setReviewTarget(null);
         }}
-        title={reviewTarget?.project.reviewed ? "Votre avis" : "Laisser un avis"}
+        title={reviewTarget?.project.reviewed ? tt("Votre avis") : tt("Laisser un avis")}
         description={
           reviewTarget
-            ? `Agence : ${reviewTarget.collaboration.agencyName} — Projet : ${reviewTarget.project.title || reviewTarget.project.id}`
+            ? `${tt("Agence :")} ${reviewTarget.collaboration.agencyName} — ${tt("Projet :")} ${reviewTarget.project.title || reviewTarget.project.id}`
             : ""
         }
         confirmLabel={
           reviewTarget?.project.reviewed
-            ? "Fermer"
+            ? tt("Fermer")
             : reviewMutation.isPending
-              ? "Envoi…"
-              : "Envoyer l'avis"
+              ? tt("Envoi…")
+              : tt("Envoyer l'avis")
         }
         singleAction={Boolean(reviewTarget?.project.reviewed)}
         onConfirm={() => {
@@ -398,7 +626,7 @@ function ClientCollaborationsPage() {
       >
         <div className="space-y-4">
           <div>
-            <span className="text-[13px] text-muted-foreground">Note</span>
+            <span className="text-[13px] text-muted-foreground">{tt("Note")}</span>
             <div className="mt-1.5 flex items-center gap-1.5">
               {[1, 2, 3, 4, 5].map((value) => (
                 <button
@@ -406,7 +634,7 @@ function ClientCollaborationsPage() {
                   type="button"
                   disabled={reviewTarget?.project.reviewed}
                   onClick={() => setReviewRating(value)}
-                  aria-label={`${value} étoile${value > 1 ? "s" : ""}`}
+                  aria-label={`${value} ${value > 1 ? tt("étoiles") : tt("étoile")}`}
                   className="text-foreground transition-opacity hover:opacity-70 disabled:cursor-default disabled:hover:opacity-100"
                 >
                   <Star
@@ -419,7 +647,7 @@ function ClientCollaborationsPage() {
             </div>
           </div>
           <TextAreaField
-            label="Votre avis"
+            label={tt("Votre avis")}
             rows={4}
             value={reviewComment}
             onChange={(event) => setReviewComment(event.target.value)}
@@ -431,23 +659,28 @@ function ClientCollaborationsPage() {
   );
 }
 
-function collaborationReviewLabel(collaboration: Collaboration): string {
+function collaborationReviewLabel(
+  collaboration: Collaboration,
+  tt: (source: string) => string,
+): string {
   const { projects } = collaboration;
   if (projects.length <= 1) {
-    return projects[0]?.reviewed ? "Voir l'avis" : "Laisser un avis";
+    return projects[0]?.reviewed ? tt("Voir l'avis") : tt("Laisser un avis");
   }
   const reviewedCount = projects.filter((p) => p.reviewed).length;
-  if (reviewedCount === projects.length) return "Voir les avis";
-  if (reviewedCount === 0) return `Laisser un avis (${projects.length})`;
-  return `${reviewedCount}/${projects.length} avis laissés`;
+  if (reviewedCount === projects.length) return tt("Voir les avis");
+  if (reviewedCount === 0) return `${tt("Laisser un avis")} (${projects.length})`;
+  return `${reviewedCount}/${projects.length} ${tt("avis laissés")}`;
 }
 
 function CollaborationRow({
   collaboration,
   onReview,
+  tt,
 }: {
   collaboration: Collaboration;
   onReview: () => void;
+  tt: (source: string) => string;
 }) {
   return (
     <div className="grid grid-cols-1 gap-3 px-5 py-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] lg:items-center lg:gap-4">
@@ -494,7 +727,7 @@ function CollaborationRow({
           type="button"
           className="w-full rounded-md border border-border px-3 py-2 text-[13px] font-semibold transition-colors hover:bg-accent lg:w-auto"
         >
-          {collaborationReviewLabel(collaboration)}
+          {collaborationReviewLabel(collaboration, tt)}
         </button>
       </div>
     </div>
