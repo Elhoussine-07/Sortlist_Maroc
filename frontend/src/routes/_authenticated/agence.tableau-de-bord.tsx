@@ -649,6 +649,8 @@ function QuickAccess({
   description: string;
   to: "/agence/facturation" | "/agence/analytics" | "/agence/prospection" | "/agence/workflow";
 }) {
+  const { tt } = usePageText(PAGE_TEXT);
+
   return (
     <Link
       to={to}
