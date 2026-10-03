@@ -107,9 +107,31 @@ def download_invoice_pdf(invoice=None):
 	if doc.agency != claims["agency_id"]:
 		frappe.throw(_("Accès non autorisé"), frappe.PermissionError)
 
+	generated_display = frappe.utils.now_datetime().strftime("%d/%m/%Y à %H:%M")
 	pdf_content = frappe.get_print(
-		"Invoice", invoice, as_pdf=True, no_letterhead=1,
-		pdf_options={"load-error-handling": "ignore", "load-media-error-handling": "ignore"},
+		"Invoice", invoice, print_format="Facture", as_pdf=True, no_letterhead=1,
+		pdf_options={
+			"disable-external-links": True,
+			"disable-internal-links": True,
+			"disable-javascript": True,
+			"load-error-handling": "ignore",
+			"load-media-error-handling": "ignore",
+			"disable-smart-shrinking": True,
+			"quiet": True,
+			"margin-top": "15mm",
+			"margin-bottom": "20mm",
+			"margin-left": "15mm",
+			"margin-right": "15mm",
+			"page-size": "A4",
+			"disable-forms": True,
+			"no-outline": True,
+			"image-quality": 94,
+			"footer-left": f"Facture — {doc.invoice_number or invoice}",
+			"footer-center": f"Généré le {generated_display}",
+			"footer-right": "Page [page] / [topage]",
+			"footer-font-size": "8",
+			"footer-spacing": "5",
+		},
 	)
 	frappe.local.response.filename = f"{doc.invoice_number or invoice}.pdf"
 	frappe.local.response.filecontent = pdf_content
